@@ -76,3 +76,5 @@ Find items that have the word 'Tacos' anywhere in their name.
 select itemname from chipotlemenu where name
 like '%Tacos%'
 Which items have a name pattern where there's any character followed by the word 'ritos'?
+select itemname from chipotlemenu where name
+like '_riots'
