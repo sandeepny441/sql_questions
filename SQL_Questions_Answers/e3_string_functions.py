@@ -2,12 +2,12 @@
 -- select lower('APPLE') --apple
 -- select SUBSTRING('Apple', 3) --ple
 -- select SUBSTRING('ORANGE', 2, 4) --RANG
--- select length('SPACE') --3
 -- select concat('APPLE', '-- ORANGE') -- APPLE-- ORANGE
 -- SELECT LTRIM(' hello') --hello
 -- SELECT LTRIM('hello ') --hello
 -- select trim(' HELLO ') --HELLO
 -- select replace('HELLO', 'HE', 'SHE') --SHELLO
 -- select reverse('APPLE') -- ELPPA
--- select CHAR_LENGTH('APPLE') --5
+-- select length('SPACE') --5 --- outout is in BYTES
+-- select CHAR_LENGTH('APPLE') --5 --- Outputs in number of Characters 
 -- select locate('d', 'APPLE world') --11
