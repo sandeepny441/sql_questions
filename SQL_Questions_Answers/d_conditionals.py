@@ -10,43 +10,44 @@
 # and Calories < 600 
 
 Which items from the 'Burrito' category have a price less than $8.00 AND calories more than 600?
-
 Which 'Sides' items cost less than $4.00 AND have more than 700 calories?
 
 
 ---OR-----
-
 # Which items are either from the 'Tacos' category OR priced above $9.00?
 # Can you retrieve ItemNames that have either less than 550 calories OR more than 750 calories?
 # select itemname from chipotlemenu
 # where Calories < 550 or Calories > 750
-
 Which items belong to either the 'Salad' category OR the 'Quesadilla' category?
 List the items that are either 'Chicken Burrito' OR have a price of $7.80.
---NOT---
 
+--NOT---
 # Which items are NOT in the 'Bowl' category?
 # select itemname from chipotlemenu
 # where Category NOT in ('Bowl')
 List the ItemNames that do NOT have a price of $8.00.
+select * from 
+chipotlemenu
+where Price <> 8
+
 Can you retrieve items that are NOT 'Chips & Guacamole'?
 Which items do NOT have calories between 600 and 700?
 
 
 --COMPARISON---
-
 Which items have a price equal to $7.50?
 List the items that have calories greater than 650.
 Can you find items with a price less than or equal to $7.80?
 Which items from the menu have calories less than 500?
---IN------
 
+
+------IN------
 Which items belong to either the 'Burrito', 'Salad', or 'Sides' category?
 List the items that have prices IN $7.50, $8.00, and $9.00.
 Which ItemNames are either 'Chicken Burrito', 'Steak Tacos', or 'Veggie Bowl'?
 Can you retrieve items that have calories either 645, 570, or 520?
----BETWEEN----
 
+---BETWEEN----
 # Which items have a price BETWEEN $7.00 and $8.00?
 # select itemname from chipotlemenu
 # where price BETWEEN 7 and 8
@@ -76,5 +77,5 @@ Find items that have the word 'Tacos' anywhere in their name.
 select itemname from chipotlemenu where name
 like '%Tacos%'
 Which items have a name pattern where there's any character followed by the word 'ritos'?
-select itemname from chipotlemenu where name
-like '_riots'
+select itemname from chipotlemenu 
+where itemname like '_riots'
