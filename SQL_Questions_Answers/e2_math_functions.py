@@ -77,11 +77,11 @@
 # Modulo:
 # If you divide the calories of 'Chicken Burrito' by the calories of 'Veggie Bowl', what's the remainder?
 
-# select c1.calories % c2.calories 
-# from chipotlemenu c1 join chipotlemenu c2 
-# where c1.ItemName = "Chicken Burrito"
-# AND 
-# c2.ItemName = "Veggie Bowl"
+select c1.calories % c2.calories 
+from chipotlemenu c1 join chipotlemenu c2 
+where c1.ItemName = "Chicken Burrito"
+AND 
+c2.ItemName = "Veggie Bowl"
 
 
 # Random:
