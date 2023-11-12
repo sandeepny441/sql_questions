@@ -101,108 +101,149 @@ where Destination In ("Maldives")
 and DurationDays < 7 
 
 # Write a query to get the TripName and Price of trips that are priced above $1000 and have a duration less than 7 days.
+select TripName, Price
+from trips 
+where Price > 1000
+AND DurationDays < 7
 
 
 # How do you select trips where the TripName contains the word "Beach" and the price is less than $1300?
+select TripName, Price
+from trips 
+where TripName LIKE "%Beach%"
+AND 
+Price < 1300
 
 
 # Can you find trips where the destination is 'New York' and the duration is exactly 3 days?
+select TripName, Price
+from trips 
+where Destination in ("New York")
+and DurationDays = 3 
+
 =====================================================================
 OR 
 # How would you retrieve trips that are either priced below $600 or above $1800?
+select * 
+from Trips 
+where Price < 600 
+OR
+Price > 1800
+
+
 # Write a query to fetch trips that have a destination of either 'Amazon' or 'Sahara'.
+select * 
+from Trips 
+where Destination IN ('Amazon', "Sahara")
+
+
 # Can you get the TripName and Destination of trips that last for either 3 days or 8 days?
+select TripName, Destination
+from Trips 
+where 
+DurationDays = 3 
+OR
+DurationDays = 8
+
 # How do you select trips where the TripName contains the word "Adventure" or the price is more than $1900?
+select TripName 
+from Trips 
+where TripName like "%Adventure%"
+or Price > 1900
+
+
 # Write a query to retrieve all trips where the destination is either 'Himalayas' or 'Caribbean', or the duration is more than 9 days.
-# select * from trips 
-# where Destination IN ('Himalayas', 'Caribbean')
-# OR 
-# DurationDays= 9
+select * from
+Trips 
+where Destination in ("Himalayas", "Caribbean")
+OR 
+DurationDays = 9 
+
 
 =====================================================================
 aggregates
 
 # Compute min, max, avg, count, sum of Price column.
-
-# select min(Price) from trips
-# select max(Price) from trips
-# select avg(Price) from trips
-# select sum(Price) from trips
-# select count(Price) from trips
-# select std(Price) from trips
+select min(Price) from trips
+select max(Price) from trips
+select avg(Price) from trips
+select sum(Price) from trips
+select count(Price) from trips
+select std(Price) from trips
 
 =====================================================================
 
 WHERE and ORDER BY
 
 # How would you retrieve the TripName and Price for all trips priced above $1000, ordered by Price in descending order?
-# select Tripname, price from trips 
-# where price > 1000
-# order by price desc 
+select TripName, Price 
+from Trips 
+where Price > 1000 
+order by Price DESC
 
 
 # Can you list the Destination and DurationDays for trips that have a duration of 5 days or more, ordered by the duration in ascending order?
-# select Destination, DurationDays from trips 
-# where DurationDays > 5 
-# order by DurationDays 
+select Destination, DurationDays from trips 
+where DurationDays > 5 
+order by DurationDays 
 
 # Write a query to fetch the TripName and Destination for trips whose name contains the word "Tour", and order the results alphabetically by Destination.
-# select TripName, Destination from trips 
-# where TripName like "%Tour%"
-# order by TripName
+select TripName, Destination from trips 
+where TripName like "%Tour%"
+order by TripName
 
 # How do you select the TripName, Price, and DurationDays for trips where the destination is either 'Maldives' or 'New York', ordered by DurationDays in descending order?
-# select TripName, Price, DurationDays from trips 
-# where Destination IN ("New York", "Maldives")
-# order by DurationDays desc
+select TripName, Price, DurationDays from trips 
+where Destination IN ("New York", "Maldives")
+order by DurationDays desc
 
 
 # Can you retrieve all details about trips priced between $500 and $1500, sorted first by Price in ascending order and then by TripName in descending order?
-# select * from trips 
-# where Price BETWEEN 500 and 1500
-# order by Price ASC, TripName DESC
+select * from trips 
+where Price BETWEEN 500 and 1500
+order by Price ASC, TripName DESC
 
 ==================================================
 
 GROUP BY 
 
 # How would you count the number of trips for each destination?
-# select Destination, count(Tripname) from trips 
-# group by Destination
+select Destination, count(Tripname) from trips 
+group by Destination
 
 # How would you list the destinations and the count of trips for each destination?
-# select Destination, count(Tripname) from trips 
-# group by Destination
+select Destination, count(Tripname) from trips 
+group by Destination
 
 # Can you determine the average price of trips, grouped by their DurationDays?
-# select DurationDays, count(Price) from trips 
-# group by DurationDays
+select DurationDays, avg(Price) from trips 
+group by DurationDays
 
 # How would you retrieve the destinations with their highest trip prices, grouping by the Destination?
-# select Destination, max(Price) from trips 
-# group by Destination
+select Destination, max(Price) from trips 
+group by Destination
 
 ==================================================
 GROUP BY + HAVING 
 
 # How would you find destinations that have more than 2 trip offerings, grouping by the Destination?
-# select Destination, count(TripName) 
-# from trips 
-# group by Destination
-# having count(TripName)  > 2
+select Destination, count(TripName) 
+from trips 
+group by Destination
+having count(TripName)  > 2
 
 # Can you list the DurationDays values that have an average trip price greater than $1000, grouping by the duration?
-# select DurationDays, avg(Price) 
-# from trips 
-# group by DurationDays
-# having avg(Price) > 1000 
+select DurationDays, avg(Price) 
+from trips 
+group by DurationDays
+having avg(Price) > 1000 
 
 
 # Retrieve the destinations where the minimum trip price is above $500, grouping by the Destination.
-# select Destination, min(Price) 
-# from trips 
-# group by Destination
-# having min(Price)  >= 1000 
+select Destination, min(Price) 
+from trips 
+group by Destination
+having min(Price)  >= 1000 
 
 
 ==================================================
