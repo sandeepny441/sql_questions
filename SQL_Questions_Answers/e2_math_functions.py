@@ -9,10 +9,10 @@
 
 
 # Minimum Protein Content: Which item has the least amount of protein?
-# select  ItemName, min(ProteinGrams)
-# from chipotlemenu
-# group by ItemName
-# LIMIT 1
+select ItemName, min(ProteinGrams)
+from chipotlemenu
+group by ItemName
+LIMIT 1
 
 # Total Calories of Burritos: What's the total calorie count for all types of burritos on the menu?
 # --NOT so better than WHERE 
@@ -29,13 +29,12 @@
 
 # Absolute Value:
 # What's the absolute difference in price between the 'Chicken Burrito' and the 'Veggie Bowl'?
-# SELECT ABS(c1.Price - c2.Price) AS price_difference
-# FROM ChipotleMenu c1
-# JOIN ChipotleMenu c2 
-# ON 
-# c1.ItemName = 'Chicken Burrito'  
-# AND 
-# c2.ItemName = 'Veggie Bowl';
+SELECT c1.ItemName AS ItemName1, c1.Price AS Price1, 
+       c2.ItemName AS ItemName2, c2.Price AS Price2, 
+       c1.Price - c1.Price AS PriceDifference
+FROM chipotlemenu c1
+CROSS JOIN chipotlemenu c2
+WHERE c1.ItemName = 'Chicken Burrito' AND c2.ItemName = 'Veggie Bowl';
 
 
 # Power:
@@ -45,8 +44,8 @@
 
 # Square Root:
 # What's the square root of the calories for the 'Chips & Guacamole'?
-# select sqrt(calories) from chipotlemenu
-# where itemname = 'Chips & Guacamole'
+select sqrt(calories) from chipotlemenu
+where itemname = 'Chips & Guacamole'
 
 
 # Ceiling:
@@ -74,14 +73,19 @@
 # select round(Price, 2) from chipotlemenu
 # where ItemName = "Chicken Burrito"
 
+# / in Python = / in SQL 
+# // in Python = DIV in SQL 
+# % in Python = % in SQL
+
 # Modulo:
 # If you divide the calories of 'Chicken Burrito' by the calories of 'Veggie Bowl', what's the remainder?
-
-select c1.calories % c2.calories 
-from chipotlemenu c1 join chipotlemenu c2 
-where c1.ItemName = "Chicken Burrito"
-AND 
-c2.ItemName = "Veggie Bowl"
+select c1.ItemName, C2.ItemName, 
+C1.Price, C2.Price, 
+C1.Price% C2.Price as Price_modulus
+from chipotlemenu C1
+JOIN chipotlemenu C2 
+on C1.ItemName = "Chicken Burrito"
+and C2.ItemName = "Veggie Bowl"
 
 
 # Random:
@@ -91,11 +95,20 @@ c2.ItemName = "Veggie Bowl"
 # from chipotlemenu
 # where ItemName = 'Chicken Burrito'
 
+# select (RAND()* (max_value - min_value)) * Price
+# from chipotlemenu
+# where ItemName = 'Chicken Burrito'
+
 # Trig Functions:
 # What's the sine value of the price of 'Chicken Burrito' when treated as an angle in radians?
 
+
 # select sin(Price) from chipotlemenu
 # where ItemName = 'Chicken Burrito'
+
+
+select round((sin(Price)/cos(Price)) -tan(Price))
+from chipotlemenu
 
 
 
