@@ -1,3 +1,5 @@
+====================================================
+----SELF JOINS--------------------------------------
 # Write a query to list all employees along with their managers' names. For employees without a manager, the manager's name should appear as NULL.
 # SELECT
 #     e1.EmployeeID,
@@ -65,3 +67,23 @@
 =================================================================
 List all the employees who share the same grandmanager. Exclude any employees who do not have a grandmanager.
 
+
+
+
+================================================
+# Natural Joins 
+
+# SELECT *
+# FROM Employees
+# NATURAL JOIN Departments;
+================================================
+# CROSS JOINS 
+
+# SELECT *
+# FROM Colors
+# CROSS JOIN Shapes;
+
+# SELECT *
+# FROM Colors, Shapes;
+
+===============================================
