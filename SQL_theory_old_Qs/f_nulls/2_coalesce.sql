@@ -1,3 +1,7 @@
+
+-- select Price, coalesce(Price, 1000)
+-- from chipotlemenu
+
 SELECT COALESCE(NULL, NULL, 5, NULL) -- Returns 5
 SELECT COALESCE(10, NULL, NULL, 5, NULL) -- Returns 10
 
