@@ -1,4 +1,4 @@
-Ranking=========================	
+
 ROW_NUMBER
 RANK
 DENSE_RANK 

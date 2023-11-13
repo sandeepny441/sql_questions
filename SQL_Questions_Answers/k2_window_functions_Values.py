@@ -1,8 +1,8 @@
-# FIRST_VALUE
-# LAST_VALUE
-# LAG
-# LEAD 
-# NTH_VALUE
+FIRST_VALUE
+LAST_VALUE
+LAG
+LEAD 
+NTH_VALUE
 
 # select SaleID, SaleAmount, 
 # first_value(SaleAmount) over(partition by saleID order by SaleID) as f_value
