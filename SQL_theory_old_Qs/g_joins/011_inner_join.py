@@ -37,3 +37,7 @@ FROM Orders o, Customers c, Products p
 WHERE o.CustomerID = c.CustomerID 
 AND o.ProductID = p.ProductID;
 
+================================================================----------------------------------------------------------------
+# KFC menu 
+select * from KFC_menu, KFC_orders
+where KFC_menu.itemID = KFC_orders.itemID

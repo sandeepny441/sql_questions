@@ -8,11 +8,11 @@ SELECT NULLIF(salesRepEmployeeNumber, 4) FROM customers
 SELECT dividend / NULLIF(denominator,0) FROM calculations; 
 -- Returns NULL instead of failing on divide by zero errors
 
-select Price, Calories, Price/ NULLIF(Calories, 570)
-from chipotlemenu
+-- select Price, Calories, Price/ NULLIF(Calories, 570)
+-- from chipotlemenu
 
-select Price, Calories, Price/ Calories
-from chipotlemenu
+-- select Price, Calories, Price/ Calories
+-- from chipotlemenu
 SELECT creditLimit / NULLIF(creditLimit,0) FROM customers;
 
 SELECT NULLIF(TRIM(col),'') FROM data; -- Returns NULL for all rows where col is blank (after trimming)
