@@ -20,12 +20,23 @@
 
 
 # You want to run a promotion on items added to the menu on the last day of any month. How would you identify such items from the ChipotleMenu table using date functions?
-# select itemName from chipotlemenu
-# where DateAdded = last_day(DateAdded)
-# last_day expects DATE as an argument, not a month
+select itemName
+from chipotlemenu
+where Extract(day from DateAdded) = Extract(day from last_day(DateAdded))
 
 
 # For a future marketing campaign, you want to see which items will have their 1-year anniversary from the DateAdded in the next 30 days. How would you retrieve such items from the ChipotleMenu table?
 # SELECT Itemname 
 # FROM chipotlemenu
-# WHERE DATEDIFF(CURDATE(), DateAdded) = 335;
+# WHERE DATEDIFF(CURDATE(), DateAdded) BETWEEN 335 AND 365;
+
+
+select datediff(DateAdded, Date_created) as date_diff
+from 
+(
+select DateAdded, date_sub(DateAdded, interval 12 day) as Date_created
+from chipotlemenu 
+) as c1 
+
+select last_day(DateAdded)
+from chipotlemenu
