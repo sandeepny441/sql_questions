@@ -128,7 +128,26 @@
 # (select avg(p2.Price) from products1 p2 
 # where p1.category = p2.category
 # )
-================================
-select *,
-max(Price) over(partition by DurationDays order by DurationDays DESC) as max 
-from trips 
+# ================================
+# select *,
+# max(Price) over(partition by DurationDays order by DurationDays DESC) as max 
+# from trips 
+# ================================
+# Question 1: What is the total price of all Electronics where the price is above $100?
+
+# select
+# sum(case when Category = 'Electronics' and Price > 100 then Price ELSE 0 END) as total_price 
+# from products1
+# ================================
+# Question 2: What is the total price of Furniture items where the price is below $250?
+# select 
+# SUM(case when Category = 'Furniture' and Price < 250 Then Price else 0 end) as total_price 
+# from products1
+# ================================
+# Question 1: What is the minimum price of Books that have a ProductID greater than 5?
+ 
+ 
+#  select 
+#  avg(case when category = 'ELectronics' and ProductID < 3 THEN Price end) as tp 
+#  from products1
+#  ================================
