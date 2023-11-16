@@ -34,3 +34,15 @@
 # SELECT WEEK('2023-07-08')
 # SELECT LAST_DAY("2023-07-08")
 ==================================================
+
+# How would you query to find all records where the payment was made in the year 2004?
+# Can you write a SQL query to count the number of payments made in each month of the year 2003?
+# How would you extract the month and year from the paymentDate column in a SQL select statement?
+# Could you demonstrate how to calculate the average payment amount for each quarter of the year 2004?
+# Is it possible to list all customers with their most recent payment date using a SQL query?
+# How can you determine the number of days between each payment and the current date?
+# Can you write a SQL statement that shows the year with the highest total payment amount?
+# What SQL function would you use to group payments by the day of the week they were made?
+# Can you sort the records by the day of the month the payment was made, regardless of the month and year?
+# How would you use SQL to find the first and last payment dates for each customer?
+

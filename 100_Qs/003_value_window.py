@@ -85,3 +85,37 @@ LAG
 ==============================================
 LAG
 ==============================================
+
+
+
+# How can you use a window function to show the difference in TicketPrice between each booking and the previous booking for the same DepartureAirport?
+
+# select DepartureAirport, TicketPrice, 
+# TicketPrice - LAG(TicketPrice, 1, 0) over(PARTITION by DepartureAirport ORDER by FlightDate) as price_diff
+# from navan
+
+# # Can you write a query that displays each booking with the TicketPrice of the next booking for the same Destination?
+
+# select BookingID, TicketPrice,
+# lead(TicketPrice) over(partition by Destination order by BookingID) as next_p 
+# from navan
+
+
+# # How would you use a window function to calculate a three-booking moving average of TicketPrice for each DepartureAirport?
+# SELECT 
+#   BookingID, 
+#   DepartureAirport, 
+#   TicketPrice, 
+#   AVG(TicketPrice) OVER (
+#     PARTITION BY DepartureAirport 
+#     ORDER BY BookingID 
+#     ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+#   ) AS MovingAvg3Booking
+# FROM navan;
+
+
+# # Could you show how to display each booking with an additional column that shows the TicketPrice increase compared to the first booking in the dataset?
+# select BookingID, FlightDate, TicketPrice, 
+# lead(TicketPrice)  over(order by FlightDate)  - TicketPrice as price_diff 
+# from navan 
+

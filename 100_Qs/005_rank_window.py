@@ -52,3 +52,72 @@ NTILE
 # select ProductID, Price, 
 # NTILE(4) over(partition by Category order by Price) as nt 
 # from products1
+
+# Rank Window Functions:
+# How can you create a rank for each booking based on the TicketPrice within each DepartureAirport, with the highest price being rank 1?
+
+# select BookingID, TicketPrice, DepartureAirport, 
+# rank() over(partition by DepartureAirport order by TicketPrice DESC) as rank1
+# from navan 
+
+# # Can you write a SQL query that assigns a dense rank to each booking within each Destination based on the FlightDate?
+
+# select BookingID, Destination, FlightDate, 
+# DENSE_RANK() over(partition by Destination order by FlightDate) as rank1 
+# from Navan 
+
+# # How would you use window functions to give a row number to each booking, ordered by TicketPrice descending, partitioned by DepartureAirport?
+
+# select bookingID, DepartureAirport, TicketPrice, 
+# ROW_NUMBER() over(PARTITION by DepartureAirport order by TicketPrice DESC) as rn 
+# from navan 
+
+# # Could you write a query that finds the rank of each booking based on TicketPrice for flights departing in July, using a window function?
+
+# select BookingID, DepartureAirport,
+# rank() over(order by TicketPrice) as rank1 
+# from navan
+# where month(FlightDate) = 7 
+
+
+
+
+# General Window Function Questions:
+# How can you modify the dataset to include a column that shows the percent rank of each TicketPrice within its DepartureAirport?
+
+# select BookingID, TicketPrice, DepartureAirport, 
+# PERCENT_RANK() over(PARTITION by DepartureAirport
+# order by FlightDate) as pct_Rank 
+# from navan 
+
+
+# # Can you display a list of bookings with a column that shows the rank of each flight's TicketPrice when compared within the same month of FlightDate?
+
+# select TicketPrice, FlightDate, month(FlightDate) as month,
+# rank() over(partition by month(FlightDate) order by TicketPrice DESC) as rank_p from navan 
+
+
+
+# # How would you generate a column that lists the TicketPrice as a percentage of the total price of all tickets in the dataset?
+
+# select BookingID, TicketPrice, 
+# concat(CUME_DIST() over(order by TicketPrice)* 100, "%") as pct_price  
+# from navan 
+
+
+# SELECT 
+#   BookingID, 
+#   TicketPrice, 
+#   (TicketPrice / SUM(TicketPrice) OVER ()) * 100 AS PctOfTotalPrice
+# FROM navan;
+
+
+# # Could you create a query that shows the TicketPrice as a running total percentage of the overall sum of TicketPrice for the dataset?
+# SELECT 
+#   BookingID, 
+#   TicketPrice, 
+#   (SUM(TicketPrice) OVER (order by BookingID
+#   rows BETWEEN UNBOUNDED PRECEDING and CURRENT ROW)
+#    /  SUM(TicketPrice) OVER ())* 100 AS PctOfTotalPrice
+# FROM navan;
+
