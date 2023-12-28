@@ -7,7 +7,7 @@ FROM
 JOIN 
     Employee E2 ON E1.ManagerID = E2.EmployeeID;
 -----------------------------------------------------
--- EMployee Salary > Manager Salary 
+-- Select Employees with salary higher than Manager's
 SELECT 
     E1.EmployeeName AS Employee,
     E1.Salary AS EmployeeSalary,
@@ -20,6 +20,7 @@ JOIN
 WHERE 
     E1.Salary > E2.Salary;
 -----------------------------------------------------
+--Employee without Manager (CEO)
 SELECT 
     E1.EmployeeName
 FROM 
@@ -27,6 +28,7 @@ FROM
 WHERE 
     E1.ManagerID IS NULL;
 -----------------------------------------------------
+--emp sharing the same manager
 SELECT 
     E1.EmployeeName AS Employee1,
     E2.EmployeeName AS Employee2,
@@ -38,7 +40,7 @@ JOIN
 WHERE 
     E1.EmployeeID != E2.EmployeeID;
 -----------------------------------------------------
-
+--emp sharing the same salary
 SELECT 
     E1.EmployeeName AS Employee1,
     E2.EmployeeName AS Employee2,
@@ -50,6 +52,7 @@ JOIN
 WHERE 
     E1.EmployeeID != E2.EmployeeID;
 ------------------------------------------------------
+--who are my reportees
 SELECT 
     E1.EmployeeName AS Manager,
     E2.EmployeeName AS Subordinate
@@ -60,7 +63,7 @@ JOIN
 ------------------------------------------------------------- 
 SELECT 
     E1.EmployeeName AS Employee,
-    E2.EmployeeName AS TopManager
+    E2.EmployeeName AS x
 FROM 
     Employee E1
 JOIN 

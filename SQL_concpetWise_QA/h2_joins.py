@@ -9,21 +9,21 @@
 #     Y_Employees e1   LEFT JOIN Y_Employees e2 
 #     ON e1.managerID = e2.EmployeeID;
 ===============================================================
-# # Can you find pairs of employees who share the same manager? Include the names of the employees and their manager's name in your result.
+# Can you find pairs of employees who share the same manager? Include the names of the employees and their manager's name in your result.
     
-# SELECT
-#     e1.EmployeeName AS Employee1,
-#     e1.EmployeeID as emp_ID, 
-#     e2.EmployeeName AS Employee2, 
-#      e2.EmployeeID as emp_ID_2,
-#     m.EmployeeName AS Manager,
-#     m.EmployeeID as m_ID
-# FROM
-#     y_employees e1
-#     INNER JOIN y_employees e2 
-#     ON e1.ManagerID = e2.ManagerID
-#     AND e1.EmployeeID  < e2.EmployeeID
-#     LEFT JOIN y_employees m ON e1.ManagerID = m.EmployeeID;
+SELECT
+    e1.EmployeeName AS Employee1,
+    e1.EmployeeID as emp_ID, 
+    e2.EmployeeName AS Employee2, 
+     e2.EmployeeID as emp_ID_2,
+    m.EmployeeName AS Manager,
+    m.EmployeeID as m_ID
+FROM
+    y_employees e1
+    INNER JOIN y_employees e2 
+    ON e1.ManagerID = e2.ManagerID
+    AND e1.EmployeeID  < e2.EmployeeID
+    LEFT JOIN y_employees m ON e1.ManagerID = m.EmployeeID;
 ===============================================================
 # Write a query to list all managers and the number of direct reports (employees they manage) they have.
 

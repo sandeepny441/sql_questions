@@ -26,7 +26,7 @@
 # select extract(DAY from '2023-07-08')
 # select extract(MONTH from '2023-07-08')
 # select extract(HOUR from '2023-11-16 20:43:48')
-==================================================
+=====================================================
 # SELECT DAYNAME('2023-07-08')
 # SELECT MONTHNAME('2023-07-01')
 # SELECT DAYOFWEEK('2023-07-12')
