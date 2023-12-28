@@ -3,9 +3,9 @@
 
 # Highest Calorie Count: Which item has the highest calorie count?
 # select  ItemName, max(Calories)
-# from chipotlemenu
-# group by ItemName
-# LIMIT 1
+from chipotlemenu
+group by ItemName
+LIMIT 1
 
 
 # Minimum Protein Content: Which item has the least amount of protein?

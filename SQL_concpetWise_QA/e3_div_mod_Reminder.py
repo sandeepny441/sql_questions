@@ -1,12 +1,20 @@
 # In Chipotle tabel in the  Price column  how would you identify all even numbers using the modulus operator?
 select ItemName, Price from chipotlemenu
 where Price % 2 = 0
+==============================
+Python ---> SQL
+----------------------- 
+12/7  ---> 12/7
+12//5 ---> 12 DIV 7
+12%7	---> 12 % 7 
+12%7  --->  12 MOD 7
+============================= 
 
 
 # Similarly, from the same Numbers table, how would you find all odd numbers?
 select ItemName, Price from chipotlemenu
 where Price % 2 != 0
-
+/
 
 # Imagine you have a table Orders with a column OrderID. If you wanted to process every 10th order for a special review, how would you select orders where the OrderID modulus 10 equals 0?
 select ItemID from chipotlemenu

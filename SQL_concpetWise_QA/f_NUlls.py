@@ -58,9 +58,13 @@
 
 # Retrieve the names of items that have a specified Price but have either ProteinGrams or FatGrams (or both) as NULL.
 
-# select Itemname from chipotleMenu
-# where Price > 0
-# and (ProteinGrams is NULL 
-# OR FatGrams is NULL)
+select Itemname from chipotleMenu
+where Price > 0
+and (ProteinGrams is NULL 
+OR FatGrams is NULL)
+
+select Itemname from chipotleMenu
+where Price > 0
+AND FatGrams is NOT NULL
 
 

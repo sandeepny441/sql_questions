@@ -21,7 +21,7 @@ SELECT
 
 ==============================================================================
 
-START  * 
+STAR  * 
 # How would you fetch all columns and all rows from the Trips table?
 # select * from trips
 
@@ -142,6 +142,8 @@ select TripName, Destination
 from Trips 
 where 
 DurationDays = 3 
+
+
 OR
 DurationDays = 8
 
@@ -230,7 +232,7 @@ GROUP BY + HAVING
 select Destination, count(TripName) 
 from trips 
 group by Destination
-having count(TripName)  > 2
+having count(TripName)>2
 
 # Can you list the DurationDays values that have an average trip price greater than $1000, grouping by the duration?
 select DurationDays, avg(Price) 
