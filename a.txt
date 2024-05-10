@@ -1,0 +1,23 @@
+import pandas as pd
+
+# Assuming df is your DataFrame
+# Filter for rejected transactions
+rejections_df = df[df['AUTHID_STATUS'] == 'Rejected']
+
+# Group by sales representative and count rejections
+rejections_per_rep = rejections_df.groupby('SALES_REP_ID').size()
+
+# Count total scans per sales representative
+total_scans_per_rep = df.groupby('SALES_REP_ID').size()
+
+# Calculate average rejections per scan
+average_rejections_per_scan = rejections_per_rep / total_scans_per_rep
+
+# Create a DataFrame for better visualization
+average_rejections_df = pd.DataFrame({
+    'Total Scans': total_scans_per_rep,
+    'Total Rejections': rejections_per_rep,
+    'Average Rejections per Scan': average_rejections_per_scan
+}).fillna(0)  # Fill NaN with 0 where there were no rejections
+
+print(average_rejections_df)
