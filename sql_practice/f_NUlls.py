@@ -1,26 +1,25 @@
 # How many items in the ChipotleMenu table have a NULL value in the Category column?
 
-# select count(*) from chipotleMenu where  
+# select count(*) from chipotleMenu where
 # category = NULL
 
 # Retrieve all item names that have a NULL value for Price
 # select names from chipoodooMenu where ItemName = NULL
 
 # Which items were added to the menu (DateAdded) but don't have ProteinGrams specified (NULL)?
-# SELECT ItemName 
-# FROM ChipotleMenu 
+# SELECT ItemName
+# FROM ChipotleMenu
 # WHERE ProteinGrams IS NULL AND DateAdded IS NOT NULL;
 
 # Find out the average Calories of items where FatGrams is not NULL.
 # select avg(Calories) from chipoodooMenu where
-# FatGrams is NOT NULL 
-
+# FatGrams is NOT NULL
 
 
 # How many items have neither ProteinGrams nor FatGrams specified?
 # select * from chipotlemenu
-# where ProteinGrams is NULL 
-# AND 
+# where ProteinGrams is NULL
+# AND
 # FatGrams is NULL
 
 
@@ -39,11 +38,11 @@
 # Find the total count of items that have any of the nutritional facts (Calories, ProteinGrams, or FatGrams) as NULL.
 
 # select count(*) from chipotlemenu
-# Where 
-# Calories is NULL 
-# OR 
-# ProteinGrams is NULL 
-# or 
+# Where
+# Calories is NULL
+# OR
+# ProteinGrams is NULL
+# or
 # FatGrams is NULL
 
 
@@ -52,7 +51,7 @@
 # from chipotlemenu
 # where FatGrams is  NULL
 # group by ItemName
-# order by null_count desc 
+# order by null_count desc
 # limit 1
 
 
@@ -60,11 +59,9 @@
 
 select Itemname from chipotleMenu
 where Price > 0
-and (ProteinGrams is NULL 
-OR FatGrams is NULL)
+and (ProteinGrams is NULL
+     OR FatGrams is NULL)
 
 select Itemname from chipotleMenu
 where Price > 0
 AND FatGrams is NOT NULL
-
-

@@ -45,7 +45,7 @@ from trips
 # if(price < 500, 'low', 'high') as category
 # from trips
 
-How would you categorize each trip's duration as 'Weekend' if it lasts for 2 or 3 days, 'Weeklong' if it lasts for 7 days, and 'Variable' for other durations? Show the TripName and its duration type.
+-- How would you categorize each trip's duration as 'Weekend' if it lasts for 2 or 3 days, 'Weeklong' if it lasts for 7 days, and 'Variable' for other durations? Show the TripName and its duration type.
 select TripName, 
 CASE 
 when (DurationDays = 2 or  DurationDays = 3)THEN "Weekend"
@@ -55,13 +55,13 @@ END
 AS trip_Category
 from trips
 
-Based on the destinations, can you label each trip as 'Tropical' if it's either 'Maldives' or 'Caribbean', and 'Other' for all other destinations? Display the Destination and its category.
+-- Based on the destinations, can you label each trip as 'Tropical' if it's either 'Maldives' or 'Caribbean', and 'Other' for all other destinations? Display the Destination and its category.
 select TripName, 
 CASE 
 when Destination IN ("Maldies", "Caribbean") THEN "Tropical"
 ELSE "OTHER"
 END 
-as trip_Category
+AS trip_Category
 from trips
 
 
