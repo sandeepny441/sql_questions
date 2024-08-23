@@ -13,3 +13,7 @@ GROUP BY AGE_CATEGORY
 SELECT NAME, IF(IF AGE < 30, 'young', 'OLD') AS AGE_CATEGORY FROM PEOPLE
 
 --if is useful when we have only ONE condition to check 
+
+SELECT NAME, IF(IF AGE < 30, 'young', 'OLD') AS AGE_CATEGORY FROM PEOPLE
+
+SELECT NAME, IF(IF AGE < 30, 'young', 'OLD') AS AGE_CATEGORY FROM PEOPLE
