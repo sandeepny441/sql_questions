@@ -1,17 +1,12 @@
-"""
-Copy-paste notebook blocks for running the forecast pipeline from an existing df.
-
-Each block below is designed to be copied into Jupyter as a separate cell.
-The code starts from a dataframe named `df`.
-"""
-
-
-# =============================================================================
+# %%
 # BLOCK 1: Imports and required-column check
-# =============================================================================
-"""
+import importlib
+
 import pandas as pd
-from forecast_pipeline import run_forecast_pipeline
+import forecast_pipeline
+
+importlib.reload(forecast_pipeline)
+run_forecast_pipeline = forecast_pipeline.run_forecast_pipeline
 
 REQUIRED_COLUMNS = [
     "nmls",
@@ -41,13 +36,10 @@ if missing_columns:
 print("Input rows:", len(df))
 print("Unique NMLS:", df["nmls"].nunique())
 print("Buckets:", sorted(df["bucket"].dropna().astype(str).unique().tolist()))
-"""
 
 
-# =============================================================================
+# %%
 # BLOCK 2: Run month and bucket job list
-# =============================================================================
-"""
 run_month = "2026-03"
 
 bucket_jobs = [
@@ -68,66 +60,63 @@ bucket_jobs = [
     ),
     ("unknown", "unknown_bucket"),
 ]
-"""
 
 
-# =============================================================================
+# %%
 # BLOCK 3: Helper to run one bucket or bucket-group
-# =============================================================================
-"""
 job_results = {}
+
 
 def run_one_job(job_name, bucket_filter):
     print(f"Running job: {job_name} | bucket_filter={bucket_filter}")
+    if isinstance(bucket_filter, str):
+        bucket_values = [bucket_filter]
+    else:
+        bucket_values = list(bucket_filter)
+
+    raw_bucket_series = df["bucket"]
+    mask = raw_bucket_series.astype(str).isin(bucket_values)
+    if "unknown_bucket" in bucket_values:
+        mask = mask | raw_bucket_series.isna()
+
+    df_subset = df[mask].copy()
+    if df_subset.empty:
+        raise ValueError(f"No rows matched bucket_filter={bucket_filter}")
+
     result = run_forecast_pipeline(
-        df,
+        df_subset,
         run_month=run_month,
-        bucket_filter=bucket_filter,
     )
     job_results[job_name] = result
     print("Rows returned:", len(result["forecast_df"]))
     print("Unique NMLS returned:", result["forecast_df"]["nmls"].nunique())
     print("Hybrid sources:", result["hybrid_sources"])
     return result
-"""
 
 
-# =============================================================================
+# %%
 # BLOCK 4: Example single-bucket run
-# =============================================================================
-"""
 active_result = run_one_job("active", "active_producer_60_119")
-
 active_result["forecast_df"].head()
-"""
 
 
-# =============================================================================
+# %%
 # BLOCK 5: Example sparse-bucket run
-# =============================================================================
-"""
 sparse_result = run_one_job(
     "sparse",
     ["low_volume_lo_11_15", "minimal_lo_6_10", "dormant_lo_0_5"],
 )
-
 sparse_result["forecast_df"].head()
-"""
 
 
-# =============================================================================
+# %%
 # BLOCK 6: Run all bucket jobs one by one
-# =============================================================================
-"""
 for job_name, bucket_filter in bucket_jobs:
     run_one_job(job_name, bucket_filter)
-"""
 
 
-# =============================================================================
+# %%
 # BLOCK 7: Combine all forecast outputs after all jobs finish
-# =============================================================================
-"""
 final_forecast_df = pd.concat(
     [result["forecast_df"] for result in job_results.values()],
     ignore_index=True,
@@ -143,13 +132,10 @@ final_forecast_df = (
 
 print(final_forecast_df.shape)
 final_forecast_df.head()
-"""
 
 
-# =============================================================================
+# %%
 # BLOCK 8: Build final bucket-error tables from the combined forecast dataframe
-# =============================================================================
-"""
 def get_test_month_labels(run_month_text):
     anchor = pd.Timestamp(run_month_text + "-01")
     test_months = [
@@ -158,7 +144,9 @@ def get_test_month_labels(run_month_text):
     ]
     return test_months
 
+
 test_month_labels = get_test_month_labels(run_month)
+
 
 def make_bucket_error_table(forecast_df, metric_name):
     rule_col = f"{metric_name}_rule_delta_pct"
@@ -186,19 +174,18 @@ def make_bucket_error_table(forecast_df, metric_name):
 
     return pd.concat([summary, overall], ignore_index=True)
 
+
 purchase_bucket_error = make_bucket_error_table(final_forecast_df, "purchase")
 refi_bucket_error = make_bucket_error_table(final_forecast_df, "refi")
 total_bucket_error = make_bucket_error_table(final_forecast_df, "total")
 
 purchase_bucket_error
-"""
 
 
-# =============================================================================
+# %%
 # BLOCK 9: Build final threshold-error tables from the combined forecast dataframe
-# =============================================================================
-"""
 ERROR_THRESHOLDS = [1, 2, 3, 5, 7, 10, 12, 15, 20, 25, 30, 35, 40, 50]
+
 
 def make_threshold_table(forecast_df, metric_name):
     rule_col = f"{metric_name}_rule_delta_pct"
@@ -233,18 +220,16 @@ def make_threshold_table(forecast_df, metric_name):
 
     return pd.DataFrame(rows)
 
+
 purchase_threshold_error = make_threshold_table(final_forecast_df, "purchase")
 refi_threshold_error = make_threshold_table(final_forecast_df, "refi")
 total_threshold_error = make_threshold_table(final_forecast_df, "total")
 
 total_threshold_error
-"""
 
 
-# =============================================================================
+# %%
 # BLOCK 10: Optional saves
-# =============================================================================
-"""
 final_forecast_df.to_csv("final_forecast_df.csv", index=False)
 purchase_bucket_error.to_csv("purchase_bucket_error.csv", index=False)
 refi_bucket_error.to_csv("refi_bucket_error.csv", index=False)
@@ -252,4 +237,3 @@ total_bucket_error.to_csv("total_bucket_error.csv", index=False)
 purchase_threshold_error.to_csv("purchase_threshold_error.csv", index=False)
 refi_threshold_error.to_csv("refi_threshold_error.csv", index=False)
 total_threshold_error.to_csv("total_threshold_error.csv", index=False)
-"""
