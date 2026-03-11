@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import re
@@ -177,12 +176,13 @@ def _prepare_dataframe(
     prepared["nmls"] = prepared["nmls"].apply(_normalize_nmls)
     missing_nmls_mask = prepared["nmls"].eq("")
     if missing_nmls_mask.any():
-        prepared.loc[missing_nmls_mask, "nmls"] = (
-            "missing_nmls_" + prepared.loc[missing_nmls_mask, "_source_row_id"]
-        )
+        dropped_count = int(missing_nmls_mask.sum())
+        prepared = prepared.loc[~missing_nmls_mask].copy()
         data_quality_notes.append(
-            f"Filled {int(missing_nmls_mask.sum())} rows with synthetic nmls values because nmls was blank or null."
+            f"Dropped {dropped_count} rows because nmls was blank or null."
         )
+        if prepared.empty:
+            raise ValueError("No usable rows remain after dropping blank/null nmls values.")
     prepared["bucket"] = prepared["bucket"].apply(_normalize_bucket)
     normalized_bucket_filter = _normalize_bucket_filter(bucket_filter)
     if normalized_bucket_filter is not None:
@@ -339,7 +339,13 @@ def _build_panel_indexes(df: pd.DataFrame):
 
 def _records_to_dataframe(df: pd.DataFrame, records: dict) -> pd.DataFrame:
     output = pd.DataFrame.from_dict(records, orient="index").sort_index()
-    output = output[[column for column in df.columns if column not in {"_month_dt", "_month_label"}]]
+    output = output[
+        [
+            column
+            for column in df.columns
+            if column not in {"_month_dt", "_month_label", "_source_row_id"}
+        ]
+    ]
     return output
 
 
@@ -514,7 +520,7 @@ def _build_feature_dict(records, nmls_rows, target_month, market_key, uwm_key, h
     older_market_avg_2 = _mean(market_lags[2:])
     uwm_avg_4 = _mean(uwm_lags)
 
-    return {
+    raw_features = {
         "bucket": target_row["bucket"],
         "month_sin": np.sin(2 * np.pi * target_month.month / 12),
         "month_cos": np.cos(2 * np.pi * target_month.month / 12),
@@ -534,6 +540,13 @@ def _build_feature_dict(records, nmls_rows, target_month, market_key, uwm_key, h
         "num_states_from_cotality": target_row["num_states_from_cotality"],
         "num_lenders_from_cotality": target_row["num_lenders_from_cotality"],
     }
+    clean_features = {}
+    for key, value in raw_features.items():
+        if key == "bucket":
+            clean_features[key] = value or "unknown_bucket"
+        else:
+            clean_features[key] = _safe_number(value, default=0.0)
+    return clean_features
 
 
 def _fit_ridge_model(records, rows_by_nmls, training_months, market_key, uwm_key, bucket_selector=None):
