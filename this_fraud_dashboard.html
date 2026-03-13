@@ -9,3 +9,17 @@ Predictions	May 2026: 2542, Jun 2026: 2535, Jul 2026: 2531
 The model achieved about 98.3% forecasting accuracy on the validation period, with an average miss of roughly 47 employees per month.
 Headcount is projected to trend down gradually from 2,617 in February 2026 to about 2,531 in July 2026, a reduction of around 86 employees.
 The forecast is already close to the known 2026 actuals, missing February 2026 by 2 employees and March 2026 by 4, which supports confidence in the near-term outlook.
+
+==============
+Term	What It Means	Example
+Confidence interval	A range for an estimated model quantity, like an average or coefficient. It is usually not the right range for “what next month’s actual headcount will be.”	“We are 95% confident the average headcount trend is between 2,500 and 2,600.”
+Prediction interval	A range for the actual future value. This is the correct concept for your forecast CSV.	Apr 2026 forecast = 2554, 80% prediction interval = 2272 to 2836.
+Lower bound	The bottom end of the prediction interval.	FORECAST LOWER 80 = 2272 means the low end of the likely range for Apr 2026.
+Upper bound	The top end of the prediction interval.	FORECAST UPPER 80 = 2836 means the high end of the likely range for Apr 2026.
+Point forecast	The single best estimate from the model.	Apr 2026 = 2554.
+Confidence level / coverage level	The percentage attached to the interval, such as 80%. Higher means a safer but wider range.	80% means the interval is designed to contain the actual value about 8 out of 10 times over many similar forecasts.
+Forecast error	The difference between actual and forecast.	If actual is 2615 and forecast is 2617, error is -2 if you use Actual - Forecast.
+Forecast bias	Whether the model tends to over-forecast or under-forecast.	Forecast bias = Forecast - Actual; if forecast is 2617 and actual is 2615, bias is +2, so the model over-forecasted.
+MAE	Average absolute miss in actual units. Easy for business users to read.	MAE = 47.31 means the forecast missed by about 47 employees per month on average.
+MAPE	Average absolute miss as a percentage of actuals.	MAPE = 1.71% means the average miss was about 1.71%.
+
