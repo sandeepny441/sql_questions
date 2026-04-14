@@ -1,1740 +1,378 @@
-from __future__ import annotations
-
-import random
-
-import numpy as np
-import pandas as pd
-from scipy.optimize import Bounds, LinearConstraint, milp
-
-
-# -------------------------------------------------------------------
-# Notebook-style inputs
-# -------------------------------------------------------------------
-
-df = pd.read_csv("dummy_nmls_values.csv")
-
-MATCH_FEATURES = [
-    "pro_score",
-    "uwm_production",
-    "overall_production",
-    "conv_mix",
-    "fha_mix",
-    "va_mix",
-    "purchase_pct",
-    "total_ytd_closings",
-]
-
-CALIPERS = {
-    "pro_score": 1.15,
-    "overall_production": 1.65,
-    "purchase_pct": 1.3,
-    "total_ytd_closings": 1.35,
-    "__pair_distance__": 3.1,
-}
-
-UNMATCHED_PENALTY = 1000.0
-SEED = 42
-
-UPLOAD_COLUMNS = [
-    "nmls",
-    "assignment",
-    "pro_ranking",
-    "pro_score",
-    "uwm_production",
-    "overall_production",
-    "conv_mix",
-    "fha_mix",
-    "va_mix",
-    "purchase_pct",
-    "refi_pct",
-    "total_ytd_closings",
-    "jan_closings",
-    "feb_closings",
-    "march_closings",
-    "pair_distance",
-    "twin_nmls",
-    "plot_x",
-    "plot_y",
-    "pair_id",
-    "match_score",
-]
-
-
-# -------------------------------------------------------------------
-# Standardize the matching features
-# -------------------------------------------------------------------
-
-scaled_df = df.copy()
-for col in MATCH_FEATURES:
-    mean = scaled_df[col].mean()
-    std = scaled_df[col].std(ddof=0)
-    scaled_df[col] = 0.0 if std == 0 else (scaled_df[col] - mean) / std
-
-
-# -------------------------------------------------------------------
-# Exact MILP solver for one rank bucket
-# -------------------------------------------------------------------
-
-def solve_bucket_exact(bucket_indices: list[int], edge_list: list[tuple[int, int, float]]) -> tuple[list[tuple[int, int, float]], list[int]]:
-    nodes = list(bucket_indices)
-    node_to_pos = {node: pos for pos, node in enumerate(nodes)}
-    n_nodes = len(nodes)
-    n_edges = len(edge_list)
-    n_vars = n_edges + n_nodes
-
-    objective = np.zeros(n_vars, dtype=float)
-    integrality = np.ones(n_vars, dtype=int)
-    lower = np.zeros(n_vars, dtype=float)
-    upper = np.ones(n_vars, dtype=float)
-
-    for edge_pos, (i, j, distance) in enumerate(edge_list):
-        objective[edge_pos] = distance + (1e-8 * (node_to_pos[i] + node_to_pos[j]))
-
-    objective[n_edges:] = UNMATCHED_PENALTY
-
-    constraint_matrix = np.zeros((n_nodes, n_vars), dtype=float)
-    for edge_pos, (i, j, _) in enumerate(edge_list):
-        constraint_matrix[node_to_pos[i], edge_pos] = 1.0
-        constraint_matrix[node_to_pos[j], edge_pos] = 1.0
-
-    for node, pos in node_to_pos.items():
-        constraint_matrix[pos, n_edges + pos] = 1.0
-
-    result = milp(
-        c=objective,
-        integrality=integrality,
-        bounds=Bounds(lower, upper),
-        constraints=LinearConstraint(constraint_matrix, lb=np.ones(n_nodes), ub=np.ones(n_nodes)),
-    )
-
-    if not result.success or result.x is None:
-        raise RuntimeError(f"MILP did not converge for bucket with {n_nodes} rows: {result.message}")
-
-    chosen_edges = [edge for edge_pos, edge in enumerate(edge_list) if result.x[edge_pos] > 0.5]
-    unmatched_nodes = [node for node, pos in node_to_pos.items() if result.x[n_edges + pos] > 0.5]
-    return chosen_edges, unmatched_nodes
-
-
-# -------------------------------------------------------------------
-# Build candidate edges inside each exact pro_ranking bucket
-# -------------------------------------------------------------------
-
-rng = random.Random(SEED)
-matched_pairs: list[dict[str, object]] = []
-outlier_indices: list[int] = []
-
-for pro_ranking, bucket_df in df.groupby("pro_ranking", sort=True):
-    bucket_indices = bucket_df.index.tolist()
-    edge_list: list[tuple[int, int, float]] = []
-
-    for offset, i in enumerate(bucket_indices):
-        for j in bucket_indices[offset + 1:]:
-            diff = scaled_df.loc[i, MATCH_FEATURES].to_numpy(dtype=float) - scaled_df.loc[j, MATCH_FEATURES].to_numpy(dtype=float)
-            distance = float(np.sqrt(np.sum(np.square(diff))))
-
-            if distance > CALIPERS["__pair_distance__"]:
-                continue
-
-            keep_edge = True
-            for feature, limit in CALIPERS.items():
-                if feature == "__pair_distance__":
-                    continue
-                feature_gap = abs(float(scaled_df.loc[i, feature]) - float(scaled_df.loc[j, feature]))
-                if feature_gap > limit:
-                    keep_edge = False
-                    break
-
-            if keep_edge:
-                edge_list.append((i, j, distance))
-
-    chosen_edges, unmatched_nodes = solve_bucket_exact(bucket_indices, edge_list)
-
-    for i, j, distance in chosen_edges:
-        control_idx, treatment_idx = (i, j) if rng.random() < 0.5 else (j, i)
-        matched_pairs.append(
-            {
-                "pair_distance": float(distance),
-                "control_idx": control_idx,
-                "treatment_idx": treatment_idx,
-                "pro_ranking": pro_ranking,
-            }
-        )
-
-    outlier_indices.extend(unmatched_nodes)
-
-matched_pairs.sort(key=lambda pair: pair["pair_distance"])
-for pair_id, pair in enumerate(matched_pairs, start=1):
-    pair["pair_id"] = pair_id
-
-outlier_indices.sort(key=lambda idx: (df.loc[idx, "pro_ranking"], int(df.loc[idx, "nmls"])))
-
-
-# -------------------------------------------------------------------
-# Pair-level match score
-# -------------------------------------------------------------------
-
-pair_distances = [float(pair["pair_distance"]) for pair in matched_pairs]
-if pair_distances:
-    min_distance = min(pair_distances)
-    max_distance = max(pair_distances)
-else:
-    min_distance = max_distance = 0.0
-
-
-# -------------------------------------------------------------------
-# 2D coordinates for the HTML overview map
-# -------------------------------------------------------------------
-
-all_indices = list(df.index)
-n_rows = len(all_indices)
-distance_matrix = np.zeros((n_rows, n_rows), dtype=float)
-
-for pos_i, i in enumerate(all_indices):
-    for pos_j, j in enumerate(all_indices[pos_i + 1:], start=pos_i + 1):
-        diff = scaled_df.loc[i, MATCH_FEATURES].to_numpy(dtype=float) - scaled_df.loc[j, MATCH_FEATURES].to_numpy(dtype=float)
-        distance = float(np.sqrt(np.sum(np.square(diff))))
-        distance_matrix[pos_i, pos_j] = distance
-        distance_matrix[pos_j, pos_i] = distance
-
-if n_rows == 0:
-    coords = np.empty((0, 2))
-elif n_rows == 1:
-    coords = np.zeros((1, 2))
-else:
-    squared = np.square(distance_matrix)
-    centering = np.eye(n_rows) - np.ones((n_rows, n_rows)) / n_rows
-    gram = -0.5 * centering @ squared @ centering
-    eigvals, eigvecs = np.linalg.eigh(gram)
-    order = np.argsort(eigvals)[::-1]
-    eigvals = eigvals[order]
-    eigvecs = eigvecs[:, order]
-    positive = np.maximum(eigvals[:2], 0.0)
-    coords = eigvecs[:, :2] * np.sqrt(positive)
-    if coords.shape[1] < 2:
-        coords = np.pad(coords, ((0, 0), (0, 2 - coords.shape[1])), mode="constant")
-
-if len(coords):
-    x = coords[:, 0]
-    y = coords[:, 1]
-    span_x = max(float(x.max() - x.min()), 1e-9)
-    span_y = max(float(y.max() - y.min()), 1e-9)
-    plot_x = 52 + ((x - x.min()) / span_x) * (1000 - 104)
-    plot_y = 520 - (52 + ((y - y.min()) / span_y) * (520 - 104))
-    coord_map = {
-        idx: (round(float(plot_x[pos]), 2), round(float(plot_y[pos]), 2))
-        for pos, idx in enumerate(all_indices)
-    }
-else:
-    coord_map = {}
-
-
-# -------------------------------------------------------------------
-# Final upload-ready DataFrame
-# -------------------------------------------------------------------
-
-output_rows: list[dict[str, object]] = []
-
-for pair in matched_pairs:
-    distance = float(pair["pair_distance"])
-    match_score = 100.0 if max_distance == min_distance else round(
-        100 * (1 - (distance - min_distance) / (max_distance - min_distance)),
-        1,
-    )
-
-    control = df.loc[pair["control_idx"]]
-    treatment = df.loc[pair["treatment_idx"]]
-    control_x, control_y = coord_map[pair["control_idx"]]
-    treatment_x, treatment_y = coord_map[pair["treatment_idx"]]
-
-    output_rows.append(
-        {
-            "nmls": int(control["nmls"]),
-            "assignment": "control",
-            "pro_ranking": control["pro_ranking"],
-            "pro_score": float(control["pro_score"]),
-            "uwm_production": float(control["uwm_production"]),
-            "overall_production": float(control["overall_production"]),
-            "conv_mix": float(control["conv_mix"]),
-            "fha_mix": float(control["fha_mix"]),
-            "va_mix": float(control["va_mix"]),
-            "purchase_pct": float(control["purchase_pct"]),
-            "refi_pct": float(control["refi_pct"]),
-            "total_ytd_closings": float(control["total_ytd_closings"]),
-            "jan_closings": int(control["jan_closings"]),
-            "feb_closings": int(control["feb_closings"]),
-            "march_closings": int(control["march_closings"]),
-            "pair_distance": round(distance, 4),
-            "twin_nmls": int(treatment["nmls"]),
-            "plot_x": control_x,
-            "plot_y": control_y,
-            "pair_id": int(pair["pair_id"]),
-            "match_score": match_score,
-        }
-    )
-
-    output_rows.append(
-        {
-            "nmls": int(treatment["nmls"]),
-            "assignment": "treatment",
-            "pro_ranking": treatment["pro_ranking"],
-            "pro_score": float(treatment["pro_score"]),
-            "uwm_production": float(treatment["uwm_production"]),
-            "overall_production": float(treatment["overall_production"]),
-            "conv_mix": float(treatment["conv_mix"]),
-            "fha_mix": float(treatment["fha_mix"]),
-            "va_mix": float(treatment["va_mix"]),
-            "purchase_pct": float(treatment["purchase_pct"]),
-            "refi_pct": float(treatment["refi_pct"]),
-            "total_ytd_closings": float(treatment["total_ytd_closings"]),
-            "jan_closings": int(treatment["jan_closings"]),
-            "feb_closings": int(treatment["feb_closings"]),
-            "march_closings": int(treatment["march_closings"]),
-            "pair_distance": round(distance, 4),
-            "twin_nmls": int(control["nmls"]),
-            "plot_x": treatment_x,
-            "plot_y": treatment_y,
-            "pair_id": int(pair["pair_id"]),
-            "match_score": match_score,
-        }
-    )
-
-for idx in outlier_indices:
-    row = df.loc[idx]
-    plot_x, plot_y = coord_map[idx]
-    output_rows.append(
-        {
-            "nmls": int(row["nmls"]),
-            "assignment": "outlier",
-            "pro_ranking": row["pro_ranking"],
-            "pro_score": float(row["pro_score"]),
-            "uwm_production": float(row["uwm_production"]),
-            "overall_production": float(row["overall_production"]),
-            "conv_mix": float(row["conv_mix"]),
-            "fha_mix": float(row["fha_mix"]),
-            "va_mix": float(row["va_mix"]),
-            "purchase_pct": float(row["purchase_pct"]),
-            "refi_pct": float(row["refi_pct"]),
-            "total_ytd_closings": float(row["total_ytd_closings"]),
-            "jan_closings": int(row["jan_closings"]),
-            "feb_closings": int(row["feb_closings"]),
-            "march_closings": int(row["march_closings"]),
-            "pair_distance": np.nan,
-            "twin_nmls": np.nan,
-            "plot_x": plot_x,
-            "plot_y": plot_y,
-            "pair_id": np.nan,
-            "match_score": np.nan,
-        }
-    )
-
-assignment_order = {"control": 0, "treatment": 1, "outlier": 2}
-
-final_df = pd.DataFrame(output_rows)[UPLOAD_COLUMNS]
-final_df["_assignment_sort"] = final_df["assignment"].map(assignment_order)
-final_df = (
-    final_df
-    .sort_values(["pair_id", "_assignment_sort", "nmls"], na_position="last")
-    .drop(columns="_assignment_sort")
-    .reset_index(drop=True)
-)
-
-for col in ["nmls", "jan_closings", "feb_closings", "march_closings"]:
-    final_df[col] = final_df[col].astype("Int64")
-for col in ["twin_nmls", "pair_id"]:
-    final_df[col] = final_df[col].astype("Int64")
-
-pair_summary_df = pd.DataFrame(
-    [
-        {
-            "pair_id": int(pair["pair_id"]),
-            "pair_distance": round(float(pair["pair_distance"]), 4),
-            "control_nmls": int(df.loc[pair["control_idx"], "nmls"]),
-            "treatment_nmls": int(df.loc[pair["treatment_idx"], "nmls"]),
-            "pro_ranking": df.loc[pair["control_idx"], "pro_ranking"],
-        }
-        for pair in matched_pairs
-    ]
-)
-
-outlier_df = df.loc[outlier_indices].copy().reset_index(drop=True) if outlier_indices else df.iloc[0:0].copy()
-
-
-# Optional export step, only when you want to download a CSV:
-# final_df.to_csv("test_twin_data.csv", index=False)
-# =================
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Twin Pair Dashboard</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <style>
-    :root {
-      --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      --text-xs: 0.75rem;
-      --text-sm: 0.8125rem;
-      --text-base: 0.875rem;
-      --text-lg: 1rem;
-      --text-xl: 1.25rem;
-      --text-2xl: 1.5rem;
-
-      --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
-      --space-5: 20px; --space-6: 24px; --space-8: 32px;
-
-      --bg: #f8f9fa;
-      --surface: #ffffff;
-      --border: #e5e7eb;
-      --border-light: #f0f1f3;
-      --text-primary: #111827;
-      --text-secondary: #6b7280;
-      --text-tertiary: #9ca3af;
-
-      --green: #059669;
-      --green-light: #ecfdf5;
-      --blue: #2563eb;
-      --blue-light: #eff6ff;
-      --red: #dc2626;
-      --red-light: #fef2f2;
-
-      --radius-sm: 6px; --radius-md: 8px; --radius-lg: 12px;
-      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
-      --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
-      --shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
-    }
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: var(--font-body);
-      font-size: var(--text-base);
-      color: var(--text-primary);
-      background: var(--bg);
-      line-height: 1.5;
-      -webkit-font-smoothing: antialiased;
-      min-height: 100vh;
-    }
-
-    .page {
-      width: min(1760px, calc(100vw - 20px));
-      margin: 0 auto;
-      padding: var(--space-5) var(--space-4);
-    }
-
-    /* ───── Upload Zone ───── */
-    .upload-zone {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 60vh;
-      text-align: center;
-    }
-    .upload-box {
-      border: 2.5px dashed var(--border);
-      border-radius: 20px;
-      padding: 56px 64px;
-      max-width: 520px;
-      width: 100%;
-      transition: border-color 200ms ease, background 200ms ease;
-      cursor: pointer;
-      position: relative;
-    }
-    .upload-box.dragover {
-      border-color: var(--blue);
-      background: var(--blue-light);
-    }
-    .upload-box svg { color: var(--text-tertiary); margin-bottom: var(--space-4); }
-    .upload-title {
-      font-size: var(--text-lg);
-      font-weight: 700;
-      margin-bottom: var(--space-1);
-    }
-    .upload-sub {
-      font-size: var(--text-sm);
-      color: var(--text-secondary);
-      margin-bottom: var(--space-4);
-    }
-    .upload-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-family: var(--font-body);
-      font-size: var(--text-sm);
-      font-weight: 600;
-      color: var(--surface);
-      background: var(--blue);
-      border: none;
-      border-radius: 10px;
-      padding: 10px 24px;
-      cursor: pointer;
-      transition: background 150ms ease;
-    }
-    .upload-btn:hover { background: #1d4ed8; }
-    .upload-box input[type="file"] {
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      cursor: pointer;
-    }
-    .upload-error {
-      color: var(--red);
-      font-size: var(--text-sm);
-      font-weight: 600;
-      margin-top: var(--space-3);
-      min-height: 1.5em;
-    }
-    /* File badge after load */
-    .file-badge {
-      display: none;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: var(--space-5);
-      justify-content: center;
-    }
-    .file-badge.visible { display: flex; }
-    .file-badge-inner {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-size: var(--text-sm);
-      font-weight: 600;
-      color: var(--text-secondary);
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 6px 16px;
-    }
-    .file-badge-inner svg { flex-shrink: 0; }
-    .file-badge-reload {
-      font-family: var(--font-body);
-      font-size: var(--text-xs);
-      font-weight: 600;
-      color: var(--blue);
-      background: none;
-      border: none;
-      cursor: pointer;
-      text-decoration: underline;
-      text-underline-offset: 2px;
-    }
-    .file-badge-reload:hover { color: #1d4ed8; }
-
-    /* ───── Dashboard (hidden until CSV loads) ───── */
-    .dashboard { display: none; }
-    .dashboard.visible { display: block; }
-
-    /* ───── Header ───── */
-    .header {
-      text-align: center;
-      margin-bottom: var(--space-6);
-    }
-    .header h1 {
-      font-size: var(--text-2xl);
-      font-weight: 700;
-      letter-spacing: -0.025em;
-    }
-
-    /* ───── Summary Cards ───── */
-    .summary-row {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: var(--space-3);
-      margin-bottom: var(--space-6);
-    }
-    .stat-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: var(--space-4) var(--space-5);
-      box-shadow: var(--shadow-sm);
-    }
-    .stat-label {
-      font-size: var(--text-xs);
-      font-weight: 500;
-      color: var(--text-tertiary);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: var(--space-1);
-    }
-    .stat-value {
-      font-size: var(--text-xl);
-      font-weight: 700;
-      font-variant-numeric: tabular-nums;
-    }
-
-    /* ───── NMLS Selector ───── */
-    .selector-section {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-bottom: var(--space-5);
-    }
-    .selector-label {
-      font-size: var(--text-xs);
-      font-weight: 600;
-      color: var(--text-tertiary);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: var(--space-2);
-    }
-    .selector-row {
-      display: flex;
-      align-items: center;
-      gap: var(--space-3);
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-    .nmls-input-wrap {
-      position: relative;
-      display: inline-flex;
-      align-items: center;
-    }
-    .nmls-input-wrap .icon {
-      position: absolute;
-      left: 16px;
-      pointer-events: none;
-      color: var(--text-tertiary);
-      display: flex;
-      align-items: center;
-    }
-    input#nmlsInput {
-      font-family: var(--font-body);
-      font-size: var(--text-base);
-      font-weight: 600;
-      color: var(--text-primary);
-      border: 2px solid var(--border);
-      border-radius: 14px;
-      padding: 12px 20px 12px 44px;
-      background: var(--surface);
-      outline: none;
-      cursor: text;
-      width: 240px;
-      box-shadow: var(--shadow-md);
-      transition: border-color 180ms ease, box-shadow 180ms ease;
-      font-variant-numeric: tabular-nums;
-    }
-    input#nmlsInput::placeholder {
-      color: var(--text-tertiary);
-      font-weight: 500;
-    }
-    input#nmlsInput:hover { border-color: var(--blue); }
-    input#nmlsInput:focus {
-      border-color: var(--blue);
-      box-shadow: var(--shadow-md), 0 0 0 3px rgba(37, 99, 235, 0.12);
-    }
-
-    /* Custom dropdown panel */
-    .nmls-dropdown-wrap {
-      position: relative;
-      display: inline-flex;
-      flex-direction: column;
-    }
-    .nmls-dropdown {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      margin-top: 4px;
-      background: var(--surface);
-      border: 1.5px solid var(--border);
-      border-radius: 12px;
-      box-shadow: var(--shadow-lg);
-      max-height: 260px;
-      overflow-y: auto;
-      z-index: 20;
-      display: none;
-    }
-    .nmls-dropdown.open { display: block; }
-    .nmls-dropdown-item {
-      padding: 10px 16px;
-      font-size: var(--text-sm);
-      font-weight: 500;
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-variant-numeric: tabular-nums;
-      transition: background 80ms ease;
-    }
-    .nmls-dropdown-item:first-child { border-radius: 10px 10px 0 0; }
-    .nmls-dropdown-item:last-child { border-radius: 0 0 10px 10px; }
-    .nmls-dropdown-item:hover { background: var(--blue-light); }
-    .nmls-dropdown-item.active { background: var(--blue-light); font-weight: 700; }
-    .nmls-dropdown-item .dd-nmls { color: var(--text-primary); font-weight: 600; }
-    .nmls-dropdown-item .dd-pair { color: var(--text-tertiary); font-size: var(--text-xs); font-weight: 600; }
-
-    /* ───── Badges ───── */
-    .match-badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 6px 14px;
-      border-radius: 999px;
-      font-size: var(--text-base);
-      font-weight: 700;
-      font-variant-numeric: tabular-nums;
-      background: var(--green-light);
-      color: var(--green);
-      white-space: nowrap;
-      opacity: 0;
-      transition: opacity 180ms ease;
-    }
-    .match-badge.visible { opacity: 1; }
-
-    .nmls-pair-info {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 14px;
-      border-radius: 999px;
-      font-size: var(--text-sm);
-      font-weight: 600;
-      font-variant-numeric: tabular-nums;
-      background: #f3f4f6;
-      color: var(--text-secondary);
-      white-space: nowrap;
-      opacity: 0;
-      transition: opacity 180ms ease;
-    }
-    .nmls-pair-info.visible { opacity: 1; }
-    .nmls-pair-info .pi-pair { font-weight: 700; color: var(--text-primary); }
-    .nmls-pair-info .pi-ctrl { color: var(--green); font-weight: 700; }
-    .nmls-pair-info .pi-treat { color: var(--blue); font-weight: 700; }
-
-    /* ───── Panels & Grid ───── */
-    .main-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: var(--space-4);
-    }
-    .panel {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-sm);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    .panel-head {
-      padding: var(--space-3) var(--space-4);
-      border-bottom: 1px solid var(--border-light);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .panel-title {
-      font-size: var(--text-sm);
-      font-weight: 600;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-    .panel-body {
-      padding: var(--space-3) var(--space-4);
-      flex: 1;
-      min-height: 0;
-    }
-
-    /* ───── Map Panel ───── */
-    .map-panel { grid-column: 1 / -1; }
-    .map-panel .panel-body { padding: var(--space-2); position: relative; }
-    .map-wrap {
-      position: relative;
-      background: var(--bg);
-      border: 1px solid var(--border-light);
-      border-radius: var(--radius-md);
-      overflow: hidden;
-      height: 420px;
-    }
-    .map-legend {
-      position: absolute;
-      top: 12px;
-      right: 14px;
-      display: flex;
-      gap: 14px;
-      z-index: 2;
-      background: rgba(255,255,255,0.88);
-      backdrop-filter: blur(6px);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 8px 14px;
-      box-shadow: var(--shadow-sm);
-    }
-    .map-legend-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-secondary);
-    }
-    .map-legend-dot {
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-    #overviewMap { width: 100%; height: 100%; display: block; }
-
-    /* SVG map styles */
-    .pair-line { stroke: #d1d5db; stroke-width: 1.5; opacity: 0.35; cursor: pointer; }
-    .pair-line.active { stroke: var(--text-primary); stroke-width: 2; opacity: 0.8; }
-    .pair-label-text { font-family: var(--font-body); fill: var(--text-tertiary); font-size: 9px; font-weight: 600; opacity: 0; pointer-events: none; }
-    .pair-label-text.active { fill: var(--text-primary); opacity: 1; }
-    .node { cursor: pointer; }
-    .node circle { stroke: var(--surface); stroke-width: 2; opacity: 0.45; }
-    .node.active circle { opacity: 1; stroke-width: 2.5; }
-    .leader-line { stroke: var(--text-tertiary); stroke-width: 1; opacity: 0; }
-    .leader-line.active { opacity: 0.6; }
-    .nmls-label { font-family: var(--font-body); font-size: 11px; font-weight: 700; fill: var(--text-secondary); opacity: 0; pointer-events: none; }
-    .nmls-label.active { opacity: 1; fill: var(--text-primary); }
-    .nmls-pill { opacity: 0; pointer-events: none; }
-    .nmls-pill.active { opacity: 1; }
-
-    /* ───── Blended 5-Column Table ───── */
-    .compare-panel { grid-column: 1 / -1; }
-    .blend-table { width: 100%; max-width: 820px; margin: 0 auto; border-collapse: collapse; }
-    .blend-table th { font-size: var(--text-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: var(--space-2) var(--space-3); border-bottom: 1.5px solid var(--border); white-space: nowrap; }
-    .blend-table th.col-metric { color: var(--text-tertiary); text-align: left; }
-    .blend-table th.col-ctrl-val { color: var(--green); text-align: right; }
-    .blend-table th.col-ctrl-bar { color: var(--green); text-align: center; padding-right: 0; }
-    .blend-table th.col-treat-bar { color: var(--blue); text-align: center; padding-left: 0; }
-    .blend-table th.col-treat-val { color: var(--blue); text-align: left; }
-    .blend-table td { padding: 6px var(--space-3); font-size: var(--text-sm); border-bottom: 1px solid var(--border-light); vertical-align: middle; }
-    .blend-table tr:last-child td { border-bottom: none; }
-    .blend-table .td-metric { font-weight: 500; color: var(--text-secondary); white-space: nowrap; width: 110px; }
-    .blend-table .td-ctrl-val { font-weight: 700; color: var(--green); text-align: right; font-variant-numeric: tabular-nums; width: 70px; }
-    .blend-table .td-treat-val { font-weight: 700; color: var(--blue); text-align: left; font-variant-numeric: tabular-nums; width: 70px; }
-    .blend-table .td-bar { padding-top: 6px; padding-bottom: 6px; }
-    .blend-table .td-ctrl-bar { padding-right: 0; }
-    .blend-table .td-treat-bar { padding-left: 0; }
-    .bar-track { height: 20px; background: var(--bg); position: relative; overflow: hidden; }
-    .td-ctrl-bar .bar-track { border-radius: 4px 0 0 4px; }
-    .td-treat-bar .bar-track { border-radius: 0 4px 4px 0; }
-    .bar-fill { position: absolute; top: 0; height: 100%; transition: width 300ms ease; }
-    .td-ctrl-bar .bar-fill { right: 0; background: var(--green); opacity: 0.72; border-radius: 4px 0 0 4px; }
-    .td-treat-bar .bar-fill { left: 0; background: var(--blue); opacity: 0.72; border-radius: 0 4px 4px 0; }
-
-    /* ───── Tooltip ───── */
-    .map-tooltip { position: fixed; pointer-events: none; z-index: 100; background: rgba(255,255,255,0.97); backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px 12px; box-shadow: var(--shadow-lg); font-size: 13px; line-height: 1.5; color: var(--text-primary); opacity: 0; transition: opacity 120ms ease; transform: translate(-50%, -100%); margin-top: -14px; white-space: nowrap; }
-    .map-tooltip.visible { opacity: 1; }
-    .tt-pair-grid { display: grid; grid-template-columns: auto 1fr 1fr; gap: 3px 16px; font-variant-numeric: tabular-nums; }
-    .tt-col-header { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding-bottom: 4px; border-bottom: 1.5px solid var(--border-light); }
-    .tt-col-header.control { color: var(--green); }
-    .tt-col-header.treatment { color: var(--blue); }
-    .tt-col-header.metric { color: var(--text-tertiary); }
-    .tt-metric { font-size: 13px; color: var(--text-secondary); padding: 2px 0; }
-    .tt-val { font-size: 13px; font-weight: 600; color: var(--text-primary); text-align: right; padding: 2px 0; }
-    .tt-outlier-header { font-size: 15px; font-weight: 700; margin-bottom: 6px; font-variant-numeric: tabular-nums; }
-    .tt-outlier-badge { display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 2px 7px; border-radius: 4px; margin-left: 6px; background: var(--red-light); color: var(--red); }
-    .tt-outlier-row { display: flex; justify-content: space-between; gap: 16px; color: var(--text-secondary); font-size: 13px; padding: 2px 0; }
-    .tt-outlier-row span:last-child { font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
-
-    /* ───── Raw Data Table ───── */
-    .data-panel { grid-column: 1 / -1; margin-top: var(--space-4); }
-    .data-panel .panel-body { padding: var(--space-2); }
-    .data-table-wrap {
-      width: 100%;
-      max-height: 520px;
-      overflow: auto;
-      border: 1px solid var(--border-light);
-      border-radius: var(--radius-md);
-    }
-    .raw-table { width: 100%; border-collapse: collapse; font-size: 0.7rem; }
-    .raw-table th {
-      position: sticky;
-      top: 0;
-      background: var(--surface);
-      z-index: 1;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: var(--text-tertiary);
-      padding: 8px 10px;
-      border-bottom: 1.5px solid var(--border);
-      white-space: nowrap;
-      text-align: left;
-    }
-    .raw-table td {
-      padding: 6px 10px;
-      border-bottom: 1px solid var(--border-light);
-      white-space: nowrap;
-      font-variant-numeric: tabular-nums;
-      color: var(--text-secondary);
-    }
-    .raw-table tr:hover td { background: #f9fafb; }
-    .raw-table tr:last-child td { border-bottom: none; }
-    /* Selected pair row highlights */
-    .raw-table tr.row-ctrl td { background: #d1fae5; }
-    .raw-table tr.row-treat td { background: #dbeafe; }
-    .raw-table tr.row-ctrl:hover td { background: #a7f3d0; }
-    .raw-table tr.row-treat:hover td { background: #bfdbfe; }
-    /* Color-code assignment column */
-    .raw-table td.asgn-control { color: var(--green); font-weight: 600; }
-    .raw-table td.asgn-treatment { color: var(--blue); font-weight: 600; }
-    .raw-table td.asgn-outlier { color: var(--red); font-weight: 600; }
-
-    /* ───── Responsive ───── */
-    @media (max-width: 960px) {
-      .summary-row { grid-template-columns: repeat(2, 1fr); }
-      .main-grid { grid-template-columns: 1fr; }
-      .map-panel, .compare-panel, .data-panel { grid-column: 1; }
-      input#nmlsInput { width: 100%; }
-      .selector-row { flex-direction: column; }
-    }
-  </style>
-</head>
-<body>
-  <div class="page">
-
-    <!-- Header -->
-    <div class="header">
-      <h1>Twin Pair Dashboard</h1>
-    </div>
-
-    <!-- Upload Zone -->
-    <div class="upload-zone" id="uploadZone">
-      <div class="upload-box" id="uploadBox">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        <div class="upload-title">Upload Twin Pair CSV</div>
-        <div class="upload-sub">Drag and drop or click to browse</div>
-        <button class="upload-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          Choose File
-        </button>
-        <input type="file" id="fileInput" accept=".csv" />
-      </div>
-      <div class="upload-error" id="uploadError"></div>
-    </div>
-
-    <!-- File badge (shown after load) -->
-    <div class="file-badge" id="fileBadge">
-      <div class="file-badge-inner">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        <span id="fileName"></span>
-      </div>
-      <button class="file-badge-reload" id="reloadBtn">Upload new file</button>
-    </div>
-
-    <!-- ═══════════ Dashboard (hidden until CSV loaded) ═══════════ -->
-    <div class="dashboard" id="dashboard">
-
-      <!-- Summary -->
-      <div class="summary-row" id="summaryRow"></div>
-
-      <!-- NMLS Selector -->
-      <div class="selector-section">
-        <div class="selector-label">Search Treatment NMLS</div>
-        <div class="selector-row">
-          <div class="nmls-dropdown-wrap">
-            <div class="nmls-input-wrap">
-              <span class="icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              </span>
-              <input id="nmlsInput" type="text" placeholder="Type or select NMLS…" autocomplete="off" />
-            </div>
-            <div class="nmls-dropdown" id="nmlsDropdown"></div>
-          </div>
-          <span class="nmls-pair-info" id="nmlsPairInfo"></span>
-          <span class="match-badge" id="matchBadge"></span>
-        </div>
-      </div>
-
-      <!-- Grid -->
-      <div class="main-grid">
-
-        <!-- Map -->
-        <div class="panel map-panel">
-          <div class="panel-head"><span class="panel-title">Overview Map</span></div>
-          <div class="panel-body">
-            <div class="map-wrap">
-              <div class="map-legend">
-                <div class="map-legend-item"><span class="map-legend-dot" style="background:var(--green)"></span>Control</div>
-                <div class="map-legend-item"><span class="map-legend-dot" style="background:var(--blue)"></span>Treatment</div>
-                <div class="map-legend-item"><span class="map-legend-dot" style="background:var(--red)"></span>Outlier</div>
-              </div>
-              <svg id="overviewMap" viewBox="0 0 1000 520" preserveAspectRatio="xMidYMid meet"></svg>
-            </div>
-          </div>
-        </div>
-
-        <!-- Blended Comparison -->
-        <div class="panel compare-panel">
-          <div class="panel-head"><span class="panel-title">Profile Comparison</span></div>
-          <div class="panel-body">
-            <table class="blend-table">
-              <thead><tr>
-                <th class="col-metric">Metric</th>
-                <th class="col-ctrl-val" id="controlHeader">Control</th>
-                <th class="col-ctrl-bar">Control</th>
-                <th class="col-treat-bar">Treatment</th>
-                <th class="col-treat-val" id="treatmentHeader">Treatment</th>
-              </tr></thead>
-              <tbody id="compareBody"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Raw Data Table -->
-        <div class="panel data-panel">
-          <div class="panel-head"><span class="panel-title">Raw Data</span></div>
-          <div class="panel-body" style="padding:0">
-            <div class="data-table-wrap">
-              <table class="raw-table" id="rawTable"></table>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </div>
-  <div class="map-tooltip" id="mapTooltip"></div>
-
-  <script>
-    /* ═══════════════════════════════════════════════════════════
-       GLOBALS
-    ═══════════════════════════════════════════════════════════ */
-    let D = null;                 // parsed data object
-    let state = {};               // { activePairId }
-    let nmlsToPair = {};
-    let nmlsToMember = {};
-    let treatNmlsToPair = {};
-    let csvRows = [];             // raw parsed rows for the appendix
-    let csvHeaders = [];
-
-    const $ = id => document.getElementById(id);
-    const el = {
-      uploadZone:   $("uploadZone"),
-      uploadBox:    $("uploadBox"),
-      fileInput:    $("fileInput"),
-      uploadError:  $("uploadError"),
-      fileBadge:    $("fileBadge"),
-      fileName:     $("fileName"),
-      reloadBtn:    $("reloadBtn"),
-      dashboard:    $("dashboard"),
-      summaryRow:   $("summaryRow"),
-      nmlsInput:    $("nmlsInput"),
-      nmlsDropdown: $("nmlsDropdown"),
-      nmlsPairInfo: $("nmlsPairInfo"),
-      matchBadge:   $("matchBadge"),
-      overviewMap:  $("overviewMap"),
-      controlHeader:$("controlHeader"),
-      treatmentHeader:$("treatmentHeader"),
-      compareBody:  $("compareBody"),
-      mapTooltip:   $("mapTooltip"),
-      rawTable:     $("rawTable")
-    };
-
-    function fmt(v, d = 0) {
-      return Number(v).toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
-    }
-
-    const METRIC_NAMES = {
-      pro_score: 'PRO Score', uwm_production: 'UWM Prod.', overall_production: 'Overall Prod.',
-      conv_mix: 'Conv Mix', fha_mix: 'FHA Mix', va_mix: 'VA Mix',
-      purchase_pct: 'Purchase %', total_ytd_closings: 'YTD Closings'
-    };
-    function prettyMetric(m) {
-      return METRIC_NAMES[m] || m.replace(/_pct/g, " %").replace(/_mix/g, " Mix").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-    }
-    function getPair(id) { return D.pairs.find(p => p.pair_id === Number(id)); }
-
-    /* ═══════════════════════════════════════════════════════════
-       CSV PARSING → D object
-    ═══════════════════════════════════════════════════════════ */
-    function parseCSV(text) {
-      const lines = text.trim().split(/\r?\n/);
-      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-      csvHeaders = headers;
-      const rows = lines.slice(1).map(line => {
-        const vals = line.split(',');
-        const obj = {};
-        headers.forEach((h, i) => { obj[h] = vals[i] ? vals[i].trim() : ''; });
-        return obj;
-      });
-      csvRows = rows;
-      return { headers, rows };
-    }
-
-    function num(v) { const n = parseFloat(v); return isNaN(n) ? 0 : n; }
-
-    function normalizeCoords(points, width = 1000, height = 520, pad = 52) {
-      if (!points.length) return [];
-      const xs = points.map(p => p[0]), ys = points.map(p => p[1]);
-      const minX = Math.min(...xs), maxX = Math.max(...xs);
-      const minY = Math.min(...ys), maxY = Math.max(...ys);
-      const spanX = Math.max(maxX - minX, 1e-9);
-      const spanY = Math.max(maxY - minY, 1e-9);
-      return points.map(([x, y]) => ([
-        +(pad + ((x - minX) / spanX) * (width - 2 * pad)).toFixed(2),
-        +(height - (pad + ((y - minY) / spanY) * (height - 2 * pad))).toFixed(2)
-      ]));
-    }
-
-    function dot(a, b) {
-      let sum = 0;
-      for (let i = 0; i < a.length; i++) sum += a[i] * b[i];
-      return sum;
-    }
-
-    function norm(a) { return Math.sqrt(dot(a, a)); }
-
-    function multiplyMatVec(mat, vec) {
-      return mat.map(row => dot(row, vec));
-    }
-
-    function outerProduct(vec) {
-      return vec.map(v1 => vec.map(v2 => v1 * v2));
-    }
-
-    function subtractMatrices(a, b) {
-      return a.map((row, i) => row.map((v, j) => v - b[i][j]));
-    }
-
-    function powerIteration(mat, iterations = 40) {
-      const n = mat.length;
-      let vec = Array(n).fill(1 / Math.sqrt(n));
-      for (let step = 0; step < iterations; step++) {
-        let next = multiplyMatVec(mat, vec);
-        const nextNorm = norm(next) || 1;
-        vec = next.map(v => v / nextNorm);
-      }
-      const mv = multiplyMatVec(mat, vec);
-      const eigenvalue = dot(vec, mv);
-      return { eigenvalue, eigenvector: vec };
-    }
-
-    function computeFallbackCoords(rows, matchFeatures) {
-      if (!rows.length) return [];
-      const matrix = rows.map(r => matchFeatures.map(f => num(r[f])));
-      const n = matrix.length, m = matchFeatures.length;
-      if (!m) return rows.map((_, i) => [100 + i * 8, 260]);
-
-      const means = Array.from({ length: m }, (_, j) => matrix.reduce((s, row) => s + row[j], 0) / n);
-      const stds = Array.from({ length: m }, (_, j) => {
-        const variance = matrix.reduce((s, row) => s + Math.pow(row[j] - means[j], 2), 0) / n;
-        return Math.sqrt(variance) || 1;
-      });
-      const standardized = matrix.map(row => row.map((v, j) => (v - means[j]) / stds[j]));
-
-      const cov = Array.from({ length: m }, () => Array(m).fill(0));
-      standardized.forEach(row => {
-        for (let i = 0; i < m; i++) {
-          for (let j = 0; j < m; j++) {
-            cov[i][j] += row[i] * row[j];
-          }
-        }
-      });
-      for (let i = 0; i < m; i++) {
-        for (let j = 0; j < m; j++) cov[i][j] /= Math.max(n - 1, 1);
-      }
-
-      const pc1 = powerIteration(cov);
-      const deflated = subtractMatrices(cov, outerProduct(pc1.eigenvector).map(row => row.map(v => v * pc1.eigenvalue)));
-      const pc2 = powerIteration(deflated);
-
-      const rawPoints = standardized.map(row => [dot(row, pc1.eigenvector), dot(row, pc2.eigenvector)]);
-      return normalizeCoords(rawPoints);
-    }
-
-    function buildDataFromCSV({ headers, rows }) {
-      // Identify match features (the 8 we know about)
-      const KNOWN_FEATURES = ['pro_score','uwm_production','overall_production','conv_mix','fha_mix','va_mix','purchase_pct','total_ytd_closings'];
-      const match_features = KNOWN_FEATURES.filter(f => headers.includes(f));
-      const hasPlotCoords = headers.includes('plot_x')
-        && headers.includes('plot_y')
-        && rows.some(r => r.plot_x !== '' && r.plot_y !== '');
-      const hasMatchScore = headers.includes('match_score')
-        && rows.some(r => r.match_score !== '');
-      const fallbackCoords = hasPlotCoords ? [] : computeFallbackCoords(rows, match_features);
-
-      // Group by pair_id; outliers have no pair_id or pair_id is blank/NaN
-      const pairMap = {};
-      const unmatched = [];
-
-      rows.forEach((r, idx) => {
-        const pid = parseInt(r.pair_id);
-        if (!pid || isNaN(pid)) {
-          unmatched.push(buildMember(r, 'outlier', fallbackCoords[idx]));
-          return;
-        }
-        if (!pairMap[pid]) pairMap[pid] = [];
-        pairMap[pid].push({ raw: r, coord: fallbackCoords[idx] });
-      });
-
-      const pairs = Object.keys(pairMap).sort((a, b) => +a - +b).map(pid => {
-        const members = pairMap[pid].map(item => buildMember(item.raw, item.raw.assignment || 'unknown', item.coord));
-        const ctrl = members.find(m => m.assignment === 'control') || members[0];
-        const treat = members.find(m => m.assignment === 'treatment') || members[1];
-        return {
-          pair_id: +pid,
-          pair_distance: num(pairMap[pid][0].raw.pair_distance),
-          match_score: hasMatchScore ? num(pairMap[pid][0].raw.match_score) : 0,
-          rank_bucket: pairMap[pid][0].raw.pro_ranking || '',
-          control_nmls: ctrl ? ctrl.nmls : 0,
-          treatment_nmls: treat ? treat.nmls : 0,
-          members
-        };
-      });
-
-      // Compute feature_ranges from ALL rows (matched + unmatched)
-      const feature_ranges = {};
-      match_features.forEach(f => {
-        const vals = rows.map(r => num(r[f]));
-        feature_ranges[f] = { min: Math.min(...vals), max: Math.max(...vals) };
-      });
-
-      // Summary
-      const allDistances = pairs.map(p => p.pair_distance).filter(d => d > 0);
-      if (!hasMatchScore && allDistances.length) {
-        const minD = Math.min(...allDistances), maxD = Math.max(...allDistances);
-        pairs.forEach(pair => {
-          pair.match_score = maxD === minD
-            ? 100
-            : +(100 * (1 - (pair.pair_distance - minD) / (maxD - minD))).toFixed(1);
-        });
-      }
-      const summary = {
-        matched_records: pairs.reduce((s, p) => s + p.members.length, 0),
-        pair_count: pairs.length,
-        unmatched_records: unmatched.length,
-        avg_pair_distance: allDistances.length ? +(allDistances.reduce((a, b) => a + b, 0) / allDistances.length).toFixed(4) : 0
-      };
-
-      return { summary, pairs, unmatched, match_features, feature_ranges };
-    }
-
-    function buildMember(r, fallbackAssignment, fallbackCoord = null) {
-      return {
-        nmls: parseInt(r.nmls) || 0,
-        assignment: (r.assignment || fallbackAssignment).toLowerCase(),
-        pro_ranking: r.pro_ranking || '',
-        pro_score: num(r.pro_score),
-        uwm_production: num(r.uwm_production),
-        overall_production: num(r.overall_production),
-        conv_mix: num(r.conv_mix),
-        fha_mix: num(r.fha_mix),
-        va_mix: num(r.va_mix),
-        purchase_pct: num(r.purchase_pct),
-        refi_pct: num(r.refi_pct),
-        total_ytd_closings: num(r.total_ytd_closings),
-        jan_closings: num(r.jan_closings),
-        feb_closings: num(r.feb_closings),
-        march_closings: num(r.march_closings),
-        pair_distance: num(r.pair_distance),
-        twin_nmls: parseInt(r.twin_nmls) || 0,
-        plot_x: fallbackCoord ? fallbackCoord[0] : num(r.plot_x),
-        plot_y: fallbackCoord ? fallbackCoord[1] : num(r.plot_y)
-      };
-    }
-
-    /* ═══════════════════════════════════════════════════════════
-       FILE UPLOAD HANDLING
-    ═══════════════════════════════════════════════════════════ */
-    function handleFile(file) {
-      el.uploadError.textContent = '';
-      if (!file || !file.name.endsWith('.csv')) {
-        el.uploadError.textContent = 'Please upload a .csv file';
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = e => {
-        try {
-          const parsed = parseCSV(e.target.result);
-          if (!parsed.headers.includes('nmls')) throw new Error('Missing "nmls" column');
-          if (!parsed.headers.includes('assignment')) throw new Error('Missing "assignment" column');
-          D = buildDataFromCSV(parsed);
-          if (D.pairs.length === 0) throw new Error('No pairs found (need "pair_id" column)');
-          showDashboard(file.name);
-        } catch (err) {
-          el.uploadError.textContent = 'Error: ' + err.message;
-        }
-      };
-      reader.readAsText(file);
-    }
-
-    // Drag & drop
-    el.uploadBox.addEventListener('dragover', e => { e.preventDefault(); el.uploadBox.classList.add('dragover'); });
-    el.uploadBox.addEventListener('dragleave', () => { el.uploadBox.classList.remove('dragover'); });
-    el.uploadBox.addEventListener('drop', e => { e.preventDefault(); el.uploadBox.classList.remove('dragover'); handleFile(e.dataTransfer.files[0]); });
-    el.fileInput.addEventListener('change', e => { handleFile(e.target.files[0]); });
-
-    // Reload button
-    el.reloadBtn.addEventListener('click', () => {
-      el.dashboard.classList.remove('visible');
-      el.fileBadge.classList.remove('visible');
-      el.uploadZone.style.display = '';
-      el.fileInput.value = '';
-    });
-
-    /* ═══════════════════════════════════════════════════════════
-       SHOW DASHBOARD
-    ═══════════════════════════════════════════════════════════ */
-    function showDashboard(name) {
-      // Build lookups
-      nmlsToPair = {};
-      nmlsToMember = {};
-      treatNmlsToPair = {};
-      D.pairs.forEach(p => {
-        p.members.forEach(m => {
-          nmlsToPair[m.nmls] = p.pair_id;
-          nmlsToMember[m.nmls] = { ...m, pair: p };
-        });
-        const t = p.members.find(m => m.assignment === 'treatment');
-        if (t) treatNmlsToPair[t.nmls] = p;
-      });
-      D.unmatched.forEach(u => {
-        nmlsToMember[u.nmls] = { ...u, pair: null };
-      });
-
-      state = { activePairId: D.pairs[0].pair_id };
-
-      // Hide upload, show dashboard + file badge
-      el.uploadZone.style.display = 'none';
-      el.fileName.textContent = name;
-      el.fileBadge.classList.add('visible');
-      el.dashboard.classList.add('visible');
-
-      // Build everything
-      buildSummary();
-      buildNmlsInput();
-      buildRawTable();
-
-      // Set initial selection
-      const initPair = D.pairs[0];
-      const initTreat = initPair.members.find(m => m.assignment === 'treatment');
-      if (initTreat) el.nmlsInput.value = initTreat.nmls;
-      updateNmlsPairInfo(initPair);
-      render();
-    }
-
-    /* ═══════════════════════════════════════════════════════════
-       SUMMARY
-    ═══════════════════════════════════════════════════════════ */
-    function buildSummary() {
-      const items = [
-        ["Matched Records", D.summary.matched_records],
-        ["Twin Pairs", D.summary.pair_count],
-        ["Outliers", D.summary.unmatched_records],
-        ["Avg Pair Distance", D.summary.avg_pair_distance]
-      ];
-      el.summaryRow.innerHTML = items.map(([l, v]) =>
-        `<div class="stat-card"><div class="stat-label">${l}</div><div class="stat-value">${v}</div></div>`
-      ).join("");
-    }
-
-    /* ═══════════════════════════════════════════════════════════
-       NMLS INPUT
-    ═══════════════════════════════════════════════════════════ */
-    /* Dropdown items data cache */
-    let ddItems = [];
-
-    function buildNmlsInput() {
-      const sorted = D.pairs.slice().sort((a, b) => a.pair_id - b.pair_id);
-      ddItems = sorted.map(p => {
-        const t = p.members.find(m => m.assignment === 'treatment');
-        const c = p.members.find(m => m.assignment === 'control');
-        if (!t) return null;
-        return { nmls: t.nmls, pair: p, label: `Pair ${p.pair_id}  (C: ${c ? c.nmls : '—'}, T: ${t.nmls})` };
-      }).filter(Boolean);
-
-      populateDropdown(ddItems);
-
-      // Remove old listeners by cloning
-      const fresh = el.nmlsInput.cloneNode(true);
-      el.nmlsInput.parentNode.replaceChild(fresh, el.nmlsInput);
-      el.nmlsInput = fresh;
-
-      el.nmlsInput.addEventListener('focus', () => openDropdown());
-      el.nmlsInput.addEventListener('input', () => {
-        const q = el.nmlsInput.value.trim().toLowerCase();
-        if (!q) { populateDropdown(ddItems); openDropdown(); return; }
-        const filtered = ddItems.filter(it => String(it.nmls).includes(q) || it.label.toLowerCase().includes(q));
-        populateDropdown(filtered);
-        openDropdown();
-      });
-
-      // Close dropdown on outside click
-      document.addEventListener('click', e => {
-        if (!el.nmlsInput.contains(e.target) && !el.nmlsDropdown.contains(e.target)) {
-          closeDropdown();
-        }
-      });
-    }
-
-    function populateDropdown(items) {
-      el.nmlsDropdown.innerHTML = items.map((it, i) =>
-        `<div class="nmls-dropdown-item" data-index="${i}" data-nmls="${it.nmls}">` +
-        `<span class="dd-nmls">${it.label}</span>` +
-        `</div>`
-      ).join('');
-      el.nmlsDropdown.querySelectorAll('.nmls-dropdown-item').forEach(div => {
-        div.addEventListener('click', () => {
-          const nmls = Number(div.dataset.nmls);
-          pickNmls(nmls);
-        });
-      });
-    }
-
-    function openDropdown() { el.nmlsDropdown.classList.add('open'); }
-    function closeDropdown() { el.nmlsDropdown.classList.remove('open'); }
-
-    function pickNmls(nmls) {
-      const pair = treatNmlsToPair[nmls];
-      if (!pair) return;
-      el.nmlsInput.value = nmls;
-      closeDropdown();
-      state.activePairId = pair.pair_id;
-      updateNmlsPairInfo(pair);
-      highlightRawRows(pair);
-      render();
-    }
-
-    function updateNmlsPairInfo(pair) {
-      const ctrl = pair.members.find(m => m.assignment === 'control');
-      const treat = pair.members.find(m => m.assignment === 'treatment');
-      el.nmlsPairInfo.innerHTML =
-        `<span class="pi-pair">Pair ${pair.pair_id}</span>` +
-        `<span>·</span>` +
-        `<span class="pi-ctrl">C: ${ctrl ? ctrl.nmls : '—'}</span>` +
-        `<span class="pi-treat">T: ${treat ? treat.nmls : '—'}</span>`;
-      el.nmlsPairInfo.classList.add('visible');
-      el.matchBadge.textContent = `${fmt(pair.match_score, 1)}% match`;
-      el.matchBadge.classList.add('visible');
-    }
-
-    /* ═══════════════════════════════════════════════════════════
-       TOOLTIP
-    ═══════════════════════════════════════════════════════════ */
-    function showTooltip(evt, nmls) {
-      const info = nmlsToMember[nmls];
-      if (!info) return;
-      const tt = el.mapTooltip;
-      const isOutlier = info.assignment === 'outlier';
-      if (!isOutlier) {
-        const pair = info.pair;
-        const ctrl = pair.members.find(m => m.assignment === 'control');
-        const treat = pair.members.find(m => m.assignment === 'treatment');
-        const metrics = [
-          ['Rank', ctrl.pro_ranking, treat.pro_ranking],
-          ['PRO Score', ctrl.pro_score, treat.pro_score],
-          ['UWM Prod.', fmt(ctrl.uwm_production, 0), fmt(treat.uwm_production, 0)],
-          ['Overall Prod.', fmt(ctrl.overall_production, 0), fmt(treat.overall_production, 0)],
-          ['Conv Mix', fmt(ctrl.conv_mix, 1), fmt(treat.conv_mix, 1)],
-          ['Purchase %', fmt(ctrl.purchase_pct, 1), fmt(treat.purchase_pct, 1)],
-          ['YTD Closings', ctrl.total_ytd_closings, treat.total_ytd_closings]
-        ];
-        const rows = metrics.map(([label, cv, tv]) =>
-          `<span class="tt-metric">${label}</span><span class="tt-val">${cv}</span><span class="tt-val">${tv}</span>`
-        ).join('');
-        tt.innerHTML = `<div class="tt-pair-grid">
-          <span class="tt-col-header metric"></span>
-          <span class="tt-col-header control">C: ${ctrl.nmls}</span>
-          <span class="tt-col-header treatment">T: ${treat.nmls}</span>
-          ${rows}</div>`;
-      } else {
-        tt.innerHTML = `<div class="tt-outlier-header">${nmls}<span class="tt-outlier-badge">Outlier</span></div>
-          <div class="tt-outlier-row"><span>Rank</span><span>${info.pro_ranking}</span></div>
-          <div class="tt-outlier-row"><span>PRO Score</span><span>${info.pro_score}</span></div>
-          <div class="tt-outlier-row"><span>UWM Production</span><span>${fmt(info.uwm_production, 0)}</span></div>
-          <div class="tt-outlier-row"><span>YTD Closings</span><span>${info.total_ytd_closings}</span></div>`;
-      }
-      tt.style.left = evt.clientX + 'px';
-      tt.style.top = evt.clientY + 'px';
-      tt.classList.add('visible');
-    }
-    function moveTooltip(evt) { el.mapTooltip.style.left = evt.clientX + 'px'; el.mapTooltip.style.top = evt.clientY + 'px'; }
-    function hideTooltip() { el.mapTooltip.classList.remove('visible'); }
-
-    /* ═══════════════════════════════════════════════════════════
-       MAP
-    ═══════════════════════════════════════════════════════════ */
-    function renderMap() {
-      const ns = "http://www.w3.org/2000/svg";
-      el.overviewMap.innerHTML = "";
-      const INACTIVE_R = 10, ACTIVE_R = 16, LABEL_DIST = 30;
-
-      D.unmatched.forEach(u => {
-        const c = document.createElementNS(ns, "circle");
-        c.setAttribute("cx", u.plot_x); c.setAttribute("cy", u.plot_y);
-        c.setAttribute("r", INACTIVE_R); c.setAttribute("fill", "var(--red)");
-        c.setAttribute("stroke", "#fff"); c.setAttribute("stroke-width", "2.5");
-        c.setAttribute("opacity", "0.7"); c.setAttribute("cursor", "pointer");
-        c.addEventListener("mouseenter", e => showTooltip(e, u.nmls));
-        c.addEventListener("mousemove", moveTooltip);
-        c.addEventListener("mouseleave", hideTooltip);
-        el.overviewMap.appendChild(c);
-      });
-
-      D.pairs.forEach(pair => {
-        const [ctrl, treat] = pair.members.slice().sort((a, b) => a.assignment.localeCompare(b.assignment));
-        const active = pair.pair_id === state.activePairId;
-
-        if (active) {
-          const mx = (ctrl.plot_x + treat.plot_x) / 2, my = (ctrl.plot_y + treat.plot_y) / 2;
-          const dx = Math.abs(ctrl.plot_x - treat.plot_x), dy = Math.abs(ctrl.plot_y - treat.plot_y);
-          const ell = document.createElementNS(ns, "ellipse");
-          ell.setAttribute("cx", mx); ell.setAttribute("cy", my);
-          ell.setAttribute("rx", Math.max(55, dx / 2 + 46)); ell.setAttribute("ry", Math.max(46, dy / 2 + 40));
-          ell.setAttribute("fill", "rgba(0,0,0,0.025)"); ell.setAttribute("stroke", "rgba(0,0,0,0.15)");
-          ell.setAttribute("stroke-width", "1.5"); ell.setAttribute("stroke-dasharray", "5 4");
-          el.overviewMap.appendChild(ell);
-        }
-
-        const line = document.createElementNS(ns, "line");
-        line.setAttribute("x1", ctrl.plot_x); line.setAttribute("y1", ctrl.plot_y);
-        line.setAttribute("x2", treat.plot_x); line.setAttribute("y2", treat.plot_y);
-        line.setAttribute("class", active ? "pair-line active" : "pair-line");
-        line.addEventListener("click", () => selectPair(pair.pair_id));
-        el.overviewMap.appendChild(line);
-
-        const lbl = document.createElementNS(ns, "text");
-        lbl.setAttribute("x", (ctrl.plot_x + treat.plot_x) / 2);
-        lbl.setAttribute("y", (ctrl.plot_y + treat.plot_y) / 2 - (active ? 22 : 14));
-        lbl.setAttribute("text-anchor", "middle");
-        lbl.setAttribute("class", active ? "pair-label-text active" : "pair-label-text");
-        lbl.textContent = `P${pair.pair_id}`;
-        el.overviewMap.appendChild(lbl);
-
-        [ctrl, treat].forEach(m => {
-          const g = document.createElementNS(ns, "g");
-          g.setAttribute("class", active ? "node active" : "node");
-          g.addEventListener("click", () => selectPair(pair.pair_id));
-          g.addEventListener("mouseenter", e => showTooltip(e, m.nmls));
-          g.addEventListener("mousemove", moveTooltip);
-          g.addEventListener("mouseleave", hideTooltip);
-          const isCtrl = m.assignment === "control";
-          const r = active ? ACTIVE_R : INACTIVE_R;
-          const circ = document.createElementNS(ns, "circle");
-          circ.setAttribute("cx", m.plot_x); circ.setAttribute("cy", m.plot_y);
-          circ.setAttribute("r", r);
-          circ.setAttribute("fill", isCtrl ? "var(--green)" : "var(--blue)");
-          circ.setAttribute("stroke", "#fff"); circ.setAttribute("stroke-width", "2");
-          circ.setAttribute("cursor", "pointer");
-          g.appendChild(circ);
-          el.overviewMap.appendChild(g);
-
-          if (active) {
-            const mx = (ctrl.plot_x + treat.plot_x) / 2, my = (ctrl.plot_y + treat.plot_y) / 2;
-            let ddx = m.plot_x - mx, ddy = m.plot_y - my;
-            const len = Math.sqrt(ddx * ddx + ddy * ddy) || 1;
-            ddx /= len; ddy /= len;
-            const dist = LABEL_DIST + ACTIVE_R;
-            let labelX = m.plot_x + ddx * dist, labelY = m.plot_y + ddy * dist;
-            labelX = Math.max(55, Math.min(955, labelX));
-            labelY = Math.max(20, Math.min(508, labelY));
-            const anchor = ddx >= 0 ? "start" : "end";
-
-            const ll = document.createElementNS(ns, "line");
-            ll.setAttribute("x1", m.plot_x + ddx * (ACTIVE_R + 2));
-            ll.setAttribute("y1", m.plot_y + ddy * (ACTIVE_R + 2));
-            ll.setAttribute("x2", labelX - ddx * 4); ll.setAttribute("y2", labelY + 4);
-            ll.setAttribute("class", "leader-line active");
-            el.overviewMap.appendChild(ll);
-
-            const pillW = 58, pillH = 22;
-            const pillX = anchor === "start" ? labelX - 5 : labelX - pillW + 5;
-            const pill = document.createElementNS(ns, "rect");
-            pill.setAttribute("x", pillX); pill.setAttribute("y", labelY - 12);
-            pill.setAttribute("width", pillW); pill.setAttribute("height", pillH);
-            pill.setAttribute("rx", 6);
-            pill.setAttribute("fill", isCtrl ? "var(--green-light)" : "var(--blue-light)");
-            pill.setAttribute("stroke", isCtrl ? "var(--green)" : "var(--blue)");
-            pill.setAttribute("stroke-width", "0.5");
-            pill.setAttribute("class", "nmls-pill active");
-            el.overviewMap.appendChild(pill);
-
-            const txt = document.createElementNS(ns, "text");
-            txt.setAttribute("x", labelX); txt.setAttribute("y", labelY + 4);
-            txt.setAttribute("text-anchor", anchor);
-            txt.setAttribute("class", "nmls-label active");
-            txt.setAttribute("fill", isCtrl ? "var(--green)" : "var(--blue)");
-            txt.textContent = m.nmls;
-            el.overviewMap.appendChild(txt);
-          }
-        });
-      });
-    }
-
-    function selectPair(pairId) {
-      state.activePairId = pairId;
-      const pair = getPair(pairId);
-      const treat = pair.members.find(m => m.assignment === 'treatment');
-      if (treat) el.nmlsInput.value = treat.nmls;
-      updateNmlsPairInfo(pair);
-      highlightRawRows(pair);
-      render();
-    }
-
-    /* ═══════════════════════════════════════════════════════════
-       DETAILS (5-column table)
-    ═══════════════════════════════════════════════════════════ */
-    function renderDetails() {
-      const pair = getPair(state.activePairId);
-      const ctrl = pair.members.find(m => m.assignment === "control");
-      const treat = pair.members.find(m => m.assignment === "treatment");
-      el.controlHeader.textContent = ctrl ? ctrl.nmls : 'Control';
-      el.treatmentHeader.textContent = treat ? treat.nmls : 'Treatment';
-
-      el.compareBody.innerHTML = D.match_features.map(metric => {
-        const cv = Math.abs(Number(ctrl[metric]));
-        const tv = Math.abs(Number(treat[metric]));
-        const range = D.feature_ranges[metric];
-        const rangeMax = Math.max(Math.abs(range.max), Math.abs(range.min), 1);
-        const cPct = ((cv / rangeMax) * 100).toFixed(1);
-        const tPct = ((tv / rangeMax) * 100).toFixed(1);
-        const d = metric.includes("pct") || metric.includes("mix") ? 2 : metric.includes("production") ? 1 : 0;
-        return `<tr>
-          <td class="td-metric">${prettyMetric(metric)}</td>
-          <td class="td-ctrl-val">${fmt(cv, d)}</td>
-          <td class="td-bar td-ctrl-bar"><div class="bar-track"><div class="bar-fill" style="width:${cPct}%"></div></div></td>
-          <td class="td-bar td-treat-bar"><div class="bar-track"><div class="bar-fill" style="width:${tPct}%"></div></div></td>
-          <td class="td-treat-val">${fmt(tv, d)}</td>
-        </tr>`;
-      }).join("");
-    }
-
-    /* ═══════════════════════════════════════════════════════════
-       RAW DATA TABLE
-    ═══════════════════════════════════════════════════════════ */
-    function buildRawTable() {
-      if (!csvRows.length) return;
-      // Priority columns first, then the rest in original order
-      const hidden = ['rank_bucket'];
-      const priority = ['nmls', 'assignment', 'twin_nmls', 'pair_distance', 'pair_id', 'match_score'];
-      const rest = csvHeaders.filter(h => !priority.includes(h) && !hidden.includes(h));
-      const orderedCols = priority.filter(h => csvHeaders.includes(h)).concat(rest);
-
-      const ths = orderedCols.map(h => `<th>${h}</th>`).join('');
-      const trs = csvRows.map((row, ri) => {
-        const nmls = row['nmls'] || '';
-        const cells = orderedCols.map(h => {
-          const v = row[h] || '';
-          let cls = '';
-          if (h === 'assignment') {
-            const lv = v.toLowerCase();
-            if (lv === 'control') cls = ' class="asgn-control"';
-            else if (lv === 'treatment') cls = ' class="asgn-treatment"';
-            else if (lv === 'outlier') cls = ' class="asgn-outlier"';
-          }
-          return `<td${cls}>${v}</td>`;
-        }).join('');
-        return `<tr data-nmls="${nmls}" data-row="${ri}" style="cursor:pointer">${cells}</tr>`;
-      }).join('');
-      el.rawTable.innerHTML = `<thead><tr>${ths}</tr></thead><tbody>${trs}</tbody>`;
-
-      // Click handler on rows
-      el.rawTable.querySelectorAll('tbody tr').forEach(tr => {
-        tr.addEventListener('click', () => {
-          const nmls = Number(tr.dataset.nmls);
-          if (!nmls) return;
-          // If it's a treatment NMLS, select that pair directly
-          if (treatNmlsToPair[nmls]) {
-            pickNmls(nmls);
-            return;
-          }
-          // If it's a control NMLS, find the pair and select via treatment
-          const pairId = nmlsToPair[nmls];
-          if (pairId) {
-            selectPair(pairId);
-          }
-        });
-      });
-
-      // Highlight initial pair
-      const initPair = getPair(state.activePairId);
-      if (initPair) highlightRawRows(initPair);
-    }
-
-    function highlightRawRows(pair) {
-      clearRawHighlights();
-      if (!pair) return;
-      const ctrlNmls = String(pair.control_nmls);
-      const treatNmls = String(pair.treatment_nmls);
-      el.rawTable.querySelectorAll('tbody tr').forEach(tr => {
-        const n = tr.dataset.nmls;
-        if (n === ctrlNmls) tr.classList.add('row-ctrl');
-        else if (n === treatNmls) tr.classList.add('row-treat');
-      });
-    }
-
-    function clearRawHighlights() {
-      el.rawTable.querySelectorAll('tr.row-ctrl, tr.row-treat').forEach(tr => {
-        tr.classList.remove('row-ctrl', 'row-treat');
-      });
-    }
-
-    /* ═══════════════════════════════════════════════════════════
-       RENDER
-    ═══════════════════════════════════════════════════════════ */
-    function render() {
-      renderMap();
-      renderDetails();
-    }
-  </script>
-<script data-pplx-inline-edit>
-(function(){
-  if(window===window.top)return;
-  function inlineAll(orig,clone){
-    if(orig.nodeType!==1)return;
-    try{
-      var cs=getComputedStyle(orig);
-      var t='';
-      for(var i=0;i<cs.length;i++){t+=cs[i]+':'+cs.getPropertyValue(cs[i])+';';}
-      clone.style.cssText=t;
-    }catch(e){}
-    var oc=orig.children,cc=clone.children;
-    for(var j=0;j<oc.length&&j<cc.length;j++){inlineAll(oc[j],cc[j]);}
-  }
-  function stripExternal(clone){
-    var imgs=clone.querySelectorAll('img');
-    for(var i=0;i<imgs.length;i++){
-      var s=imgs[i].getAttribute('src');
-      if(s&&!s.startsWith('data:'))imgs[i].removeAttribute('src');
-    }
-    var all=clone.querySelectorAll('*');
-    for(var i=0;i<all.length;i++){
-      var st=all[i].style.cssText;
-      if(st&&st.indexOf('url(')>=0){
-        all[i].style.cssText=st.replace(/url\(["']?(?!data:)[^)"']*["']?\)/gi,'none');
-      }
-    }
-  }
-  window.addEventListener('message',function(e){
-    if(!e.data||e.data.type!=='INLINE_EDIT_CAPTURE_REQUEST')return;
-    var scrollX=window.scrollX||window.pageXOffset||0;
-    var scrollY=window.scrollY||window.pageYOffset||0;
-    var w=window.innerWidth,h=window.innerHeight;
-    try{
-      var clone=document.documentElement.cloneNode(true);
-      var rm=clone.querySelectorAll('script,link[rel="stylesheet"],style');
-      for(var i=0;i<rm.length;i++){rm[i].remove();}
-      inlineAll(document.documentElement,clone);
-      stripExternal(clone);
-      var html=new XMLSerializer().serializeToString(clone);
-      var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'">'
-        +'<foreignObject width="100%" height="100%">'
-        +'<div xmlns="http://www.w3.org/1999/xhtml" style="width:'+w+'px;height:'+h+'px;overflow:hidden">'
-        +'<div style="transform:translate(-'+scrollX+'px,-'+scrollY+'px);transform-origin:top left">'
-        +html+'</div></div></foreignObject></svg>';
-      var svgUrl='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
-      var img=new Image();
-      img.onload=function(){
-        var c=document.createElement('canvas');c.width=w;c.height=h;
-        c.getContext('2d').drawImage(img,0,0);
-        window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:c.toDataURL('image/png'),scrollX:scrollX,scrollY:scrollY},'*');
-      };
-      img.onerror=function(){
-        window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:null,scrollX:scrollX,scrollY:scrollY},'*');
-      };
-      img.src=svgUrl;
-    }catch(err){
-      window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:null,scrollX:scrollX,scrollY:scrollY},'*');
-    }
-  });
-})();
-</script></body>
-</html>
+# Twin-Pair A/B Testing Methodology
+
+## Objective
+
+The goal of this work is to construct a high-quality **matched-pair randomized experiment** for mortgage loan officers identified by `NMLS`.
+
+Instead of assigning people into a generic `Control` group and `Treatment` group at random, we first try to find a highly similar counterpart for each person. Each matched pair acts like a "twin pair":
+
+- one member is assigned to **Control**
+- the other member is assigned to **Treatment**
+
+This design improves interpretability because the treatment effect can be evaluated by comparing outcomes **within pairs**, not just across two broad groups.
+
+In experimental-design language, this is a **matched-pair A/B test** or **paired randomized design**.
+
+---
+
+## Why We Started With Strict Pair Matching
+
+The business requirement was not simply:
+
+"Create two groups of similar size."
+
+It was more specific:
+
+"Create twin-like pairs so that each treated loan officer has a nearly identical control counterpart."
+
+That requirement naturally leads to this sequence:
+
+1. Match similar loan officers into pairs.
+2. Randomize assignment inside each pair.
+3. Compare treatment vs control within the pair after the intervention.
+
+This is stronger than plain randomization when the sample is not huge, because it reduces pre-treatment imbalance.
+
+---
+
+## Phase 1: The Original Strict Exact Pairing Logic
+
+Our first strict approach was designed for smaller datasets.
+
+### Step 1: Use only pre-treatment variables
+
+We matched on variables that describe the baseline profile of each loan officer before any test strategy is applied, such as:
+
+- `pro_score`
+- `uwm_production`
+- `overall_production`
+- `conv_mix`
+- `fha_mix`
+- `va_mix`
+- `purchase_pct`
+- `total_ytd_closings`
+
+These are the variables used to define similarity.
+
+### Step 2: Enforce exact matching on rank bucket
+
+We did not allow pairing across different `pro_ranking` groups.
+
+That means:
+
+- `PRO Elite` matches only with `PRO Elite`
+- `PRO Plus` matches only with `PRO Plus`
+- and so on
+
+This is called an **exact matching constraint**.
+
+It prevents bad business matches that might look numerically close but are not comparable in business context.
+
+### Step 3: Standardize the numeric features
+
+The variables are on different scales:
+
+- `pro_score` might be in the 50 to 130 range
+- `overall_production` might be in the 70 to 450 range
+- `purchase_pct` is a percentage
+
+If we used raw values directly, larger-scale variables would dominate the distance calculation.
+
+So we standardized each feature using a z-score:
+
+\[
+z = \frac{x - \mu}{\sigma}
+\]
+
+where:
+
+- \(x\) is the raw feature value
+- \(\mu\) is the mean of that feature
+- \(\sigma\) is the standard deviation
+
+After standardization, each feature contributes on a comparable scale.
+
+### Step 4: Compute weighted pairwise distance
+
+For each possible pair of loan officers inside the same rank bucket, we computed a **weighted Euclidean distance**:
+
+\[
+d(i,j) = \sqrt{\sum_k w_k (z_{ik} - z_{jk})^2}
+\]
+
+where:
+
+- \(i, j\) are two loan officers
+- \(k\) indexes the matching features
+- \(w_k\) is the business weight for feature \(k\)
+
+This means some variables matter more than others. For example, production-related variables may deserve more weight than smaller mix components.
+
+### Step 5: Solve for the best strict pairs
+
+In the first version, we used an **exact dynamic-programming pair solver** within each rank bucket.
+
+Conceptually, that solver searched for the set of one-to-one pairs that minimized total mismatch:
+
+\[
+\min \sum_{\text{pairs }(i,j)} d(i,j)
+\]
+
+This is an exact optimization objective.
+
+### Step 6: Handle outliers by leaving one unmatched when needed
+
+If a rank bucket had an odd number of people, we did **not** force everyone into pairs.
+
+Instead, one person could be left out as an **outlier** or **unmatched record**.
+
+This is important because forcing bad matches can damage experimental quality.
+
+### Step 7: Randomize within pair
+
+After forming each pair, we randomly assigned:
+
+- one member to **Control**
+- one member to **Treatment**
+
+This preserves the randomized nature of the experiment while keeping pair similarity high.
+
+---
+
+## Why the First Exact Solver Was Good for Small Data
+
+The first strict solver was high quality for small datasets because:
+
+- it enforced exact rank matching
+- it used weighted baseline similarity
+- it did not force poor pairs
+- it produced interpretable `pair_id`, `twin_nmls`, and `pair_distance` outputs
+
+For a 20 to 30 row sample, this is excellent.
+
+---
+
+## Why We Upgraded the Matching Engine for Larger Populations
+
+The issue was not the matching logic.
+
+The issue was the **solver scale**.
+
+The first strict solver used a recursive dynamic-programming algorithm. That approach is exact, but it becomes computationally expensive as a rank bucket grows.
+
+For example, if you want to run the same methodology on something like:
+
+- `420` loan officers total
+
+then some `pro_ranking` buckets may contain many records. At that point, the dynamic-programming matcher becomes the bottleneck.
+
+So we upgraded not because the method was wrong, but because we wanted:
+
+- the **same business logic**
+- the **same strict quality**
+- but a solver that remains reliable on larger groups
+
+---
+
+## Phase 2: The Upgraded Exact MILP Approach
+
+To support larger populations while preserving quality, we introduced a second approach based on **exact optimization with MILP**.
+
+MILP stands for **Mixed-Integer Linear Programming**.
+
+### What stayed the same
+
+The upgrade kept the same experimental principles:
+
+- exact matching within `pro_ranking`
+- only pre-treatment covariates
+- standardized numeric features
+- weighted similarity
+- outliers allowed when no good twin exists
+- randomized control/treatment assignment after matching
+
+### What changed
+
+The internal pairing engine changed from recursive pair enumeration to an exact mathematical optimization model.
+
+---
+
+## Step-by-Step Logic of the Upgraded Model
+
+### 1. Define candidate edges
+
+Inside each `pro_ranking` bucket, we consider possible candidate pairs.
+
+Each candidate pair is an **edge** between two nodes in a graph:
+
+- node = one loan officer
+- edge = one allowed possible twin pairing
+
+Each edge has a cost equal to the weighted distance:
+
+\[
+c_{ij} = d(i,j)
+\]
+
+### 2. Apply calipers before optimization
+
+We also added **calipers**.
+
+A caliper is a maximum allowed difference on a key variable or on the total pair distance.
+
+That means some candidate edges are forbidden before the optimization even begins.
+
+Example conceptually:
+
+- if two loan officers are too far apart on `pro_score`
+- or too far apart on `purchase_pct`
+- or too far apart overall
+
+then they are **not eligible twins**
+
+This improves match quality because the solver is not allowed to use clearly weak pairs just to make the math work.
+
+### 3. Introduce unmatched decisions
+
+We allow a loan officer to remain unmatched.
+
+In the optimization, that is represented by an **unmatched variable** with a large penalty.
+
+That means:
+
+- the solver prefers matching when a good match exists
+- but it prefers leaving someone unmatched rather than forcing a poor twin
+
+This is exactly what we want in a strict A/B setup.
+
+### 4. Solve a minimum-cost exact matching problem
+
+The optimization chooses:
+
+- which candidate pair edges are selected
+- which records remain unmatched
+
+subject to the rule:
+
+each loan officer must either:
+
+- belong to exactly one selected pair
+- or be explicitly marked unmatched
+
+The optimization objective is:
+
+\[
+\min \left(\sum_{\text{selected pairs }(i,j)} c_{ij} + \sum_{\text{unmatched }u} P\right)
+\]
+
+where:
+
+- \(c_{ij}\) is the pair cost
+- \(P\) is a large unmatched penalty
+
+This is an **exact minimum-cost matching** formulation.
+
+### 5. Randomize within accepted pairs
+
+Once the optimization produces the final strict pairs:
+
+- one twin is randomly assigned to `Control`
+- the other is randomly assigned to `Treatment`
+
+This produces the final experiment-ready assignment file.
+
+---
+
+## Why the Upgrade Is Better for 420 Loan Officers
+
+For a larger population, the upgraded solver is better because it gives:
+
+- **exact optimization quality**
+- **scalability beyond tiny buckets**
+- **explicit control over weak matches through calipers**
+- **clean handling of unmatched outliers**
+
+So if the business asks:
+
+"Can we do this for 420 loan officers while preserving twin quality?"
+
+the upgraded MILP approach is the correct answer.
+
+It is not a heuristic shortcut. It is still an exact optimization framework.
+
+---
+
+## A/B Testing Interpretation
+
+Once the pairs are created, the experiment is interpreted as follows:
+
+- Each `pair_id` is a matched experimental block.
+- `Control` receives the existing strategy or no new intervention.
+- `Treatment` receives the new strategy being tested.
+- `pair_distance` quantifies how similar the two baseline profiles are.
+- `twin_nmls` identifies the paired counterpart.
+
+This gives a strong basis for later evaluation.
+
+For example, after the intervention period, the treatment effect can be evaluated as a within-pair difference:
+
+\[
+\Delta_p = Y_{p,\text{treatment}} - Y_{p,\text{control}}
+\]
+
+where \(Y\) is the post-test outcome of interest.
+
+Then the average treatment effect across pairs can be summarized by averaging those pair-level differences.
+
+This is often easier to explain to business stakeholders because it is a fair "like-for-like" comparison.
+
+---
+
+## Files We Built Around This Process
+
+### Small-data strict version
+
+- `strict_twin_pairs.py`
+- output: `strict_paired_ab_assignments.csv`
+
+This version is appropriate when the dataset is small and bucket sizes remain modest.
+
+### Larger-data exact version
+
+- `strict_twin_pairs_exact.py`
+- output examples:
+  - `strict_paired_ab_assignments_exact.csv`
+  - `test_twin_data.csv` for the richer HTML upload schema
+
+This version is the one to prefer when accuracy matters and the population can be much larger.
+
+---
+
+## Output Schema Concepts
+
+The core output assignment files contain fields such as:
+
+- `nmls`
+- `assignment`
+- `pair_id`
+- `twin_nmls`
+- `pair_distance`
+
+The richer HTML-ready upload file can additionally include:
+
+- map coordinates like `plot_x`, `plot_y`
+- `match_score`
+
+These extra fields are for visualization, not for the matching logic itself.
+
+---
+
+## Final Summary
+
+The full methodology can be summarized in one sentence:
+
+We built a **strict matched-pair randomized A/B design** that first handles outliers, then creates high-quality twin pairs using exact matching logic, and finally assigns one member of each pair to control and the other to treatment.
+
+The original exact pair solver was excellent for small datasets.
+
+The upgraded MILP formulation preserves the same statistical and business logic, but is the better choice when moving toward something like 420 loan officers because it keeps match quality high without relying on a small-scale recursive solver.
