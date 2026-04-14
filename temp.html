@@ -1,2077 +1,1740 @@
+from __future__ import annotations
+
+import random
+
+import numpy as np
+import pandas as pd
+from scipy.optimize import Bounds, LinearConstraint, milp
+
+
+# -------------------------------------------------------------------
+# Notebook-style inputs
+# -------------------------------------------------------------------
+
+df = pd.read_csv("dummy_nmls_values.csv")
+
+MATCH_FEATURES = [
+    "pro_score",
+    "uwm_production",
+    "overall_production",
+    "conv_mix",
+    "fha_mix",
+    "va_mix",
+    "purchase_pct",
+    "total_ytd_closings",
+]
+
+CALIPERS = {
+    "pro_score": 1.15,
+    "overall_production": 1.65,
+    "purchase_pct": 1.3,
+    "total_ytd_closings": 1.35,
+    "__pair_distance__": 3.1,
+}
+
+UNMATCHED_PENALTY = 1000.0
+SEED = 42
+
+UPLOAD_COLUMNS = [
+    "nmls",
+    "assignment",
+    "pro_ranking",
+    "pro_score",
+    "uwm_production",
+    "overall_production",
+    "conv_mix",
+    "fha_mix",
+    "va_mix",
+    "purchase_pct",
+    "refi_pct",
+    "total_ytd_closings",
+    "jan_closings",
+    "feb_closings",
+    "march_closings",
+    "pair_distance",
+    "twin_nmls",
+    "plot_x",
+    "plot_y",
+    "pair_id",
+    "match_score",
+]
+
+
+# -------------------------------------------------------------------
+# Standardize the matching features
+# -------------------------------------------------------------------
+
+scaled_df = df.copy()
+for col in MATCH_FEATURES:
+    mean = scaled_df[col].mean()
+    std = scaled_df[col].std(ddof=0)
+    scaled_df[col] = 0.0 if std == 0 else (scaled_df[col] - mean) / std
+
+
+# -------------------------------------------------------------------
+# Exact MILP solver for one rank bucket
+# -------------------------------------------------------------------
+
+def solve_bucket_exact(bucket_indices: list[int], edge_list: list[tuple[int, int, float]]) -> tuple[list[tuple[int, int, float]], list[int]]:
+    nodes = list(bucket_indices)
+    node_to_pos = {node: pos for pos, node in enumerate(nodes)}
+    n_nodes = len(nodes)
+    n_edges = len(edge_list)
+    n_vars = n_edges + n_nodes
+
+    objective = np.zeros(n_vars, dtype=float)
+    integrality = np.ones(n_vars, dtype=int)
+    lower = np.zeros(n_vars, dtype=float)
+    upper = np.ones(n_vars, dtype=float)
+
+    for edge_pos, (i, j, distance) in enumerate(edge_list):
+        objective[edge_pos] = distance + (1e-8 * (node_to_pos[i] + node_to_pos[j]))
+
+    objective[n_edges:] = UNMATCHED_PENALTY
+
+    constraint_matrix = np.zeros((n_nodes, n_vars), dtype=float)
+    for edge_pos, (i, j, _) in enumerate(edge_list):
+        constraint_matrix[node_to_pos[i], edge_pos] = 1.0
+        constraint_matrix[node_to_pos[j], edge_pos] = 1.0
+
+    for node, pos in node_to_pos.items():
+        constraint_matrix[pos, n_edges + pos] = 1.0
+
+    result = milp(
+        c=objective,
+        integrality=integrality,
+        bounds=Bounds(lower, upper),
+        constraints=LinearConstraint(constraint_matrix, lb=np.ones(n_nodes), ub=np.ones(n_nodes)),
+    )
+
+    if not result.success or result.x is None:
+        raise RuntimeError(f"MILP did not converge for bucket with {n_nodes} rows: {result.message}")
+
+    chosen_edges = [edge for edge_pos, edge in enumerate(edge_list) if result.x[edge_pos] > 0.5]
+    unmatched_nodes = [node for node, pos in node_to_pos.items() if result.x[n_edges + pos] > 0.5]
+    return chosen_edges, unmatched_nodes
+
+
+# -------------------------------------------------------------------
+# Build candidate edges inside each exact pro_ranking bucket
+# -------------------------------------------------------------------
+
+rng = random.Random(SEED)
+matched_pairs: list[dict[str, object]] = []
+outlier_indices: list[int] = []
+
+for pro_ranking, bucket_df in df.groupby("pro_ranking", sort=True):
+    bucket_indices = bucket_df.index.tolist()
+    edge_list: list[tuple[int, int, float]] = []
+
+    for offset, i in enumerate(bucket_indices):
+        for j in bucket_indices[offset + 1:]:
+            diff = scaled_df.loc[i, MATCH_FEATURES].to_numpy(dtype=float) - scaled_df.loc[j, MATCH_FEATURES].to_numpy(dtype=float)
+            distance = float(np.sqrt(np.sum(np.square(diff))))
+
+            if distance > CALIPERS["__pair_distance__"]:
+                continue
+
+            keep_edge = True
+            for feature, limit in CALIPERS.items():
+                if feature == "__pair_distance__":
+                    continue
+                feature_gap = abs(float(scaled_df.loc[i, feature]) - float(scaled_df.loc[j, feature]))
+                if feature_gap > limit:
+                    keep_edge = False
+                    break
+
+            if keep_edge:
+                edge_list.append((i, j, distance))
+
+    chosen_edges, unmatched_nodes = solve_bucket_exact(bucket_indices, edge_list)
+
+    for i, j, distance in chosen_edges:
+        control_idx, treatment_idx = (i, j) if rng.random() < 0.5 else (j, i)
+        matched_pairs.append(
+            {
+                "pair_distance": float(distance),
+                "control_idx": control_idx,
+                "treatment_idx": treatment_idx,
+                "pro_ranking": pro_ranking,
+            }
+        )
+
+    outlier_indices.extend(unmatched_nodes)
+
+matched_pairs.sort(key=lambda pair: pair["pair_distance"])
+for pair_id, pair in enumerate(matched_pairs, start=1):
+    pair["pair_id"] = pair_id
+
+outlier_indices.sort(key=lambda idx: (df.loc[idx, "pro_ranking"], int(df.loc[idx, "nmls"])))
+
+
+# -------------------------------------------------------------------
+# Pair-level match score
+# -------------------------------------------------------------------
+
+pair_distances = [float(pair["pair_distance"]) for pair in matched_pairs]
+if pair_distances:
+    min_distance = min(pair_distances)
+    max_distance = max(pair_distances)
+else:
+    min_distance = max_distance = 0.0
+
+
+# -------------------------------------------------------------------
+# 2D coordinates for the HTML overview map
+# -------------------------------------------------------------------
+
+all_indices = list(df.index)
+n_rows = len(all_indices)
+distance_matrix = np.zeros((n_rows, n_rows), dtype=float)
+
+for pos_i, i in enumerate(all_indices):
+    for pos_j, j in enumerate(all_indices[pos_i + 1:], start=pos_i + 1):
+        diff = scaled_df.loc[i, MATCH_FEATURES].to_numpy(dtype=float) - scaled_df.loc[j, MATCH_FEATURES].to_numpy(dtype=float)
+        distance = float(np.sqrt(np.sum(np.square(diff))))
+        distance_matrix[pos_i, pos_j] = distance
+        distance_matrix[pos_j, pos_i] = distance
+
+if n_rows == 0:
+    coords = np.empty((0, 2))
+elif n_rows == 1:
+    coords = np.zeros((1, 2))
+else:
+    squared = np.square(distance_matrix)
+    centering = np.eye(n_rows) - np.ones((n_rows, n_rows)) / n_rows
+    gram = -0.5 * centering @ squared @ centering
+    eigvals, eigvecs = np.linalg.eigh(gram)
+    order = np.argsort(eigvals)[::-1]
+    eigvals = eigvals[order]
+    eigvecs = eigvecs[:, order]
+    positive = np.maximum(eigvals[:2], 0.0)
+    coords = eigvecs[:, :2] * np.sqrt(positive)
+    if coords.shape[1] < 2:
+        coords = np.pad(coords, ((0, 0), (0, 2 - coords.shape[1])), mode="constant")
+
+if len(coords):
+    x = coords[:, 0]
+    y = coords[:, 1]
+    span_x = max(float(x.max() - x.min()), 1e-9)
+    span_y = max(float(y.max() - y.min()), 1e-9)
+    plot_x = 52 + ((x - x.min()) / span_x) * (1000 - 104)
+    plot_y = 520 - (52 + ((y - y.min()) / span_y) * (520 - 104))
+    coord_map = {
+        idx: (round(float(plot_x[pos]), 2), round(float(plot_y[pos]), 2))
+        for pos, idx in enumerate(all_indices)
+    }
+else:
+    coord_map = {}
+
+
+# -------------------------------------------------------------------
+# Final upload-ready DataFrame
+# -------------------------------------------------------------------
+
+output_rows: list[dict[str, object]] = []
+
+for pair in matched_pairs:
+    distance = float(pair["pair_distance"])
+    match_score = 100.0 if max_distance == min_distance else round(
+        100 * (1 - (distance - min_distance) / (max_distance - min_distance)),
+        1,
+    )
+
+    control = df.loc[pair["control_idx"]]
+    treatment = df.loc[pair["treatment_idx"]]
+    control_x, control_y = coord_map[pair["control_idx"]]
+    treatment_x, treatment_y = coord_map[pair["treatment_idx"]]
+
+    output_rows.append(
+        {
+            "nmls": int(control["nmls"]),
+            "assignment": "control",
+            "pro_ranking": control["pro_ranking"],
+            "pro_score": float(control["pro_score"]),
+            "uwm_production": float(control["uwm_production"]),
+            "overall_production": float(control["overall_production"]),
+            "conv_mix": float(control["conv_mix"]),
+            "fha_mix": float(control["fha_mix"]),
+            "va_mix": float(control["va_mix"]),
+            "purchase_pct": float(control["purchase_pct"]),
+            "refi_pct": float(control["refi_pct"]),
+            "total_ytd_closings": float(control["total_ytd_closings"]),
+            "jan_closings": int(control["jan_closings"]),
+            "feb_closings": int(control["feb_closings"]),
+            "march_closings": int(control["march_closings"]),
+            "pair_distance": round(distance, 4),
+            "twin_nmls": int(treatment["nmls"]),
+            "plot_x": control_x,
+            "plot_y": control_y,
+            "pair_id": int(pair["pair_id"]),
+            "match_score": match_score,
+        }
+    )
+
+    output_rows.append(
+        {
+            "nmls": int(treatment["nmls"]),
+            "assignment": "treatment",
+            "pro_ranking": treatment["pro_ranking"],
+            "pro_score": float(treatment["pro_score"]),
+            "uwm_production": float(treatment["uwm_production"]),
+            "overall_production": float(treatment["overall_production"]),
+            "conv_mix": float(treatment["conv_mix"]),
+            "fha_mix": float(treatment["fha_mix"]),
+            "va_mix": float(treatment["va_mix"]),
+            "purchase_pct": float(treatment["purchase_pct"]),
+            "refi_pct": float(treatment["refi_pct"]),
+            "total_ytd_closings": float(treatment["total_ytd_closings"]),
+            "jan_closings": int(treatment["jan_closings"]),
+            "feb_closings": int(treatment["feb_closings"]),
+            "march_closings": int(treatment["march_closings"]),
+            "pair_distance": round(distance, 4),
+            "twin_nmls": int(control["nmls"]),
+            "plot_x": treatment_x,
+            "plot_y": treatment_y,
+            "pair_id": int(pair["pair_id"]),
+            "match_score": match_score,
+        }
+    )
+
+for idx in outlier_indices:
+    row = df.loc[idx]
+    plot_x, plot_y = coord_map[idx]
+    output_rows.append(
+        {
+            "nmls": int(row["nmls"]),
+            "assignment": "outlier",
+            "pro_ranking": row["pro_ranking"],
+            "pro_score": float(row["pro_score"]),
+            "uwm_production": float(row["uwm_production"]),
+            "overall_production": float(row["overall_production"]),
+            "conv_mix": float(row["conv_mix"]),
+            "fha_mix": float(row["fha_mix"]),
+            "va_mix": float(row["va_mix"]),
+            "purchase_pct": float(row["purchase_pct"]),
+            "refi_pct": float(row["refi_pct"]),
+            "total_ytd_closings": float(row["total_ytd_closings"]),
+            "jan_closings": int(row["jan_closings"]),
+            "feb_closings": int(row["feb_closings"]),
+            "march_closings": int(row["march_closings"]),
+            "pair_distance": np.nan,
+            "twin_nmls": np.nan,
+            "plot_x": plot_x,
+            "plot_y": plot_y,
+            "pair_id": np.nan,
+            "match_score": np.nan,
+        }
+    )
+
+assignment_order = {"control": 0, "treatment": 1, "outlier": 2}
+
+final_df = pd.DataFrame(output_rows)[UPLOAD_COLUMNS]
+final_df["_assignment_sort"] = final_df["assignment"].map(assignment_order)
+final_df = (
+    final_df
+    .sort_values(["pair_id", "_assignment_sort", "nmls"], na_position="last")
+    .drop(columns="_assignment_sort")
+    .reset_index(drop=True)
+)
+
+for col in ["nmls", "jan_closings", "feb_closings", "march_closings"]:
+    final_df[col] = final_df[col].astype("Int64")
+for col in ["twin_nmls", "pair_id"]:
+    final_df[col] = final_df[col].astype("Int64")
+
+pair_summary_df = pd.DataFrame(
+    [
+        {
+            "pair_id": int(pair["pair_id"]),
+            "pair_distance": round(float(pair["pair_distance"]), 4),
+            "control_nmls": int(df.loc[pair["control_idx"], "nmls"]),
+            "treatment_nmls": int(df.loc[pair["treatment_idx"], "nmls"]),
+            "pro_ranking": df.loc[pair["control_idx"], "pro_ranking"],
+        }
+        for pair in matched_pairs
+    ]
+)
+
+outlier_df = df.loc[outlier_indices].copy().reset_index(drop=True) if outlier_indices else df.iloc[0:0].copy()
+
+
+# Optional export step, only when you want to download a CSV:
+# final_df.to_csv("test_twin_data.csv", index=False)
+# =================
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fraud Detection Dashboard</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Twin Pair Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      color-scheme: light;
-      --font-ui: "Aptos", "Segoe UI Variable", "Avenir Next", "IBM Plex Sans", sans-serif;
-      --font-display: "Avenir Next", "Segoe UI Variable", "Aptos Display", "Trebuchet MS", sans-serif;
-      --bg: #f6f2fc;
-      --panel: #ffffff;
-      --panel-strong: #ffffff;
-      --ink: #201b33;
-      --muted: #6f6786;
-      --line: #dfd6ef;
-      --line-strong: #cfc2e7;
-      --shadow: 0 18px 36px rgba(63, 47, 104, 0.08);
-      --hero-a: #1e293b;
-      --hero-b: #334155;
-      --accent: #7d62d9;
-      --teal: #7b68d9;
-      --ok: #1a8a5c;
-      --ok-soft: rgba(26, 138, 92, 0.1);
-      --warn: #c48a1a;
-      --warn-soft: rgba(196, 138, 26, 0.1);
-      --alert: #c44040;
-      --alert-soft: rgba(196, 64, 64, 0.08);
-      --info: #3a6ea5;
-      --info-soft: rgba(58, 110, 165, 0.08);
-      --confirmed: rgba(196, 64, 64, 0.05);
-      --ml-only: rgba(196, 138, 26, 0.05);
-      --fiu-only: rgba(58, 110, 165, 0.04);
-      --clear: rgba(26, 138, 92, 0.04);
-      --radius: 14px;
-      --radius-sm: 8px;
-      --transition: 180ms ease;
+      --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --text-xs: 0.75rem;
+      --text-sm: 0.8125rem;
+      --text-base: 0.875rem;
+      --text-lg: 1rem;
+      --text-xl: 1.25rem;
+      --text-2xl: 1.5rem;
+
+      --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+      --space-5: 20px; --space-6: 24px; --space-8: 32px;
+
+      --bg: #f8f9fa;
+      --surface: #ffffff;
+      --border: #e5e7eb;
+      --border-light: #f0f1f3;
+      --text-primary: #111827;
+      --text-secondary: #6b7280;
+      --text-tertiary: #9ca3af;
+
+      --green: #059669;
+      --green-light: #ecfdf5;
+      --blue: #2563eb;
+      --blue-light: #eff6ff;
+      --red: #dc2626;
+      --red-light: #fef2f2;
+
+      --radius-sm: 6px; --radius-md: 8px; --radius-lg: 12px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+      --shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      margin: 0;
+      font-family: var(--font-body);
+      font-size: var(--text-base);
+      color: var(--text-primary);
+      background: var(--bg);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
       min-height: 100vh;
-      color: var(--ink);
-      font-family: var(--font-ui);
-      background:
-        radial-gradient(circle at top left, rgba(255, 255, 255, 0.8) 0, rgba(255, 255, 255, 0) 34%),
-        linear-gradient(180deg, #fbf8ff 0%, #f6f2fc 100%);
     }
 
-    .shell {
-      max-width: 1440px;
+    .page {
+      width: min(1760px, calc(100vw - 20px));
       margin: 0 auto;
-      padding: 26px 22px 34px;
+      padding: var(--space-5) var(--space-4);
     }
 
-    .hero {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      padding: 20px 24px;
-      border-radius: var(--radius);
-      color: var(--ink);
-      background: linear-gradient(135deg, #f4edff 0%, #e7dcff 100%);
-      border: 1px solid #d9caf6;
-      box-shadow: var(--shadow);
-    }
-
-    .hero__copy {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .shield {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      display: grid;
-      place-items: center;
-      font-size: 14px;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-      background: linear-gradient(135deg, #8467e7 0%, #6f57cb 100%);
-      color: white;
-      flex-shrink: 0;
-    }
-
-    .eyebrow {
-      display: none;
-    }
-
-    h1,
-    h2,
-    h3,
-    p {
-      margin: 0;
-    }
-
-    h1 {
-      font-family: var(--font-display);
-      font-size: 1.4rem;
-      line-height: 1.3;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-    }
-
-    .hero__meta {
-      margin-top: 3px;
-      color: var(--muted);
-      font-size: 0.85rem;
-    }
-
-    .hero__actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-    }
-
-    button,
-    .button-link {
-      appearance: none;
-      border: 0;
-      font: inherit;
-      cursor: pointer;
-      transition: background var(--transition), border-color var(--transition), color var(--transition);
-    }
-
-    .upload-btn,
-    .ghost-btn,
-    .pager-btn {
-      padding: 8px 14px;
-      border-radius: var(--radius-sm);
-      font-weight: 600;
-      font-size: 0.85rem;
-    }
-
-    .upload-btn {
-      color: white;
-      background: var(--teal);
-    }
-
-    .upload-btn:hover {
-      background: #6f5dd0;
-    }
-
-    .ghost-btn {
-      color: var(--muted);
-      background: rgba(255, 255, 255, 0.7);
-      border: 1px solid var(--line);
-    }
-
-    .ghost-btn:hover {
-      background: white;
-    }
-
-    .filter-panel,
-    .table-panel,
-    .status-banner {
-      margin-top: 16px;
-      background: var(--panel);
-      border-radius: var(--radius);
-      border: 1px solid var(--line);
-      box-shadow: var(--shadow);
-    }
-
-    .filter-panel {
-      padding: 16px;
-    }
-
-    .filter-bar {
-      display: flex;
-      align-items: flex-end;
-      gap: 14px;
-      flex-wrap: wrap;
-    }
-
-    .filter-grid {
-      flex: 1;
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
-      align-items: center;
-    }
-
-    .field {
+    /* ───── Upload Zone ───── */
+    .upload-zone {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      align-items: center;
+      justify-content: center;
+      min-height: 60vh;
+      text-align: center;
     }
-
-    .field label {
-      font-size: 0.75rem;
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
-      color: var(--muted);
-      font-weight: 600;
-    }
-
-    .field input,
-    .field select {
+    .upload-box {
+      border: 2.5px dashed var(--border);
+      border-radius: 20px;
+      padding: 56px 64px;
+      max-width: 520px;
       width: 100%;
-      border-radius: var(--radius-sm);
-      padding: 8px 10px;
-      border: 1px solid var(--line-strong);
-      background: white;
-      color: var(--ink);
-      font: inherit;
-      font-size: 0.9rem;
-      outline: none;
-      transition: border-color var(--transition), box-shadow var(--transition);
-    }
-
-    .field input::placeholder {
-      color: #9b92b3;
-    }
-
-    .combo-box {
+      transition: border-color 200ms ease, background 200ms ease;
+      cursor: pointer;
       position: relative;
     }
-
-    .combo-box input {
-      padding-right: 38px;
+    .upload-box.dragover {
+      border-color: var(--blue);
+      background: var(--blue-light);
     }
-
-    .combo-toggle {
+    .upload-box svg { color: var(--text-tertiary); margin-bottom: var(--space-4); }
+    .upload-title {
+      font-size: var(--text-lg);
+      font-weight: 700;
+      margin-bottom: var(--space-1);
+    }
+    .upload-sub {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      margin-bottom: var(--space-4);
+    }
+    .upload-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--surface);
+      background: var(--blue);
+      border: none;
+      border-radius: 10px;
+      padding: 10px 24px;
+      cursor: pointer;
+      transition: background 150ms ease;
+    }
+    .upload-btn:hover { background: #1d4ed8; }
+    .upload-box input[type="file"] {
       position: absolute;
-      top: 50%;
-      right: 6px;
-      transform: translateY(-50%);
-      width: 28px;
-      height: 28px;
-      border-radius: 8px;
-      border: 0;
-      background: transparent;
-      color: var(--muted);
-      font-size: 0.78rem;
-      line-height: 1;
+      inset: 0;
+      opacity: 0;
       cursor: pointer;
     }
+    .upload-error {
+      color: var(--red);
+      font-size: var(--text-sm);
+      font-weight: 600;
+      margin-top: var(--space-3);
+      min-height: 1.5em;
+    }
+    /* File badge after load */
+    .file-badge {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: var(--space-5);
+      justify-content: center;
+    }
+    .file-badge.visible { display: flex; }
+    .file-badge-inner {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--text-secondary);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 16px;
+    }
+    .file-badge-inner svg { flex-shrink: 0; }
+    .file-badge-reload {
+      font-family: var(--font-body);
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: var(--blue);
+      background: none;
+      border: none;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .file-badge-reload:hover { color: #1d4ed8; }
 
-    .combo-toggle:hover {
-      background: #f1ebfb;
-      color: var(--ink);
+    /* ───── Dashboard (hidden until CSV loads) ───── */
+    .dashboard { display: none; }
+    .dashboard.visible { display: block; }
+
+    /* ───── Header ───── */
+    .header {
+      text-align: center;
+      margin-bottom: var(--space-6);
+    }
+    .header h1 {
+      font-size: var(--text-2xl);
+      font-weight: 700;
+      letter-spacing: -0.025em;
     }
 
-    .combo-menu {
+    /* ───── Summary Cards ───── */
+    .summary-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--space-3);
+      margin-bottom: var(--space-6);
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4) var(--space-5);
+      box-shadow: var(--shadow-sm);
+    }
+    .stat-label {
+      font-size: var(--text-xs);
+      font-weight: 500;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: var(--space-1);
+    }
+    .stat-value {
+      font-size: var(--text-xl);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ───── NMLS Selector ───── */
+    .selector-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: var(--space-5);
+    }
+    .selector-label {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: var(--space-2);
+    }
+    .selector-row {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .nmls-input-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+    .nmls-input-wrap .icon {
       position: absolute;
-      top: calc(100% + 6px);
+      left: 16px;
+      pointer-events: none;
+      color: var(--text-tertiary);
+      display: flex;
+      align-items: center;
+    }
+    input#nmlsInput {
+      font-family: var(--font-body);
+      font-size: var(--text-base);
+      font-weight: 600;
+      color: var(--text-primary);
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 20px 12px 44px;
+      background: var(--surface);
+      outline: none;
+      cursor: text;
+      width: 240px;
+      box-shadow: var(--shadow-md);
+      transition: border-color 180ms ease, box-shadow 180ms ease;
+      font-variant-numeric: tabular-nums;
+    }
+    input#nmlsInput::placeholder {
+      color: var(--text-tertiary);
+      font-weight: 500;
+    }
+    input#nmlsInput:hover { border-color: var(--blue); }
+    input#nmlsInput:focus {
+      border-color: var(--blue);
+      box-shadow: var(--shadow-md), 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    /* Custom dropdown panel */
+    .nmls-dropdown-wrap {
+      position: relative;
+      display: inline-flex;
+      flex-direction: column;
+    }
+    .nmls-dropdown {
+      position: absolute;
+      top: 100%;
       left: 0;
       right: 0;
+      margin-top: 4px;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow-lg);
+      max-height: 260px;
+      overflow-y: auto;
+      z-index: 20;
       display: none;
-      max-height: 220px;
-      overflow: auto;
-      border-radius: 10px;
-      border: 1px solid var(--line-strong);
-      background: #ffffff;
-      box-shadow: 0 18px 32px rgba(63, 47, 104, 0.12);
-      z-index: 30;
     }
-
-    .combo-box.is-open .combo-menu {
-      display: block;
-    }
-
-    .combo-option {
-      width: 100%;
-      border: 0;
-      border-radius: 0;
-      background: transparent;
-      color: var(--ink);
-      text-align: left;
-      padding: 9px 10px;
-      font: inherit;
-      font-size: 0.88rem;
+    .nmls-dropdown.open { display: block; }
+    .nmls-dropdown-item {
+      padding: 10px 16px;
+      font-size: var(--text-sm);
+      font-weight: 500;
       cursor: pointer;
-    }
-
-    .combo-option + .combo-option {
-      border-top: 1px solid #f1ebfb;
-    }
-
-    .combo-option:hover,
-    .combo-option.is-active {
-      background: #f3eefc;
-    }
-
-    .combo-option.is-all {
-      font-weight: 700;
-    }
-
-    .combo-option.is-disabled {
-      color: var(--muted);
-      cursor: default;
-    }
-
-    .field input:focus,
-    .field select:focus {
-      border-color: var(--teal);
-      box-shadow: 0 0 0 3px rgba(123, 104, 217, 0.12);
-    }
-
-    .meta-actions {
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      justify-content: flex-end;
-      gap: 10px;
-      flex-wrap: wrap;
-      min-width: 200px;
+      font-variant-numeric: tabular-nums;
+      transition: background 80ms ease;
     }
+    .nmls-dropdown-item:first-child { border-radius: 10px 10px 0 0; }
+    .nmls-dropdown-item:last-child { border-radius: 0 0 10px 10px; }
+    .nmls-dropdown-item:hover { background: var(--blue-light); }
+    .nmls-dropdown-item.active { background: var(--blue-light); font-weight: 700; }
+    .nmls-dropdown-item .dd-nmls { color: var(--text-primary); font-weight: 600; }
+    .nmls-dropdown-item .dd-pair { color: var(--text-tertiary); font-size: var(--text-xs); font-weight: 600; }
 
-    .record-count {
-      font-weight: 600;
-      font-size: 0.85rem;
-      color: var(--muted);
-    }
-
-    .reset-btn {
-      padding: 7px 12px;
-      border-radius: var(--radius-sm);
-      font-size: 0.85rem;
-      color: var(--muted);
-      background: var(--bg);
-      border: 1px solid var(--line);
-    }
-
-    .reset-btn:hover {
-      background: #f1ebfb;
-    }
-
-    .status-banner {
-      padding: 14px 16px;
-      display: none;
-      gap: 10px;
-      align-items: flex-start;
-    }
-
-    .status-banner.is-visible {
-      display: flex;
-    }
-
-    .status-banner[data-tone="warning"] {
-      background: #fffbeb;
-      border-color: #fde68a;
-    }
-
-    .status-banner[data-tone="error"] {
-      background: #fef2f2;
-      border-color: #fecaca;
-    }
-
-    .status-banner[data-tone="info"] {
-      background: #f4efff;
-      border-color: #dacbf6;
-    }
-
-    .status-badge {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      display: grid;
-      place-items: center;
+    /* ───── Badges ───── */
+    .match-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: var(--text-base);
       font-weight: 700;
-      font-size: 0.8rem;
-      flex: none;
+      font-variant-numeric: tabular-nums;
+      background: var(--green-light);
+      color: var(--green);
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 180ms ease;
     }
+    .match-badge.visible { opacity: 1; }
 
-    .status-banner[data-tone="warning"] .status-badge {
-      background: var(--warn-soft);
-      color: var(--warn);
-    }
-
-    .status-banner[data-tone="error"] .status-badge {
-      background: var(--alert-soft);
-      color: var(--alert);
-    }
-
-    .status-banner[data-tone="info"] .status-badge {
-      background: var(--info-soft);
-      color: var(--info);
-    }
-
-    .status-title {
+    .nmls-pair-info {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: var(--text-sm);
       font-weight: 600;
-      margin-bottom: 2px;
-      font-size: 0.9rem;
+      font-variant-numeric: tabular-nums;
+      background: #f3f4f6;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 180ms ease;
     }
+    .nmls-pair-info.visible { opacity: 1; }
+    .nmls-pair-info .pi-pair { font-weight: 700; color: var(--text-primary); }
+    .nmls-pair-info .pi-ctrl { color: var(--green); font-weight: 700; }
+    .nmls-pair-info .pi-treat { color: var(--blue); font-weight: 700; }
 
-    .status-text {
-      color: var(--muted);
-      line-height: 1.5;
-      font-size: 0.85rem;
-    }
-
-    .kpi-grid {
-      margin-top: 16px;
+    /* ───── Panels & Grid ───── */
+    .main-grid {
       display: grid;
-      gap: 14px;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-4);
     }
-
-    .kpi-card {
-      position: relative;
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
       display: flex;
       flex-direction: column;
-      align-items: flex-start;
-      gap: 14px;
-      min-height: 184px;
-      padding: 18px 20px 18px;
-      border-radius: var(--radius);
-      background: linear-gradient(180deg, #f6f1ff 0%, #eee6fb 100%);
-      border: 1px solid var(--line);
-      box-shadow: 0 14px 24px rgba(63, 47, 104, 0.06);
-      text-align: left;
-      animation: rise 300ms ease both;
-    }
-
-    .kpi-card::after {
-      content: "";
-      position: absolute;
-      inset: auto 20px 0 20px;
-      height: 4px;
-      border-radius: 999px;
-      background: rgba(123, 104, 217, 0.18);
-    }
-
-    .kpi-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: 14px;
-      display: grid;
-      place-items: center;
-      font-size: 0.72rem;
-      font-weight: 800;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      margin: 0;
-      background: linear-gradient(135deg, #efe8ff 0%, #dfd4fb 100%);
-      color: #5f4daa;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
-    }
-
-    .kpi-icon.is-logo {
-      padding: 10px;
-    }
-
-    .kpi-icon svg {
-      width: 100%;
-      height: 100%;
-      stroke: currentColor;
-      fill: none;
-      stroke-width: 1.8;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-
-    .kpi-content {
-      display: grid;
-      gap: 10px;
-      grid-template-rows: minmax(2.8rem, auto) auto minmax(2.5rem, auto);
-      min-width: 0;
-      width: 100%;
-      align-content: start;
-    }
-
-    .kpi-label {
-      font-size: 0.76rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--muted);
-      font-weight: 700;
-      line-height: 1.3;
-    }
-
-    .kpi-value {
-      margin-top: 0;
-      font-family: var(--font-display);
-      font-size: clamp(2.2rem, 2.4vw, 2.8rem);
-      line-height: 1;
-      letter-spacing: -0.04em;
-      font-weight: 800;
-    }
-
-    .kpi-subtext {
-      margin-top: 0;
-      color: var(--muted);
-      font-size: 0.85rem;
-      line-height: 1.4;
-    }
-
-    .kpi-card[data-tone="broker"] {
-      background: linear-gradient(180deg, #f5efff 0%, #ece3fb 100%);
-      border-color: #e1d7f3;
-    }
-
-    .kpi-card[data-tone="broker"] .kpi-icon {
-      background: linear-gradient(135deg, #eee6ff 0%, #ddd2f7 100%);
-      color: #6149ae;
-    }
-
-    .kpi-card[data-tone="broker"]::after {
-      background: rgba(97, 73, 174, 0.24);
-    }
-
-    .kpi-card[data-tone="officer"] {
-      background: linear-gradient(180deg, #f7f1ff 0%, #ede4fa 100%);
-      border-color: #e5daf1;
-    }
-
-    .kpi-card[data-tone="officer"] .kpi-icon {
-      background: linear-gradient(135deg, #f3ebff 0%, #e2d8f6 100%);
-      color: #7350a0;
-    }
-
-    .kpi-card[data-tone="officer"]::after {
-      background: rgba(115, 80, 160, 0.22);
-    }
-
-    .kpi-card[data-tone="loan"] {
-      background: linear-gradient(180deg, #f6f0ff 0%, #ece4fa 100%);
-      border-color: #e3daf5;
-    }
-
-    .kpi-card[data-tone="loan"] .kpi-icon {
-      background: linear-gradient(135deg, #efe8ff 0%, #ddd3f8 100%);
-      color: #604ca7;
-    }
-
-    .kpi-card[data-tone="loan"]::after {
-      background: rgba(96, 76, 167, 0.24);
-    }
-
-    .kpi-card[data-tone="ml"] {
-      background: linear-gradient(180deg, #fbf0f5 0%, #f4e1ea 100%);
-      border-color: #efd4df;
-    }
-
-    .kpi-card[data-tone="ml"] .kpi-icon {
-      background: linear-gradient(135deg, #fde9ef 0%, #f4d3df 100%);
-      color: var(--alert);
-    }
-
-    .kpi-card[data-tone="ml"]::after {
-      background: rgba(196, 64, 64, 0.28);
-    }
-
-    .kpi-card[data-tone="fiu"] {
-      background: linear-gradient(180deg, #f7f1ff 0%, #ede4fb 100%);
-      border-color: #e7dcf3;
-    }
-
-    .kpi-card[data-tone="fiu"] .kpi-icon {
-      background: linear-gradient(135deg, #f2eaff 0%, #e0d3f6 100%);
-      color: #8257af;
-      font-size: 0.62rem;
-      letter-spacing: 0.08em;
-    }
-
-    .kpi-card[data-tone="fiu"]::after {
-      background: rgba(130, 87, 175, 0.24);
-    }
-
-    .table-panel {
-      padding: 18px;
-    }
-
-    .table-head {
-      display: flex;
-      align-items: flex-start;
-      justify-content: flex-start;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-
-    .table-title {
-      font-family: var(--font-display);
-      font-size: 0.96rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--ink);
-      font-weight: 700;
-      margin-bottom: 2px;
-    }
-
-    .table-subtitle {
-      color: var(--muted);
-      font-size: 0.9rem;
-    }
-
-    .table-wrap {
       overflow: hidden;
-      border-radius: 12px;
-      border: 1px solid var(--line);
-      background: linear-gradient(180deg, #faf7ff 0%, #ffffff 72px);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
     }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      table-layout: fixed;
+    .panel-head {
+      padding: var(--space-3) var(--space-4);
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
-
-    thead th {
-      text-align: left;
-      font-family: var(--font-display);
-      font-size: 0.68rem;
-      letter-spacing: 0.08em;
+    .panel-title {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--text-secondary);
       text-transform: uppercase;
-      color: var(--muted);
-      font-weight: 700;
-      padding: 12px 10px;
-      border-bottom: 1px solid #e0d6f2;
-      background: linear-gradient(180deg, #f8f3ff 0%, #efe7fb 100%);
+      letter-spacing: 0.04em;
+    }
+    .panel-body {
+      padding: var(--space-3) var(--space-4);
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* ───── Map Panel ───── */
+    .map-panel { grid-column: 1 / -1; }
+    .map-panel .panel-body { padding: var(--space-2); position: relative; }
+    .map-wrap {
+      position: relative;
+      background: var(--bg);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      height: 420px;
+    }
+    .map-legend {
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      display: flex;
+      gap: 14px;
+      z-index: 2;
+      background: rgba(255,255,255,0.88);
+      backdrop-filter: blur(6px);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 14px;
+      box-shadow: var(--shadow-sm);
+    }
+    .map-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    .map-legend-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    #overviewMap { width: 100%; height: 100%; display: block; }
+
+    /* SVG map styles */
+    .pair-line { stroke: #d1d5db; stroke-width: 1.5; opacity: 0.35; cursor: pointer; }
+    .pair-line.active { stroke: var(--text-primary); stroke-width: 2; opacity: 0.8; }
+    .pair-label-text { font-family: var(--font-body); fill: var(--text-tertiary); font-size: 9px; font-weight: 600; opacity: 0; pointer-events: none; }
+    .pair-label-text.active { fill: var(--text-primary); opacity: 1; }
+    .node { cursor: pointer; }
+    .node circle { stroke: var(--surface); stroke-width: 2; opacity: 0.45; }
+    .node.active circle { opacity: 1; stroke-width: 2.5; }
+    .leader-line { stroke: var(--text-tertiary); stroke-width: 1; opacity: 0; }
+    .leader-line.active { opacity: 0.6; }
+    .nmls-label { font-family: var(--font-body); font-size: 11px; font-weight: 700; fill: var(--text-secondary); opacity: 0; pointer-events: none; }
+    .nmls-label.active { opacity: 1; fill: var(--text-primary); }
+    .nmls-pill { opacity: 0; pointer-events: none; }
+    .nmls-pill.active { opacity: 1; }
+
+    /* ───── Blended 5-Column Table ───── */
+    .compare-panel { grid-column: 1 / -1; }
+    .blend-table { width: 100%; max-width: 820px; margin: 0 auto; border-collapse: collapse; }
+    .blend-table th { font-size: var(--text-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: var(--space-2) var(--space-3); border-bottom: 1.5px solid var(--border); white-space: nowrap; }
+    .blend-table th.col-metric { color: var(--text-tertiary); text-align: left; }
+    .blend-table th.col-ctrl-val { color: var(--green); text-align: right; }
+    .blend-table th.col-ctrl-bar { color: var(--green); text-align: center; padding-right: 0; }
+    .blend-table th.col-treat-bar { color: var(--blue); text-align: center; padding-left: 0; }
+    .blend-table th.col-treat-val { color: var(--blue); text-align: left; }
+    .blend-table td { padding: 6px var(--space-3); font-size: var(--text-sm); border-bottom: 1px solid var(--border-light); vertical-align: middle; }
+    .blend-table tr:last-child td { border-bottom: none; }
+    .blend-table .td-metric { font-weight: 500; color: var(--text-secondary); white-space: nowrap; width: 110px; }
+    .blend-table .td-ctrl-val { font-weight: 700; color: var(--green); text-align: right; font-variant-numeric: tabular-nums; width: 70px; }
+    .blend-table .td-treat-val { font-weight: 700; color: var(--blue); text-align: left; font-variant-numeric: tabular-nums; width: 70px; }
+    .blend-table .td-bar { padding-top: 6px; padding-bottom: 6px; }
+    .blend-table .td-ctrl-bar { padding-right: 0; }
+    .blend-table .td-treat-bar { padding-left: 0; }
+    .bar-track { height: 20px; background: var(--bg); position: relative; overflow: hidden; }
+    .td-ctrl-bar .bar-track { border-radius: 4px 0 0 4px; }
+    .td-treat-bar .bar-track { border-radius: 0 4px 4px 0; }
+    .bar-fill { position: absolute; top: 0; height: 100%; transition: width 300ms ease; }
+    .td-ctrl-bar .bar-fill { right: 0; background: var(--green); opacity: 0.72; border-radius: 4px 0 0 4px; }
+    .td-treat-bar .bar-fill { left: 0; background: var(--blue); opacity: 0.72; border-radius: 0 4px 4px 0; }
+
+    /* ───── Tooltip ───── */
+    .map-tooltip { position: fixed; pointer-events: none; z-index: 100; background: rgba(255,255,255,0.97); backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px 12px; box-shadow: var(--shadow-lg); font-size: 13px; line-height: 1.5; color: var(--text-primary); opacity: 0; transition: opacity 120ms ease; transform: translate(-50%, -100%); margin-top: -14px; white-space: nowrap; }
+    .map-tooltip.visible { opacity: 1; }
+    .tt-pair-grid { display: grid; grid-template-columns: auto 1fr 1fr; gap: 3px 16px; font-variant-numeric: tabular-nums; }
+    .tt-col-header { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding-bottom: 4px; border-bottom: 1.5px solid var(--border-light); }
+    .tt-col-header.control { color: var(--green); }
+    .tt-col-header.treatment { color: var(--blue); }
+    .tt-col-header.metric { color: var(--text-tertiary); }
+    .tt-metric { font-size: 13px; color: var(--text-secondary); padding: 2px 0; }
+    .tt-val { font-size: 13px; font-weight: 600; color: var(--text-primary); text-align: right; padding: 2px 0; }
+    .tt-outlier-header { font-size: 15px; font-weight: 700; margin-bottom: 6px; font-variant-numeric: tabular-nums; }
+    .tt-outlier-badge { display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 2px 7px; border-radius: 4px; margin-left: 6px; background: var(--red-light); color: var(--red); }
+    .tt-outlier-row { display: flex; justify-content: space-between; gap: 16px; color: var(--text-secondary); font-size: 13px; padding: 2px 0; }
+    .tt-outlier-row span:last-child { font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+    /* ───── Raw Data Table ───── */
+    .data-panel { grid-column: 1 / -1; margin-top: var(--space-4); }
+    .data-panel .panel-body { padding: var(--space-2); }
+    .data-table-wrap {
+      width: 100%;
+      max-height: 520px;
+      overflow: auto;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+    }
+    .raw-table { width: 100%; border-collapse: collapse; font-size: 0.7rem; }
+    .raw-table th {
       position: sticky;
       top: 0;
+      background: var(--surface);
       z-index: 1;
-      white-space: normal;
-      line-height: 1.25;
-      overflow-wrap: anywhere;
-      vertical-align: middle;
-    }
-
-    .th-inner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      min-height: 1.2rem;
-      width: 100%;
-    }
-
-    .th-label {
-      flex: 1 1 auto;
-      min-width: 0;
-    }
-
-    thead th[data-sort="brokerState"] .th-label {
-      white-space: nowrap;
-    }
-
-    thead th + th {
-      border-left: 1px solid #ded4f0;
-      box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.7);
-    }
-
-    thead th:first-child,
-    tbody td:first-child {
-      padding-left: 14px;
-    }
-
-    thead th:last-child,
-    tbody td:last-child {
-      padding-right: 14px;
-    }
-
-    thead th.sortable {
-      cursor: pointer;
-      user-select: none;
-    }
-
-    thead th.sortable:hover {
-      color: var(--ink);
-    }
-
-    thead th .sort-arrow {
-      display: inline-flex;
-      flex: none;
-      font-size: 0.65rem;
-      opacity: 0.3;
-    }
-
-    thead th.sort-asc .sort-arrow,
-    thead th.sort-desc .sort-arrow {
-      opacity: 1;
-      color: var(--teal);
-    }
-
-    .watch-cell {
-      font-size: 1.08rem;
-      text-align: center;
-    }
-
-    tbody td {
-      padding: 11px 10px;
-      border-bottom: 1px solid #ece4f7;
-      vertical-align: middle;
-      font-size: 0.84rem;
-      line-height: 1.35;
-      overflow-wrap: anywhere;
-    }
-
-    tbody td + td {
-      border-left: 1px solid #f2ebfb;
-    }
-
-    tbody tr {
-      transition: background var(--transition), filter var(--transition);
-    }
-
-    tbody tr:nth-child(odd) {
-      background: #ffffff;
-    }
-
-    tbody tr:nth-child(even) {
-      background: #ffffff;
-    }
-
-    tbody tr:hover {
-      background: #eef6fb;
-      filter: none;
-    }
-
-    .cell-stack {
-      display: inline-flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .mono {
-      font-variant-numeric: tabular-nums;
-      font-feature-settings: "tnum" 1;
-      font-weight: 600;
-      letter-spacing: 0.01em;
-    }
-
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0;
-      border-radius: 999px;
-      font-size: 0.82rem;
-      letter-spacing: 0;
-      padding: 5px 10px;
-      line-height: 1.3;
-      color: #2f3f4c;
-      background: #f1edf7;
       font-weight: 700;
-      border: 1px solid transparent;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-tertiary);
+      padding: 8px 10px;
+      border-bottom: 1.5px solid var(--border);
       white-space: nowrap;
+      text-align: left;
     }
-
-    .watch-indicator {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 1.2em;
-      font-family: var(--font-display);
-      font-weight: 800;
-      line-height: 1;
-    }
-
-    .watch-indicator.watch {
-      color: var(--alert);
-    }
-
-    .watch-indicator.clear {
-      color: var(--ok);
-    }
-
-    .pill--ml-fraud {
-      color: #9e2f2f;
-      background: #fde9e9;
-      border-color: #f4c7c7;
-    }
-
-    .pill--ml-clear {
-      color: #21623f;
-      background: #e7f6ec;
-      border-color: #bfe2ca;
-    }
-
-    .pill--fiu-misrep {
-      color: #9e2f2f;
-      background: #fde9e9;
-      border-color: #f4c7c7;
-    }
-
-    .pill--fiu-clear {
-      color: #21623f;
-      background: #e7f6ec;
-      border-color: #bfe2ca;
-    }
-
-    .pill--fiu-hold {
-      color: #8a6500;
-      background: #fff4cf;
-      border-color: #efd98c;
-    }
-
-    .pill--fiu-inconclusive {
-      color: #2d6088;
-      background: #e5f2ff;
-      border-color: #bdd9f2;
-    }
-
-    .pill--fiu-other {
-      color: #8a4f78;
-      background: #fbeaf4;
-      border-color: #edc8dd;
-    }
-
-    .pill--empty {
-      color: var(--muted);
-      background: #f8f5fc;
-      border-color: #ebe3f5;
-    }
-
-    .probability {
-      font-weight: 600;
-    }
-
-    .pager {
-      margin-top: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .pager-meta {
-      font-family: var(--font-display);
-      color: var(--muted);
-      font-weight: 600;
-      font-size: 0.85rem;
-    }
-
-    .pager-controls {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .pager-btn {
-      color: var(--ink);
-      background: white;
-      border: 1px solid var(--line);
-    }
-
-    .pager-btn:hover {
-      background: #f1ebfb;
-    }
-
-    .pager-btn:disabled,
-    .reset-btn:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-
-    .empty-state {
-      padding: 32px 16px;
-      text-align: center;
-      color: var(--muted);
-    }
-
-    .sr-only {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
+    .raw-table td {
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border-light);
       white-space: nowrap;
-      border: 0;
+      font-variant-numeric: tabular-nums;
+      color: var(--text-secondary);
     }
+    .raw-table tr:hover td { background: #f9fafb; }
+    .raw-table tr:last-child td { border-bottom: none; }
+    /* Selected pair row highlights */
+    .raw-table tr.row-ctrl td { background: #d1fae5; }
+    .raw-table tr.row-treat td { background: #dbeafe; }
+    .raw-table tr.row-ctrl:hover td { background: #a7f3d0; }
+    .raw-table tr.row-treat:hover td { background: #bfdbfe; }
+    /* Color-code assignment column */
+    .raw-table td.asgn-control { color: var(--green); font-weight: 600; }
+    .raw-table td.asgn-treatment { color: var(--blue); font-weight: 600; }
+    .raw-table td.asgn-outlier { color: var(--red); font-weight: 600; }
 
-    @keyframes rise {
-      from {
-        opacity: 0;
-        transform: translateY(4px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    @media (max-width: 1180px) {
-      .kpi-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-
-      .filter-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .meta-actions {
-        min-width: 0;
-        justify-content: flex-start;
-      }
-    }
-
-    @media (max-width: 820px) {
-      .shell {
-        padding: 16px 12px;
-      }
-
-      .hero {
-        padding: 16px;
-      }
-
-      .hero,
-      .table-head,
-      .pager,
-      .filter-bar {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      .hero__actions {
-        justify-content: flex-start;
-      }
-
-      .kpi-grid,
-      .filter-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .kpi-card {
-        min-height: 164px;
-      }
-
-      .watch-toggle {
-        padding-top: 0;
-      }
-
-      .pager-controls {
-        width: 100%;
-        justify-content: space-between;
-      }
+    /* ───── Responsive ───── */
+    @media (max-width: 960px) {
+      .summary-row { grid-template-columns: repeat(2, 1fr); }
+      .main-grid { grid-template-columns: 1fr; }
+      .map-panel, .compare-panel, .data-panel { grid-column: 1; }
+      input#nmlsInput { width: 100%; }
+      .selector-row { flex-direction: column; }
     }
   </style>
 </head>
 <body>
-  <main class="shell">
-    <section class="hero">
-      <div class="hero__copy">
-        <div class="shield" aria-hidden="true">FD</div>
-        <div>
-          <p class="eyebrow">Risk Operations</p>
-          <h1>Fraud Detection Dashboard</h1>
-          <p class="hero__meta" id="datasetMeta">Upload an AWC Excel or CSV file to begin.</p>
+  <div class="page">
+
+    <!-- Header -->
+    <div class="header">
+      <h1>Twin Pair Dashboard</h1>
+    </div>
+
+    <!-- Upload Zone -->
+    <div class="upload-zone" id="uploadZone">
+      <div class="upload-box" id="uploadBox">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <div class="upload-title">Upload Twin Pair CSV</div>
+        <div class="upload-sub">Drag and drop or click to browse</div>
+        <button class="upload-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Choose File
+        </button>
+        <input type="file" id="fileInput" accept=".csv" />
+      </div>
+      <div class="upload-error" id="uploadError"></div>
+    </div>
+
+    <!-- File badge (shown after load) -->
+    <div class="file-badge" id="fileBadge">
+      <div class="file-badge-inner">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span id="fileName"></span>
+      </div>
+      <button class="file-badge-reload" id="reloadBtn">Upload new file</button>
+    </div>
+
+    <!-- ═══════════ Dashboard (hidden until CSV loaded) ═══════════ -->
+    <div class="dashboard" id="dashboard">
+
+      <!-- Summary -->
+      <div class="summary-row" id="summaryRow"></div>
+
+      <!-- NMLS Selector -->
+      <div class="selector-section">
+        <div class="selector-label">Search Treatment NMLS</div>
+        <div class="selector-row">
+          <div class="nmls-dropdown-wrap">
+            <div class="nmls-input-wrap">
+              <span class="icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              </span>
+              <input id="nmlsInput" type="text" placeholder="Type or select NMLS…" autocomplete="off" />
+            </div>
+            <div class="nmls-dropdown" id="nmlsDropdown"></div>
+          </div>
+          <span class="nmls-pair-info" id="nmlsPairInfo"></span>
+          <span class="match-badge" id="matchBadge"></span>
         </div>
       </div>
-      <div class="hero__actions">
-        <label class="upload-btn button-link" for="fileInput">Upload AWC File</label>
-        <input id="fileInput" type="file" accept=".xlsx,.xls,.csv,.txt" class="sr-only">
-      </div>
-    </section>
 
-    <section class="filter-panel">
-      <div class="filter-bar">
-        <div class="filter-grid">
-          <div class="field">
-            <label for="brokerFilter">Broker NMLS</label>
-            <div class="combo-box" data-filter="broker">
-              <input id="brokerFilter" type="text" value="All" autocomplete="off" inputmode="numeric" spellcheck="false" aria-autocomplete="list" aria-expanded="false" aria-controls="brokerOptions">
-              <button class="combo-toggle" type="button" data-toggle="broker" aria-label="Show broker options">▼</button>
-              <div class="combo-menu" id="brokerOptions" role="listbox"></div>
+      <!-- Grid -->
+      <div class="main-grid">
+
+        <!-- Map -->
+        <div class="panel map-panel">
+          <div class="panel-head"><span class="panel-title">Overview Map</span></div>
+          <div class="panel-body">
+            <div class="map-wrap">
+              <div class="map-legend">
+                <div class="map-legend-item"><span class="map-legend-dot" style="background:var(--green)"></span>Control</div>
+                <div class="map-legend-item"><span class="map-legend-dot" style="background:var(--blue)"></span>Treatment</div>
+                <div class="map-legend-item"><span class="map-legend-dot" style="background:var(--red)"></span>Outlier</div>
+              </div>
+              <svg id="overviewMap" viewBox="0 0 1000 520" preserveAspectRatio="xMidYMid meet"></svg>
             </div>
           </div>
-          <div class="field">
-            <label for="loFilter">LO NMLS</label>
-            <div class="combo-box" data-filter="loanOfficer">
-              <input id="loFilter" type="text" value="All" autocomplete="off" inputmode="numeric" spellcheck="false" aria-autocomplete="list" aria-expanded="false" aria-controls="loOptions">
-              <button class="combo-toggle" type="button" data-toggle="loanOfficer" aria-label="Show loan officer options">▼</button>
-              <div class="combo-menu" id="loOptions" role="listbox"></div>
-            </div>
-          </div>
-          <div class="field">
-            <label for="loanNumberFilter">Loan Number</label>
-            <div class="combo-box" data-filter="loanNumber">
-              <input id="loanNumberFilter" type="text" value="All" autocomplete="off" inputmode="numeric" spellcheck="false" aria-autocomplete="list" aria-expanded="false" aria-controls="loanNumberOptions">
-              <button class="combo-toggle" type="button" data-toggle="loanNumber" aria-label="Show loan number options">▼</button>
-              <div class="combo-menu" id="loanNumberOptions" role="listbox"></div>
-            </div>
-          </div>
-          <div class="field">
-            <label for="onWatchFilter">On Watch</label>
-            <div class="combo-box" data-filter="onWatch">
-              <input id="onWatchFilter" type="text" value="All" autocomplete="off" spellcheck="false" aria-autocomplete="list" aria-expanded="false" aria-controls="onWatchOptions">
-              <button class="combo-toggle" type="button" data-toggle="onWatch" aria-label="Show on watch options">▼</button>
-              <div class="combo-menu" id="onWatchOptions" role="listbox"></div>
-            </div>
+        </div>
+
+        <!-- Blended Comparison -->
+        <div class="panel compare-panel">
+          <div class="panel-head"><span class="panel-title">Profile Comparison</span></div>
+          <div class="panel-body">
+            <table class="blend-table">
+              <thead><tr>
+                <th class="col-metric">Metric</th>
+                <th class="col-ctrl-val" id="controlHeader">Control</th>
+                <th class="col-ctrl-bar">Control</th>
+                <th class="col-treat-bar">Treatment</th>
+                <th class="col-treat-val" id="treatmentHeader">Treatment</th>
+              </tr></thead>
+              <tbody id="compareBody"></tbody>
+            </table>
           </div>
         </div>
-        <div class="meta-actions">
-          <div class="record-count" id="viewCount">0 records</div>
-          <button class="reset-btn" id="resetFilters" type="button">Reset</button>
-        </div>
-      </div>
-    </section>
 
-    <section class="status-banner" id="statusBanner" data-tone="info" aria-live="polite">
-      <div class="status-badge" id="statusBadge">i</div>
-      <div>
-        <div class="status-title" id="statusTitle"></div>
-        <div class="status-text" id="statusText"></div>
-      </div>
-    </section>
+        <!-- Raw Data Table -->
+        <div class="panel data-panel">
+          <div class="panel-head"><span class="panel-title">Raw Data</span></div>
+          <div class="panel-body" style="padding:0">
+            <div class="data-table-wrap">
+              <table class="raw-table" id="rawTable"></table>
+            </div>
+          </div>
+        </div>
 
-    <section class="kpi-grid">
-      <article class="kpi-card" data-tone="broker">
-        <div class="kpi-icon is-logo" aria-hidden="true">
-          <svg viewBox="0 0 24 24">
-            <path d="M4.5 20.5h15"></path>
-            <path d="M6.5 20.5V9.5h11v11"></path>
-            <path d="M9.5 20.5v-4h5v4"></path>
-            <path d="M9 12.5h.01"></path>
-            <path d="M15 12.5h.01"></path>
-            <path d="M9 15.5h.01"></path>
-            <path d="M15 15.5h.01"></path>
-            <path d="M3.5 9.5 12 3.5l8.5 6"></path>
-          </svg>
-        </div>
-        <div class="kpi-content">
-          <div class="kpi-label">Total Brokers</div>
-          <div class="kpi-value" id="brokersValue">0</div>
-          <div class="kpi-subtext" id="brokersSubtext">unique broker NMLS</div>
-        </div>
-      </article>
-      <article class="kpi-card" data-tone="officer">
-        <div class="kpi-icon is-logo" aria-hidden="true">
-          <svg viewBox="0 0 24 24">
-            <path d="M7.5 7.5a4.5 4.5 0 1 0 9 0a4.5 4.5 0 1 0 -9 0"></path>
-            <path d="M4.5 20.5c.9-3.6 3.8-5.5 7.5-5.5s6.6 1.9 7.5 5.5"></path>
-            <path d="M16.75 12.75l3.75 3.75"></path>
-            <path d="M18.25 12.75h2.25v2.25"></path>
-          </svg>
-        </div>
-        <div class="kpi-content">
-          <div class="kpi-label">Total Loan Officers</div>
-          <div class="kpi-value" id="losValue">0</div>
-          <div class="kpi-subtext" id="losSubtext">unique LO NMLS</div>
-        </div>
-      </article>
-      <article class="kpi-card" data-tone="loan">
-        <div class="kpi-icon is-logo" aria-hidden="true">
-          <svg viewBox="0 0 24 24">
-            <path d="M7 3.5h7l4 4v13H7z"></path>
-            <path d="M14 3.5v4h4"></path>
-            <path d="M10 11.5h5"></path>
-            <path d="M10 15.5h5"></path>
-            <path d="M10 19.5h3"></path>
-          </svg>
-        </div>
-        <div class="kpi-content">
-          <div class="kpi-label">Total Loan Count</div>
-          <div class="kpi-value" id="loansValue">0</div>
-          <div class="kpi-subtext" id="loansSubtext">loans in current view</div>
-        </div>
-      </article>
-      <article class="kpi-card" data-tone="ml">
-        <div class="kpi-icon">ML</div>
-        <div class="kpi-content">
-          <div class="kpi-label">Fraud Flagged By ML</div>
-          <div class="kpi-value" id="mlValue">0</div>
-          <div class="kpi-subtext" id="mlSubtext">0.0% of total</div>
-        </div>
-      </article>
-      <article class="kpi-card" data-tone="fiu">
-        <div class="kpi-icon">FIU</div>
-        <div class="kpi-content">
-          <div class="kpi-label">Fraud Flagged By FIU</div>
-          <div class="kpi-value" id="fiuValue">0</div>
-          <div class="kpi-subtext" id="fiuSubtext">0.0% of total</div>
-        </div>
-      </article>
-    </section>
-
-    <section class="table-panel">
-      <div class="table-head">
-        <div>
-          <div class="table-title">Loan Records</div>
-          <p class="table-subtitle" id="tableSummary">0 records in current view</p>
-        </div>
       </div>
-
-      <div class="table-wrap">
-        <table>
-          <colgroup>
-            <col style="width:12%">
-            <col style="width:12%">
-            <col style="width:12%">
-            <col style="width:7%">
-            <col style="width:12%">
-            <col style="width:14%">
-            <col style="width:12%">
-            <col style="width:10%">
-            <col style="width:9%">
-          </colgroup>
-          <thead>
-            <tr id="tableHeader">
-              <th class="sortable" data-sort="loanNumber"><span class="th-inner"><span class="th-label">Loan Number</span><span class="sort-arrow">▲</span></span></th>
-              <th class="sortable" data-sort="brokerNMLS"><span class="th-inner"><span class="th-label">Broker NMLS</span><span class="sort-arrow">▲</span></span></th>
-              <th class="sortable" data-sort="loanOfficerNMLS"><span class="th-inner"><span class="th-label">LO NMLS</span><span class="sort-arrow">▲</span></span></th>
-              <th class="sortable" data-sort="brokerState"><span class="th-inner"><span class="th-label">State</span><span class="sort-arrow">▲</span></span></th>
-              <th class="sortable" data-sort="loanAmount"><span class="th-inner"><span class="th-label">Loan Amount</span><span class="sort-arrow">▲</span></span></th>
-              <th class="sortable" data-sort="fiuStatusLabel"><span class="th-inner"><span class="th-label">FIU Status</span><span class="sort-arrow">▲</span></span></th>
-              <th class="sortable" data-sort="mlPredictionLabel"><span class="th-inner"><span class="th-label">ML Prediction</span><span class="sort-arrow">▲</span></span></th>
-              <th class="sortable" data-sort="fraudProbability"><span class="th-inner"><span class="th-label">Fraud Prob</span><span class="sort-arrow">▲</span></span></th>
-              <th><span class="th-inner"><span class="th-label">On Watch</span></span></th>
-            </tr>
-          </thead>
-          <tbody id="tableBody"></tbody>
-        </table>
-      </div>
-
-      <div class="pager">
-        <div class="pager-meta" id="pagerMeta">Showing 0 to 0 of 0</div>
-        <div class="pager-controls">
-          <button class="pager-btn" id="prevPage" type="button">Previous</button>
-          <div class="pager-meta" id="pageIndicator">Page 1 of 1</div>
-          <button class="pager-btn" id="nextPage" type="button">Next</button>
-        </div>
-      </div>
-    </section>
-  </main>
+    </div>
+  </div>
+  <div class="map-tooltip" id="mapTooltip"></div>
 
   <script>
-    const XLSX_CDN = "https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js";
-    const PAGE_SIZE = 50;
-    const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+    /* ═══════════════════════════════════════════════════════════
+       GLOBALS
+    ═══════════════════════════════════════════════════════════ */
+    let D = null;                 // parsed data object
+    let state = {};               // { activePairId }
+    let nmlsToPair = {};
+    let nmlsToMember = {};
+    let treatNmlsToPair = {};
+    let csvRows = [];             // raw parsed rows for the appendix
+    let csvHeaders = [];
 
-    const demoRows = [
-      { "Loan Number": "1226044115", "BrokerNMLS": "1658041", "BrokerState": "TX", "LoanOfficerNMLS": "2352962", "BrokerOnWatch": "Yes", "LoanAmount": 184000, "FraudProbability": 0.438, "ML Prediction": "Non-Fraud", "FIU Status": "" },
-      { "Loan Number": "1226023699", "BrokerNMLS": "1658041", "BrokerState": "TX", "LoanOfficerNMLS": "1589908", "BrokerOnWatch": "Yes", "LoanAmount": 180000, "FraudProbability": 0.494, "ML Prediction": "Fraud", "FIU Status": "Misrep" },
-      { "Loan Number": "1226043888", "BrokerNMLS": "1658041", "BrokerState": "TX", "LoanOfficerNMLS": "1647179", "BrokerOnWatch": "Yes", "LoanAmount": 205000, "FraudProbability": 0.495, "ML Prediction": "Fraud", "FIU Status": "" },
-      { "Loan Number": "1226039191", "BrokerNMLS": "1658041", "BrokerState": "OK", "LoanOfficerNMLS": "1647179", "BrokerOnWatch": "Yes", "LoanAmount": 227500, "FraudProbability": 0.816, "ML Prediction": "Fraud", "FIU Status": "On Hold" },
-      { "Loan Number": "1226058710", "BrokerNMLS": "1658041", "BrokerState": "NM", "LoanOfficerNMLS": "2528401", "BrokerOnWatch": "Yes", "LoanAmount": 198400, "FraudProbability": 0.283, "ML Prediction": "Non Fraud", "FIU Status": "No Misrep" },
-      { "Loan Number": "1225904411", "BrokerNMLS": "1029440", "BrokerState": "CA", "LoanOfficerNMLS": "1102122", "BrokerOnWatch": "No", "LoanAmount": 625000, "FraudProbability": 0.128, "ML Prediction": "Non-Fraud", "FIU Status": "No Misrep" },
-      { "Loan Number": "1225905520", "BrokerNMLS": "1029440", "BrokerState": "CA", "LoanOfficerNMLS": "1102122", "BrokerOnWatch": "No", "LoanAmount": 412300, "FraudProbability": 0.672, "ML Prediction": "Fraud", "FIU Status": "No Misrep" },
-      { "Loan Number": "1225971301", "BrokerNMLS": "1029440", "BrokerState": "NV", "LoanOfficerNMLS": "1198844", "BrokerOnWatch": "No", "LoanAmount": 350800, "FraudProbability": 0.213, "ML Prediction": "Non-Fraud", "FIU Status": "Inconclusive" },
-      { "Loan Number": "1225998322", "BrokerNMLS": "1088472", "BrokerState": "FL", "LoanOfficerNMLS": "1400021", "BrokerOnWatch": "Yes", "LoanAmount": 284600, "FraudProbability": 0.931, "ML Prediction": "Fraud", "FIU Status": "Misrep" },
-      { "Loan Number": "1226001008", "BrokerNMLS": "1088472", "BrokerState": "FL", "LoanOfficerNMLS": "1400021", "BrokerOnWatch": "Yes", "LoanAmount": 510000, "FraudProbability": 0.591, "ML Prediction": "Fraud", "FIU Status": "Inconclusive" },
-      { "Loan Number": "1226007124", "BrokerNMLS": "1088472", "BrokerState": "GA", "LoanOfficerNMLS": "1640030", "BrokerOnWatch": "Yes", "LoanAmount": 241200, "FraudProbability": 0.342, "ML Prediction": "Non-Fraud", "FIU Status": "Misrep" },
-      { "Loan Number": "1226015001", "BrokerNMLS": "1195003", "BrokerState": "MI", "LoanOfficerNMLS": "2011840", "BrokerOnWatch": "No", "LoanAmount": 192900, "FraudProbability": 0.089, "ML Prediction": "Non Fraud", "FIU Status": "No Misrep" },
-      { "Loan Number": "1226015098", "BrokerNMLS": "1195003", "BrokerState": "MI", "LoanOfficerNMLS": "2011840", "BrokerOnWatch": "No", "LoanAmount": 298800, "FraudProbability": 0.446, "ML Prediction": "Fraud", "FIU Status": "Misrep" },
-      { "Loan Number": "1226018444", "BrokerNMLS": "1195003", "BrokerState": "OH", "LoanOfficerNMLS": "2011840", "BrokerOnWatch": "No", "LoanAmount": 332100, "FraudProbability": 0.255, "ML Prediction": "Non Fraud", "FIU Status": "On Hold" },
-      { "Loan Number": "1226022049", "BrokerNMLS": "1577732", "BrokerState": "IL", "LoanOfficerNMLS": "2204071", "BrokerOnWatch": "Yes", "LoanAmount": 447500, "FraudProbability": 0.724, "ML Prediction": "Fraud", "FIU Status": "Misrep" }
-    ];
-
-    const headerAliases = {
-      loanNumber: ["loannumber", "loan", "loanid", "loanno", "loannum", "loannumber#", "loan#"],
-      brokerNMLS: ["brokernmls", "brokernumber", "brokernmlsid", "brokerid"],
-      brokerState: ["brokerstate", "state", "brokerst", "brokerlocationstate"],
-      loanOfficerNMLS: ["loanofficernmls", "lonmls", "lonmls", "loanofficerid", "loannmls", "loanofficer"],
-      brokerOnWatch: ["brokeronwatch", "onwatch", "brokerwatch", "watchlist", "watchflag", "watch"],
-      loanAmount: ["loanamount", "amount", "loanamt", "originalbalance", "upb"],
-      fraudProbability: ["fraudprobability", "fraudprob", "fraudscore", "probability", "mlprobability", "modelprobability", "riskprobability"],
-      mlPrediction: ["mlprediction", "prediction", "fraudprediction", "modelprediction", "mlpred", "mlpredictionfraudnonfraud"],
-      fiuStatus: ["fiustatus", "status", "investigatoroutcome", "fiuoutcome", "reviewstatus", "outcome"]
+    const $ = id => document.getElementById(id);
+    const el = {
+      uploadZone:   $("uploadZone"),
+      uploadBox:    $("uploadBox"),
+      fileInput:    $("fileInput"),
+      uploadError:  $("uploadError"),
+      fileBadge:    $("fileBadge"),
+      fileName:     $("fileName"),
+      reloadBtn:    $("reloadBtn"),
+      dashboard:    $("dashboard"),
+      summaryRow:   $("summaryRow"),
+      nmlsInput:    $("nmlsInput"),
+      nmlsDropdown: $("nmlsDropdown"),
+      nmlsPairInfo: $("nmlsPairInfo"),
+      matchBadge:   $("matchBadge"),
+      overviewMap:  $("overviewMap"),
+      controlHeader:$("controlHeader"),
+      treatmentHeader:$("treatmentHeader"),
+      compareBody:  $("compareBody"),
+      mapTooltip:   $("mapTooltip"),
+      rawTable:     $("rawTable")
     };
 
-    const state = {
-      rawRows: [],
-      filteredRows: [],
-      columns: {},
-      missingColumns: [],
-      page: 1,
-      filters: {
-        broker: "",
-        loanOfficer: "",
-        loanNumber: "",
-        onWatch: ""
-      },
-      sort: { key: "", dir: "" },
-      datasetMeta: {
-        fileName: "",
-        sheetName: "",
-        recordCount: 0
-      },
-      xlsxPromise: null
+    function fmt(v, d = 0) {
+      return Number(v).toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
+    }
+
+    const METRIC_NAMES = {
+      pro_score: 'PRO Score', uwm_production: 'UWM Prod.', overall_production: 'Overall Prod.',
+      conv_mix: 'Conv Mix', fha_mix: 'FHA Mix', va_mix: 'VA Mix',
+      purchase_pct: 'Purchase %', total_ytd_closings: 'YTD Closings'
     };
-
-    const els = {
-      datasetMeta: document.getElementById("datasetMeta"),
-      fileInput: document.getElementById("fileInput"),
-      brokerFilter: document.getElementById("brokerFilter"),
-      brokerOptions: document.getElementById("brokerOptions"),
-      loFilter: document.getElementById("loFilter"),
-      loOptions: document.getElementById("loOptions"),
-      loanNumberFilter: document.getElementById("loanNumberFilter"),
-      loanNumberOptions: document.getElementById("loanNumberOptions"),
-      onWatchFilter: document.getElementById("onWatchFilter"),
-      onWatchOptions: document.getElementById("onWatchOptions"),
-      tableHeader: document.getElementById("tableHeader"),
-      resetFilters: document.getElementById("resetFilters"),
-      viewCount: document.getElementById("viewCount"),
-      statusBanner: document.getElementById("statusBanner"),
-      statusBadge: document.getElementById("statusBadge"),
-      statusTitle: document.getElementById("statusTitle"),
-      statusText: document.getElementById("statusText"),
-      brokersValue: document.getElementById("brokersValue"),
-      brokersSubtext: document.getElementById("brokersSubtext"),
-      losValue: document.getElementById("losValue"),
-      losSubtext: document.getElementById("losSubtext"),
-      loansValue: document.getElementById("loansValue"),
-      loansSubtext: document.getElementById("loansSubtext"),
-      mlValue: document.getElementById("mlValue"),
-      mlSubtext: document.getElementById("mlSubtext"),
-      fiuValue: document.getElementById("fiuValue"),
-      fiuSubtext: document.getElementById("fiuSubtext"),
-      tableBody: document.getElementById("tableBody"),
-      tableSummary: document.getElementById("tableSummary"),
-      pagerMeta: document.getElementById("pagerMeta"),
-      pageIndicator: document.getElementById("pageIndicator"),
-      prevPage: document.getElementById("prevPage"),
-      nextPage: document.getElementById("nextPage")
-    };
-
-    const filterControls = {
-      broker: {
-        key: "broker",
-        sourceKey: "brokerNMLS",
-        input: els.brokerFilter,
-        menu: els.brokerOptions,
-        box: els.brokerFilter.closest(".combo-box")
-      },
-      loanOfficer: {
-        key: "loanOfficer",
-        sourceKey: "loanOfficerNMLS",
-        input: els.loFilter,
-        menu: els.loOptions,
-        box: els.loFilter.closest(".combo-box")
-      },
-      loanNumber: {
-        key: "loanNumber",
-        sourceKey: "loanNumber",
-        input: els.loanNumberFilter,
-        menu: els.loanNumberOptions,
-        box: els.loanNumberFilter.closest(".combo-box")
-      },
-      onWatch: {
-        key: "onWatch",
-        sourceKey: "onWatch",
-        input: els.onWatchFilter,
-        menu: els.onWatchOptions,
-        box: els.onWatchFilter.closest(".combo-box")
-      }
-    };
-
-    const comboState = {
-      openKey: "",
-      highlightIndex: -1,
-      options: {
-        broker: [],
-        loanOfficer: [],
-        loanNumber: [],
-        onWatch: []
-      }
-    };
-
-    function normalizeKey(value) {
-      return String(value ?? "")
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "");
+    function prettyMetric(m) {
+      return METRIC_NAMES[m] || m.replace(/_pct/g, " %").replace(/_mix/g, " Mix").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
     }
-
-    function normalizeText(value) {
-      return String(value ?? "").trim();
-    }
-
-    function escapeHtml(value) {
-      return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-    }
-
-    function compactNumber(value) {
-      return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(value || 0);
-    }
-
-    function parseScaledNumber(value) {
-      if (typeof value === "number" && Number.isFinite(value)) {
-        return value;
-      }
-
-      const raw = normalizeText(value).toLowerCase().replace(/,/g, "");
-      if (!raw) {
-        return null;
-      }
-
-      let factor = 1;
-      if (raw.endsWith("k")) factor = 1000;
-      if (raw.endsWith("m")) factor = 1000000;
-
-      const cleaned = raw.replace(/[$%km]/g, "");
-      const parsed = Number(cleaned);
-      return Number.isFinite(parsed) ? parsed * factor : null;
-    }
-
-    function parseProbability(value) {
-      if (typeof value === "number" && Number.isFinite(value)) {
-        return value > 1 ? value / 100 : value;
-      }
-
-      const raw = normalizeText(value).toLowerCase();
-      if (!raw) {
-        return null;
-      }
-
-      const parsed = parseScaledNumber(raw);
-      if (!Number.isFinite(parsed)) {
-        return null;
-      }
-
-      return raw.includes("%") || parsed > 1 ? parsed / 100 : parsed;
-    }
-
-    function formatAmount(value) {
-      if (!Number.isFinite(value)) {
-        return "--";
-      }
-      return new Intl.NumberFormat(undefined, {
-        style: "currency",
-        currency: "USD",
-        notation: "compact",
-        maximumFractionDigits: 1
-      }).format(value);
-    }
-
-    function formatPercent(value) {
-      if (!Number.isFinite(value)) {
-        return "--";
-      }
-      return new Intl.NumberFormat(undefined, {
-        style: "percent",
-        minimumFractionDigits: 1,
-        maximumFractionDigits: 1
-      }).format(value);
-    }
-
-    function titleCase(value) {
-      return normalizeText(value)
-        .toLowerCase()
-        .split(/[\s_-]+/)
-        .filter(Boolean)
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(" ");
-    }
-
-    function isWatch(value) {
-      const normalized = normalizeText(value).toLowerCase();
-      if (!normalized) return false;
-      const positives = ["y", "yes", "true", "1", "watch", "watched", "flagged", "on"];
-      const negatives = ["n", "no", "false", "0", "off", "clear", "clean"];
-      if (positives.includes(normalized)) return true;
-      if (negatives.includes(normalized)) return false;
-      return normalized.includes("watch");
-    }
-
-    function isMLFraud(value) {
-      const normalized = normalizeText(value).toLowerCase().replace(/\s+/g, " ");
-      if (!normalized) return false;
-      if (normalized.includes("non fraud") || normalized.includes("non-fraud") || normalized.includes("not fraud") || normalized.includes("clear")) {
-        return false;
-      }
-      return normalized.includes("fraud");
-    }
-
-    function isFIUFraud(value) {
-      const normalized = normalizeText(value).toLowerCase().replace(/\s+/g, " ");
-      if (!normalized) return false;
-      if (normalized.includes("no misrep") || normalized.includes("no fraud") || normalized.includes("clear") || normalized.includes("clean")) {
-        return false;
-      }
-      if (normalized.includes("inconclusive") || normalized.includes("hold")) {
-        return false;
-      }
-      return normalized.includes("misrep") || normalized.includes("fraud") || normalized.includes("confirmed");
-    }
-
-    function normalizeMLLabel(value) {
-      if (!normalizeText(value)) return "--";
-      return isMLFraud(value) ? "Fraud" : "Non-Fraud";
-    }
-
-    function normalizeFIULabel(value) {
-      const text = normalizeText(value);
-      return text ? titleCase(text) : "--";
-    }
-
-    function getWatchFilterLabel(row) {
-      return row.isWatch ? "On Watch" : "Not On Watch";
-    }
-
-    function getFIUStatusClass(value) {
-      const normalized = normalizeText(value).toLowerCase().replace(/\s+/g, " ");
-      if (!normalized) return "pill--empty";
-      if (normalized.includes("no misrep") || normalized.includes("no fraud") || normalized.includes("clear") || normalized.includes("clean")) {
-        return "pill--fiu-clear";
-      }
-      if (normalized.includes("misrep") || normalized.includes("fraud") || normalized.includes("confirmed")) {
-        return "pill--fiu-misrep";
-      }
-      if (normalized.includes("hold")) {
-        return "pill--fiu-hold";
-      }
-      if (normalized.includes("inconclusive")) {
-        return "pill--fiu-inconclusive";
-      }
-      return "pill--fiu-other";
-    }
-
-    function classifyOutcome(row) {
-      if (row.isMLFraud || row.isFIUFraud) return "flagged";
-      return "clear";
-    }
-
-    function uniqueValues(rows, key) {
-      return Array.from(new Set(rows.map((row) => normalizeText(row[key])).filter(Boolean))).sort(collator.compare);
-    }
-
-    function buildColumnMap(row) {
-      const lookup = new Map();
-      Object.keys(row || {}).forEach((key) => {
-        lookup.set(normalizeKey(key), key);
-      });
-
-      const columns = {};
-      Object.entries(headerAliases).forEach(([field, aliases]) => {
-        const match = aliases.find((alias) => lookup.has(alias));
-        columns[field] = match ? lookup.get(match) : "";
-      });
-      return columns;
-    }
-
-    function transformRows(rows) {
-      if (!rows.length) {
-        return { mappedRows: [], columns: {}, missingColumns: Object.keys(headerAliases) };
-      }
-
-      const columns = buildColumnMap(rows[0]);
-      const missingColumns = Object.entries(columns)
-        .filter(([, value]) => !value)
-        .map(([field]) => field);
-
-      const mappedRows = rows
-        .map((row, index) => {
-          const loanAmount = parseScaledNumber(columns.loanAmount ? row[columns.loanAmount] : "");
-          const fraudProbability = parseProbability(columns.fraudProbability ? row[columns.fraudProbability] : "");
-          const item = {
-            index,
-            loanNumber: normalizeText(columns.loanNumber ? row[columns.loanNumber] : ""),
-            brokerNMLS: normalizeText(columns.brokerNMLS ? row[columns.brokerNMLS] : ""),
-            brokerState: normalizeText(columns.brokerState ? row[columns.brokerState] : "").toUpperCase(),
-            loanOfficerNMLS: normalizeText(columns.loanOfficerNMLS ? row[columns.loanOfficerNMLS] : ""),
-            watchRaw: normalizeText(columns.brokerOnWatch ? row[columns.brokerOnWatch] : ""),
-            loanAmount,
-            fraudProbability,
-            mlPredictionRaw: normalizeText(columns.mlPrediction ? row[columns.mlPrediction] : ""),
-            fiuStatusRaw: normalizeText(columns.fiuStatus ? row[columns.fiuStatus] : "")
-          };
-
-          item.isWatch = isWatch(item.watchRaw);
-          item.isMLFraud = isMLFraud(item.mlPredictionRaw);
-          item.isFIUFraud = isFIUFraud(item.fiuStatusRaw);
-          item.mlPredictionLabel = normalizeMLLabel(item.mlPredictionRaw);
-          item.fiuStatusLabel = normalizeFIULabel(item.fiuStatusRaw);
-          item.outcome = classifyOutcome(item);
-          return item;
-        })
-        .filter((row) => row.loanNumber || row.brokerNMLS || row.loanOfficerNMLS);
-
-      return { mappedRows, columns, missingColumns };
-    }
-
-    function updateBanner(config = null) {
-      if (!config) {
-        els.statusBanner.classList.remove("is-visible");
-        return;
-      }
-
-      els.statusBanner.dataset.tone = config.tone || "info";
-      els.statusBadge.textContent = config.badge || "i";
-      els.statusTitle.textContent = config.title || "";
-      els.statusText.innerHTML = config.text || "";
-      els.statusBanner.classList.add("is-visible");
-    }
-
-    function updateDatasetMeta() {
-      const { fileName, sheetName, recordCount } = state.datasetMeta;
-      if (!fileName) {
-        els.datasetMeta.textContent = "Upload an AWC Excel or CSV file to begin.";
-        return;
-      }
-      const recordLabel = `${compactNumber(recordCount)} record${recordCount === 1 ? "" : "s"}`;
-      const parts = [escapeHtml(fileName), recordLabel];
-      if (sheetName) {
-        parts.push(`Sheet: ${escapeHtml(sheetName)}`);
-      }
-      els.datasetMeta.innerHTML = parts.join(" &middot; ");
-    }
-
-    function loadDataset(rows, datasetMeta) {
-      const { mappedRows, columns, missingColumns } = transformRows(rows);
-      state.rawRows = mappedRows;
-      state.columns = columns;
-      state.missingColumns = missingColumns;
-      state.datasetMeta = {
-        fileName: datasetMeta.fileName,
-        sheetName: datasetMeta.sheetName,
-        recordCount: mappedRows.length
-      };
-      state.page = 1;
-      resetFilters(false);
-      updateDatasetMeta();
-
-      const missingImportant = missingColumns.filter((field) => ["loanNumber", "brokerNMLS", "brokerState", "loanOfficerNMLS", "loanAmount", "fraudProbability", "mlPrediction", "fiuStatus"].includes(field));
-      if (missingImportant.length) {
-        updateBanner({
-          tone: "warning",
-          badge: "!",
-          title: "Mapped dataset with missing columns",
-          text: `The dashboard loaded the file, but these expected columns were not found: <strong>${missingImportant.join(", ")}</strong>. Any missing fields will appear as blank values.`
-        });
-      } else if (!mappedRows.length) {
-        updateBanner({
-          tone: "error",
-          badge: "x",
-          title: "No usable records found",
-          text: "The uploaded file was read successfully, but none of the rows matched the expected loan-level schema."
-        });
-      } else {
-        updateBanner(null);
-      }
-
-      render();
-    }
-
-    function matchesFilterValue(value, filterValue) {
-      const normalizedFilter = normalizeText(filterValue).toLowerCase();
-      if (!normalizedFilter) return true;
-      return normalizeText(value).toLowerCase().includes(normalizedFilter);
-    }
-
-    function matchesWatchFilterValue(value, filterValue) {
-      const normalizedFilter = normalizeText(filterValue).toLowerCase();
-      if (!normalizedFilter) return true;
-      const normalizedValue = normalizeText(value).toLowerCase();
-      return normalizedValue === normalizedFilter || normalizedValue.startsWith(normalizedFilter);
-    }
-
-    function filterRows(rows, filters = state.filters) {
-      const broker = filters.broker;
-      const lo = filters.loanOfficer;
-      const loanNumber = filters.loanNumber;
-      const onWatch = filters.onWatch;
-      return rows.filter((row) => {
-        if (!matchesFilterValue(row.brokerNMLS, broker)) return false;
-        if (!matchesFilterValue(row.loanOfficerNMLS, lo)) return false;
-        if (!matchesFilterValue(row.loanNumber, loanNumber)) return false;
-        if (!matchesWatchFilterValue(getWatchFilterLabel(row), onWatch)) return false;
-        return true;
-      });
-    }
-
-    function applyFilters(rows) {
-      return filterRows(rows, state.filters);
-    }
-
-    function normalizeFilterInputValue(value) {
-      const normalized = normalizeText(value);
-      return normalized.toLowerCase() === "all" ? "" : normalized;
-    }
-
-    function getFilterDisplayValue(key) {
-      return state.filters[key] || "All";
-    }
-
-    function setFilterInputValue(key) {
-      const control = filterControls[key];
-      if (control) {
-        control.input.value = getFilterDisplayValue(key);
-      }
-    }
-
-    function getVisibleComboOptions(key) {
-      const control = filterControls[key];
-      const query = normalizeFilterInputValue(control.input.value).toLowerCase();
-      return comboState.options[key].filter((option) => {
-        if (!query) return true;
-        const normalizedOption = option.toLowerCase();
-        return key === "onWatch"
-          ? normalizedOption.startsWith(query)
-          : normalizedOption.includes(query);
-      });
-    }
-
-    function renderComboMenu(key) {
-      const control = filterControls[key];
-      if (!control) return;
-
-      const visibleOptions = getVisibleComboOptions(key);
-      const items = [{ label: "All", value: "", className: "is-all" }]
-        .concat(visibleOptions.map((value) => ({ label: value, value, className: "" })));
-
-      if (!visibleOptions.length) {
-        items.push({ label: "No matches", value: null, className: "is-disabled" });
-      }
-
-      if (comboState.openKey === key && comboState.highlightIndex >= items.length) {
-        comboState.highlightIndex = 0;
-      }
-
-      control.menu.innerHTML = items.map((item, index) => {
-        const classNames = ["combo-option", item.className];
-        if (comboState.openKey === key && index === comboState.highlightIndex && item.value !== null) {
-          classNames.push("is-active");
-        }
-
-        if (item.value === null) {
-          return `<div class="${classNames.join(" ")}">${escapeHtml(item.label)}</div>`;
-        }
-
-        return `<button type="button" class="${classNames.join(" ")}" data-key="${key}" data-value="${escapeHtml(item.value)}">${escapeHtml(item.label)}</button>`;
-      }).join("");
-    }
-
-    function closeCombo() {
-      if (!comboState.openKey) return;
-      const control = filterControls[comboState.openKey];
-      if (control) {
-        control.box.classList.remove("is-open");
-        control.input.setAttribute("aria-expanded", "false");
-      }
-      comboState.openKey = "";
-      comboState.highlightIndex = -1;
-    }
-
-    function openCombo(key) {
-      const control = filterControls[key];
-      if (!control) return;
-      if (comboState.openKey && comboState.openKey !== key) {
-        closeCombo();
-      }
-
-      comboState.openKey = key;
-      comboState.highlightIndex = 0;
-      control.box.classList.add("is-open");
-      control.input.setAttribute("aria-expanded", "true");
-      renderComboMenu(key);
-    }
-
-    function applyFilterValue(key, value) {
-      state.filters[key] = normalizeFilterInputValue(value);
-      setFilterInputValue(key);
-      state.page = 1;
-      render();
-    }
-
-    function moveComboHighlight(direction) {
-      const key = comboState.openKey;
-      if (!key) return;
-      const items = filterControls[key].menu.querySelectorAll(".combo-option[data-value]");
-      if (!items.length) return;
-
-      comboState.highlightIndex = comboState.highlightIndex < 0
-        ? 0
-        : (comboState.highlightIndex + direction + items.length) % items.length;
-      renderComboMenu(key);
-    }
-
-    function selectHighlightedComboOption() {
-      const key = comboState.openKey;
-      if (!key) return false;
-
-      const options = filterControls[key].menu.querySelectorAll(".combo-option[data-value]");
-      const option = options[comboState.highlightIndex];
-      if (!option) return false;
-
-      closeCombo();
-      applyFilterValue(key, option.dataset.value || "");
-      return true;
-    }
-
-    function syncFilterOptions() {
-      const brokerRows = filterRows(state.rawRows, { ...state.filters, broker: "" });
-      const loRows = filterRows(state.rawRows, { ...state.filters, loanOfficer: "" });
-      const loanNumberRows = filterRows(state.rawRows, { ...state.filters, loanNumber: "" });
-      const onWatchRows = filterRows(state.rawRows, { ...state.filters, onWatch: "" });
-
-      comboState.options.broker = uniqueValues(brokerRows, "brokerNMLS");
-      comboState.options.loanOfficer = uniqueValues(loRows, "loanOfficerNMLS");
-      comboState.options.loanNumber = uniqueValues(loanNumberRows, "loanNumber");
-      comboState.options.onWatch = Array.from(new Set(onWatchRows.map((row) => getWatchFilterLabel(row)))).sort(collator.compare);
-
-      Object.keys(filterControls).forEach((key) => {
-        const control = filterControls[key];
-        if (!(document.activeElement === control.input && comboState.openKey === key)) {
-          setFilterInputValue(key);
-        }
-        renderComboMenu(key);
-      });
-    }
-
-    function renderKPIs(rows) {
-      const brokers = new Set(rows.map((row) => row.brokerNMLS).filter(Boolean));
-      const los = new Set(rows.map((row) => row.loanOfficerNMLS).filter(Boolean));
-      const mlCount = rows.filter((row) => row.isMLFraud).length;
-      const fiuCount = rows.filter((row) => row.isFIUFraud).length;
-      const total = rows.length || 0;
-
-      els.brokersValue.textContent = compactNumber(brokers.size);
-      els.losValue.textContent = compactNumber(los.size);
-      els.loansValue.textContent = compactNumber(total);
-      els.mlValue.textContent = compactNumber(mlCount);
-      els.fiuValue.textContent = compactNumber(fiuCount);
-
-      els.brokersSubtext.textContent = "unique broker NMLS";
-      els.losSubtext.textContent = "unique LO NMLS";
-      els.loansSubtext.textContent = "loans in current view";
-      els.mlSubtext.textContent = `${formatPercent(total ? mlCount / total : 0)} of total`;
-      els.fiuSubtext.textContent = `${formatPercent(total ? fiuCount / total : 0)} of total`;
-    }
-
-    function sortRows(rows) {
-      const { key, dir } = state.sort;
-      if (!key || !dir) return rows;
-      const sorted = [...rows];
-      const numericKeys = ["loanAmount", "fraudProbability"];
-      sorted.sort((a, b) => {
-        let va = a[key], vb = b[key];
-        if (numericKeys.includes(key)) {
-          va = Number.isFinite(va) ? va : -Infinity;
-          vb = Number.isFinite(vb) ? vb : -Infinity;
-          return dir === "asc" ? va - vb : vb - va;
-        }
-        const cmp = collator.compare(String(va ?? ""), String(vb ?? ""));
-        return dir === "asc" ? cmp : -cmp;
-      });
-      return sorted;
-    }
-
-    function updateSortHeaders() {
-      els.tableHeader.querySelectorAll("th.sortable").forEach((th) => {
-        th.classList.remove("sort-asc", "sort-desc");
-        const arrow = th.querySelector(".sort-arrow");
-        if (th.dataset.sort === state.sort.key) {
-          th.classList.add(state.sort.dir === "asc" ? "sort-asc" : "sort-desc");
-          if (arrow) arrow.textContent = state.sort.dir === "asc" ? "▲" : "▼";
-        } else {
-          if (arrow) arrow.textContent = "▲";
-        }
-      });
-    }
-
-    function renderTable(rows) {
-      const total = rows.length;
-      const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-      state.page = Math.min(state.page, totalPages);
-      const startIndex = total ? (state.page - 1) * PAGE_SIZE : 0;
-      const pageRows = rows.slice(startIndex, startIndex + PAGE_SIZE);
-
-      els.tableSummary.textContent = `${compactNumber(total)} record${total === 1 ? "" : "s"} in current view`;
-      els.viewCount.textContent = `${compactNumber(total)} record${total === 1 ? "" : "s"}`;
-      els.pageIndicator.textContent = `Page ${state.page} of ${totalPages}`;
-      els.prevPage.disabled = state.page <= 1;
-      els.nextPage.disabled = state.page >= totalPages;
-      els.resetFilters.disabled = !state.filters.broker && !state.filters.loanOfficer && !state.filters.loanNumber && !state.filters.onWatch;
-
-      const from = total ? startIndex + 1 : 0;
-      const to = total ? startIndex + pageRows.length : 0;
-      els.pagerMeta.textContent = `Showing ${compactNumber(from)} to ${compactNumber(to)} of ${compactNumber(total)}`;
-
-      if (!pageRows.length) {
-        els.tableBody.innerHTML = `<tr><td colspan="9"><div class="empty-state">No rows match the current filters.</div></td></tr>`;
-        return;
-      }
-
-      els.tableBody.innerHTML = pageRows.map((row) => {
-        const mlClass = row.isMLFraud ? "pill--ml-fraud" : "pill--ml-clear";
-        const fiuClass = getFIUStatusClass(row.fiuStatusRaw);
-        const watchIcon = row.isWatch
-          ? `<span class="watch-indicator watch" aria-label="On watch">✓</span>`
-          : `<span class="watch-indicator clear" aria-label="Not on watch">✕</span>`;
-
-        return `
-          <tr class="row--${row.outcome}">
-            <td class="mono">${escapeHtml(row.loanNumber || "--")}</td>
-            <td class="mono">${escapeHtml(row.brokerNMLS || "--")}</td>
-            <td class="mono">${escapeHtml(row.loanOfficerNMLS || "--")}</td>
-            <td>${escapeHtml(row.brokerState || "--")}</td>
-            <td class="mono">${escapeHtml(formatAmount(row.loanAmount))}</td>
-            <td><span class="pill ${fiuClass}">${escapeHtml(row.fiuStatusLabel)}</span></td>
-            <td><span class="pill ${mlClass}">${escapeHtml(row.mlPredictionLabel)}</span></td>
-            <td class="mono probability">${escapeHtml(formatPercent(row.fraudProbability))}</td>
-            <td class="watch-cell">${watchIcon}</td>
-          </tr>
-        `;
-      }).join("");
-    }
-
-    function render() {
-      syncFilterOptions();
-      state.filteredRows = sortRows(applyFilters(state.rawRows));
-      updateSortHeaders();
-      renderKPIs(state.filteredRows);
-      renderTable(state.filteredRows);
-    }
-
-    function resetFilters(shouldRender = true) {
-      state.filters = { broker: "", loanOfficer: "", loanNumber: "", onWatch: "" };
-      els.brokerFilter.value = "All";
-      els.loFilter.value = "All";
-      els.loanNumberFilter.value = "All";
-      els.onWatchFilter.value = "All";
-      closeCombo();
-      if (shouldRender) {
-        state.page = 1;
-        render();
-      }
-    }
-
+    function getPair(id) { return D.pairs.find(p => p.pair_id === Number(id)); }
+
+    /* ═══════════════════════════════════════════════════════════
+       CSV PARSING → D object
+    ═══════════════════════════════════════════════════════════ */
     function parseCSV(text) {
-      const rows = [];
-      let current = "";
-      let row = [];
-      let inQuotes = false;
-
-      for (let i = 0; i < text.length; i += 1) {
-        const char = text[i];
-        const next = text[i + 1];
-
-        if (char === '"') {
-          if (inQuotes && next === '"') {
-            current += '"';
-            i += 1;
-          } else {
-            inQuotes = !inQuotes;
-          }
-        } else if (char === "," && !inQuotes) {
-          row.push(current);
-          current = "";
-        } else if ((char === "\n" || char === "\r") && !inQuotes) {
-          if (char === "\r" && next === "\n") i += 1;
-          row.push(current);
-          rows.push(row);
-          row = [];
-          current = "";
-        } else {
-          current += char;
-        }
-      }
-
-      if (current.length || row.length) {
-        row.push(current);
-        rows.push(row);
-      }
-
-      const [headers = [], ...dataRows] = rows.filter((item) => item.some((cell) => normalizeText(cell)));
-      return dataRows.map((cells) => {
-        const record = {};
-        headers.forEach((header, index) => {
-          record[header] = cells[index] ?? "";
-        });
-        return record;
+      const lines = text.trim().split(/\r?\n/);
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      csvHeaders = headers;
+      const rows = lines.slice(1).map(line => {
+        const vals = line.split(',');
+        const obj = {};
+        headers.forEach((h, i) => { obj[h] = vals[i] ? vals[i].trim() : ''; });
+        return obj;
       });
+      csvRows = rows;
+      return { headers, rows };
     }
 
-    async function ensureXlsxLibrary() {
-      if (window.XLSX) {
-        return window.XLSX;
+    function num(v) { const n = parseFloat(v); return isNaN(n) ? 0 : n; }
+
+    function normalizeCoords(points, width = 1000, height = 520, pad = 52) {
+      if (!points.length) return [];
+      const xs = points.map(p => p[0]), ys = points.map(p => p[1]);
+      const minX = Math.min(...xs), maxX = Math.max(...xs);
+      const minY = Math.min(...ys), maxY = Math.max(...ys);
+      const spanX = Math.max(maxX - minX, 1e-9);
+      const spanY = Math.max(maxY - minY, 1e-9);
+      return points.map(([x, y]) => ([
+        +(pad + ((x - minX) / spanX) * (width - 2 * pad)).toFixed(2),
+        +(height - (pad + ((y - minY) / spanY) * (height - 2 * pad))).toFixed(2)
+      ]));
+    }
+
+    function dot(a, b) {
+      let sum = 0;
+      for (let i = 0; i < a.length; i++) sum += a[i] * b[i];
+      return sum;
+    }
+
+    function norm(a) { return Math.sqrt(dot(a, a)); }
+
+    function multiplyMatVec(mat, vec) {
+      return mat.map(row => dot(row, vec));
+    }
+
+    function outerProduct(vec) {
+      return vec.map(v1 => vec.map(v2 => v1 * v2));
+    }
+
+    function subtractMatrices(a, b) {
+      return a.map((row, i) => row.map((v, j) => v - b[i][j]));
+    }
+
+    function powerIteration(mat, iterations = 40) {
+      const n = mat.length;
+      let vec = Array(n).fill(1 / Math.sqrt(n));
+      for (let step = 0; step < iterations; step++) {
+        let next = multiplyMatVec(mat, vec);
+        const nextNorm = norm(next) || 1;
+        vec = next.map(v => v / nextNorm);
+      }
+      const mv = multiplyMatVec(mat, vec);
+      const eigenvalue = dot(vec, mv);
+      return { eigenvalue, eigenvector: vec };
+    }
+
+    function computeFallbackCoords(rows, matchFeatures) {
+      if (!rows.length) return [];
+      const matrix = rows.map(r => matchFeatures.map(f => num(r[f])));
+      const n = matrix.length, m = matchFeatures.length;
+      if (!m) return rows.map((_, i) => [100 + i * 8, 260]);
+
+      const means = Array.from({ length: m }, (_, j) => matrix.reduce((s, row) => s + row[j], 0) / n);
+      const stds = Array.from({ length: m }, (_, j) => {
+        const variance = matrix.reduce((s, row) => s + Math.pow(row[j] - means[j], 2), 0) / n;
+        return Math.sqrt(variance) || 1;
+      });
+      const standardized = matrix.map(row => row.map((v, j) => (v - means[j]) / stds[j]));
+
+      const cov = Array.from({ length: m }, () => Array(m).fill(0));
+      standardized.forEach(row => {
+        for (let i = 0; i < m; i++) {
+          for (let j = 0; j < m; j++) {
+            cov[i][j] += row[i] * row[j];
+          }
+        }
+      });
+      for (let i = 0; i < m; i++) {
+        for (let j = 0; j < m; j++) cov[i][j] /= Math.max(n - 1, 1);
       }
 
-      if (!state.xlsxPromise) {
-        state.xlsxPromise = new Promise((resolve, reject) => {
-          const script = document.createElement("script");
-          script.src = XLSX_CDN;
-          script.async = true;
-          script.onload = () => resolve(window.XLSX);
-          script.onerror = () => reject(new Error("Unable to load SheetJS from the CDN."));
-          document.head.appendChild(script);
+      const pc1 = powerIteration(cov);
+      const deflated = subtractMatrices(cov, outerProduct(pc1.eigenvector).map(row => row.map(v => v * pc1.eigenvalue)));
+      const pc2 = powerIteration(deflated);
+
+      const rawPoints = standardized.map(row => [dot(row, pc1.eigenvector), dot(row, pc2.eigenvector)]);
+      return normalizeCoords(rawPoints);
+    }
+
+    function buildDataFromCSV({ headers, rows }) {
+      // Identify match features (the 8 we know about)
+      const KNOWN_FEATURES = ['pro_score','uwm_production','overall_production','conv_mix','fha_mix','va_mix','purchase_pct','total_ytd_closings'];
+      const match_features = KNOWN_FEATURES.filter(f => headers.includes(f));
+      const hasPlotCoords = headers.includes('plot_x')
+        && headers.includes('plot_y')
+        && rows.some(r => r.plot_x !== '' && r.plot_y !== '');
+      const hasMatchScore = headers.includes('match_score')
+        && rows.some(r => r.match_score !== '');
+      const fallbackCoords = hasPlotCoords ? [] : computeFallbackCoords(rows, match_features);
+
+      // Group by pair_id; outliers have no pair_id or pair_id is blank/NaN
+      const pairMap = {};
+      const unmatched = [];
+
+      rows.forEach((r, idx) => {
+        const pid = parseInt(r.pair_id);
+        if (!pid || isNaN(pid)) {
+          unmatched.push(buildMember(r, 'outlier', fallbackCoords[idx]));
+          return;
+        }
+        if (!pairMap[pid]) pairMap[pid] = [];
+        pairMap[pid].push({ raw: r, coord: fallbackCoords[idx] });
+      });
+
+      const pairs = Object.keys(pairMap).sort((a, b) => +a - +b).map(pid => {
+        const members = pairMap[pid].map(item => buildMember(item.raw, item.raw.assignment || 'unknown', item.coord));
+        const ctrl = members.find(m => m.assignment === 'control') || members[0];
+        const treat = members.find(m => m.assignment === 'treatment') || members[1];
+        return {
+          pair_id: +pid,
+          pair_distance: num(pairMap[pid][0].raw.pair_distance),
+          match_score: hasMatchScore ? num(pairMap[pid][0].raw.match_score) : 0,
+          rank_bucket: pairMap[pid][0].raw.pro_ranking || '',
+          control_nmls: ctrl ? ctrl.nmls : 0,
+          treatment_nmls: treat ? treat.nmls : 0,
+          members
+        };
+      });
+
+      // Compute feature_ranges from ALL rows (matched + unmatched)
+      const feature_ranges = {};
+      match_features.forEach(f => {
+        const vals = rows.map(r => num(r[f]));
+        feature_ranges[f] = { min: Math.min(...vals), max: Math.max(...vals) };
+      });
+
+      // Summary
+      const allDistances = pairs.map(p => p.pair_distance).filter(d => d > 0);
+      if (!hasMatchScore && allDistances.length) {
+        const minD = Math.min(...allDistances), maxD = Math.max(...allDistances);
+        pairs.forEach(pair => {
+          pair.match_score = maxD === minD
+            ? 100
+            : +(100 * (1 - (pair.pair_distance - minD) / (maxD - minD))).toFixed(1);
         });
       }
+      const summary = {
+        matched_records: pairs.reduce((s, p) => s + p.members.length, 0),
+        pair_count: pairs.length,
+        unmatched_records: unmatched.length,
+        avg_pair_distance: allDistances.length ? +(allDistances.reduce((a, b) => a + b, 0) / allDistances.length).toFixed(4) : 0
+      };
 
-      return state.xlsxPromise;
+      return { summary, pairs, unmatched, match_features, feature_ranges };
     }
 
-    async function parseWorkbook(file) {
-      const extension = file.name.split(".").pop().toLowerCase();
-
-      if (extension === "csv" || extension === "txt") {
-        const text = await file.text();
-        return {
-          rows: parseCSV(text),
-          sheetName: "CSV Import"
-        };
-      }
-
-      const XLSX = await ensureXlsxLibrary();
-      const buffer = await file.arrayBuffer();
-      const workbook = XLSX.read(buffer, { type: "array" });
-      const preferredSheet = workbook.SheetNames.find((name) => normalizeKey(name) === "predictions") || workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[preferredSheet];
+    function buildMember(r, fallbackAssignment, fallbackCoord = null) {
       return {
-        rows: XLSX.utils.sheet_to_json(worksheet, { defval: "" }),
-        sheetName: preferredSheet
+        nmls: parseInt(r.nmls) || 0,
+        assignment: (r.assignment || fallbackAssignment).toLowerCase(),
+        pro_ranking: r.pro_ranking || '',
+        pro_score: num(r.pro_score),
+        uwm_production: num(r.uwm_production),
+        overall_production: num(r.overall_production),
+        conv_mix: num(r.conv_mix),
+        fha_mix: num(r.fha_mix),
+        va_mix: num(r.va_mix),
+        purchase_pct: num(r.purchase_pct),
+        refi_pct: num(r.refi_pct),
+        total_ytd_closings: num(r.total_ytd_closings),
+        jan_closings: num(r.jan_closings),
+        feb_closings: num(r.feb_closings),
+        march_closings: num(r.march_closings),
+        pair_distance: num(r.pair_distance),
+        twin_nmls: parseInt(r.twin_nmls) || 0,
+        plot_x: fallbackCoord ? fallbackCoord[0] : num(r.plot_x),
+        plot_y: fallbackCoord ? fallbackCoord[1] : num(r.plot_y)
       };
     }
 
-    async function handleUpload(event) {
-      const [file] = event.target.files || [];
-      if (!file) return;
-
-      updateBanner({
-        tone: "info",
-        badge: "...",
-        title: "Loading file",
-        text: `Reading <strong>${escapeHtml(file.name)}</strong> in your browser.`
-      });
-
-      try {
-        const parsed = await parseWorkbook(file);
-        loadDataset(parsed.rows, {
-          fileName: file.name,
-          sheetName: parsed.sheetName
-        });
-      } catch (error) {
-        updateBanner({
-          tone: "error",
-          badge: "x",
-          title: "Upload failed",
-          text: `${escapeHtml(error.message)} For offline use, save the workbook as CSV or vendor the SheetJS bundle beside this HTML file.`
-        });
-      } finally {
-        event.target.value = "";
+    /* ═══════════════════════════════════════════════════════════
+       FILE UPLOAD HANDLING
+    ═══════════════════════════════════════════════════════════ */
+    function handleFile(file) {
+      el.uploadError.textContent = '';
+      if (!file || !file.name.endsWith('.csv')) {
+        el.uploadError.textContent = 'Please upload a .csv file';
+        return;
       }
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const parsed = parseCSV(e.target.result);
+          if (!parsed.headers.includes('nmls')) throw new Error('Missing "nmls" column');
+          if (!parsed.headers.includes('assignment')) throw new Error('Missing "assignment" column');
+          D = buildDataFromCSV(parsed);
+          if (D.pairs.length === 0) throw new Error('No pairs found (need "pair_id" column)');
+          showDashboard(file.name);
+        } catch (err) {
+          el.uploadError.textContent = 'Error: ' + err.message;
+        }
+      };
+      reader.readAsText(file);
     }
 
-    function bindFilterControl(key) {
-      const control = filterControls[key];
+    // Drag & drop
+    el.uploadBox.addEventListener('dragover', e => { e.preventDefault(); el.uploadBox.classList.add('dragover'); });
+    el.uploadBox.addEventListener('dragleave', () => { el.uploadBox.classList.remove('dragover'); });
+    el.uploadBox.addEventListener('drop', e => { e.preventDefault(); el.uploadBox.classList.remove('dragover'); handleFile(e.dataTransfer.files[0]); });
+    el.fileInput.addEventListener('change', e => { handleFile(e.target.files[0]); });
 
-      control.input.addEventListener("focus", () => {
-        if (!state.filters[key] && control.input.value === "All") {
-          control.input.select();
-        }
-        openCombo(key);
+    // Reload button
+    el.reloadBtn.addEventListener('click', () => {
+      el.dashboard.classList.remove('visible');
+      el.fileBadge.classList.remove('visible');
+      el.uploadZone.style.display = '';
+      el.fileInput.value = '';
+    });
+
+    /* ═══════════════════════════════════════════════════════════
+       SHOW DASHBOARD
+    ═══════════════════════════════════════════════════════════ */
+    function showDashboard(name) {
+      // Build lookups
+      nmlsToPair = {};
+      nmlsToMember = {};
+      treatNmlsToPair = {};
+      D.pairs.forEach(p => {
+        p.members.forEach(m => {
+          nmlsToPair[m.nmls] = p.pair_id;
+          nmlsToMember[m.nmls] = { ...m, pair: p };
+        });
+        const t = p.members.find(m => m.assignment === 'treatment');
+        if (t) treatNmlsToPair[t.nmls] = p;
+      });
+      D.unmatched.forEach(u => {
+        nmlsToMember[u.nmls] = { ...u, pair: null };
       });
 
-      control.input.addEventListener("click", () => {
-        openCombo(key);
+      state = { activePairId: D.pairs[0].pair_id };
+
+      // Hide upload, show dashboard + file badge
+      el.uploadZone.style.display = 'none';
+      el.fileName.textContent = name;
+      el.fileBadge.classList.add('visible');
+      el.dashboard.classList.add('visible');
+
+      // Build everything
+      buildSummary();
+      buildNmlsInput();
+      buildRawTable();
+
+      // Set initial selection
+      const initPair = D.pairs[0];
+      const initTreat = initPair.members.find(m => m.assignment === 'treatment');
+      if (initTreat) el.nmlsInput.value = initTreat.nmls;
+      updateNmlsPairInfo(initPair);
+      render();
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       SUMMARY
+    ═══════════════════════════════════════════════════════════ */
+    function buildSummary() {
+      const items = [
+        ["Matched Records", D.summary.matched_records],
+        ["Twin Pairs", D.summary.pair_count],
+        ["Outliers", D.summary.unmatched_records],
+        ["Avg Pair Distance", D.summary.avg_pair_distance]
+      ];
+      el.summaryRow.innerHTML = items.map(([l, v]) =>
+        `<div class="stat-card"><div class="stat-label">${l}</div><div class="stat-value">${v}</div></div>`
+      ).join("");
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       NMLS INPUT
+    ═══════════════════════════════════════════════════════════ */
+    /* Dropdown items data cache */
+    let ddItems = [];
+
+    function buildNmlsInput() {
+      const sorted = D.pairs.slice().sort((a, b) => a.pair_id - b.pair_id);
+      ddItems = sorted.map(p => {
+        const t = p.members.find(m => m.assignment === 'treatment');
+        const c = p.members.find(m => m.assignment === 'control');
+        if (!t) return null;
+        return { nmls: t.nmls, pair: p, label: `Pair ${p.pair_id}  (C: ${c ? c.nmls : '—'}, T: ${t.nmls})` };
+      }).filter(Boolean);
+
+      populateDropdown(ddItems);
+
+      // Remove old listeners by cloning
+      const fresh = el.nmlsInput.cloneNode(true);
+      el.nmlsInput.parentNode.replaceChild(fresh, el.nmlsInput);
+      el.nmlsInput = fresh;
+
+      el.nmlsInput.addEventListener('focus', () => openDropdown());
+      el.nmlsInput.addEventListener('input', () => {
+        const q = el.nmlsInput.value.trim().toLowerCase();
+        if (!q) { populateDropdown(ddItems); openDropdown(); return; }
+        const filtered = ddItems.filter(it => String(it.nmls).includes(q) || it.label.toLowerCase().includes(q));
+        populateDropdown(filtered);
+        openDropdown();
       });
 
-      control.input.addEventListener("input", (event) => {
-        state.filters[key] = normalizeFilterInputValue(event.target.value);
-        comboState.openKey = key;
-        comboState.highlightIndex = 0;
-        state.page = 1;
-        render();
-        openCombo(key);
+      // Close dropdown on outside click
+      document.addEventListener('click', e => {
+        if (!el.nmlsInput.contains(e.target) && !el.nmlsDropdown.contains(e.target)) {
+          closeDropdown();
+        }
+      });
+    }
+
+    function populateDropdown(items) {
+      el.nmlsDropdown.innerHTML = items.map((it, i) =>
+        `<div class="nmls-dropdown-item" data-index="${i}" data-nmls="${it.nmls}">` +
+        `<span class="dd-nmls">${it.label}</span>` +
+        `</div>`
+      ).join('');
+      el.nmlsDropdown.querySelectorAll('.nmls-dropdown-item').forEach(div => {
+        div.addEventListener('click', () => {
+          const nmls = Number(div.dataset.nmls);
+          pickNmls(nmls);
+        });
+      });
+    }
+
+    function openDropdown() { el.nmlsDropdown.classList.add('open'); }
+    function closeDropdown() { el.nmlsDropdown.classList.remove('open'); }
+
+    function pickNmls(nmls) {
+      const pair = treatNmlsToPair[nmls];
+      if (!pair) return;
+      el.nmlsInput.value = nmls;
+      closeDropdown();
+      state.activePairId = pair.pair_id;
+      updateNmlsPairInfo(pair);
+      highlightRawRows(pair);
+      render();
+    }
+
+    function updateNmlsPairInfo(pair) {
+      const ctrl = pair.members.find(m => m.assignment === 'control');
+      const treat = pair.members.find(m => m.assignment === 'treatment');
+      el.nmlsPairInfo.innerHTML =
+        `<span class="pi-pair">Pair ${pair.pair_id}</span>` +
+        `<span>·</span>` +
+        `<span class="pi-ctrl">C: ${ctrl ? ctrl.nmls : '—'}</span>` +
+        `<span class="pi-treat">T: ${treat ? treat.nmls : '—'}</span>`;
+      el.nmlsPairInfo.classList.add('visible');
+      el.matchBadge.textContent = `${fmt(pair.match_score, 1)}% match`;
+      el.matchBadge.classList.add('visible');
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       TOOLTIP
+    ═══════════════════════════════════════════════════════════ */
+    function showTooltip(evt, nmls) {
+      const info = nmlsToMember[nmls];
+      if (!info) return;
+      const tt = el.mapTooltip;
+      const isOutlier = info.assignment === 'outlier';
+      if (!isOutlier) {
+        const pair = info.pair;
+        const ctrl = pair.members.find(m => m.assignment === 'control');
+        const treat = pair.members.find(m => m.assignment === 'treatment');
+        const metrics = [
+          ['Rank', ctrl.pro_ranking, treat.pro_ranking],
+          ['PRO Score', ctrl.pro_score, treat.pro_score],
+          ['UWM Prod.', fmt(ctrl.uwm_production, 0), fmt(treat.uwm_production, 0)],
+          ['Overall Prod.', fmt(ctrl.overall_production, 0), fmt(treat.overall_production, 0)],
+          ['Conv Mix', fmt(ctrl.conv_mix, 1), fmt(treat.conv_mix, 1)],
+          ['Purchase %', fmt(ctrl.purchase_pct, 1), fmt(treat.purchase_pct, 1)],
+          ['YTD Closings', ctrl.total_ytd_closings, treat.total_ytd_closings]
+        ];
+        const rows = metrics.map(([label, cv, tv]) =>
+          `<span class="tt-metric">${label}</span><span class="tt-val">${cv}</span><span class="tt-val">${tv}</span>`
+        ).join('');
+        tt.innerHTML = `<div class="tt-pair-grid">
+          <span class="tt-col-header metric"></span>
+          <span class="tt-col-header control">C: ${ctrl.nmls}</span>
+          <span class="tt-col-header treatment">T: ${treat.nmls}</span>
+          ${rows}</div>`;
+      } else {
+        tt.innerHTML = `<div class="tt-outlier-header">${nmls}<span class="tt-outlier-badge">Outlier</span></div>
+          <div class="tt-outlier-row"><span>Rank</span><span>${info.pro_ranking}</span></div>
+          <div class="tt-outlier-row"><span>PRO Score</span><span>${info.pro_score}</span></div>
+          <div class="tt-outlier-row"><span>UWM Production</span><span>${fmt(info.uwm_production, 0)}</span></div>
+          <div class="tt-outlier-row"><span>YTD Closings</span><span>${info.total_ytd_closings}</span></div>`;
+      }
+      tt.style.left = evt.clientX + 'px';
+      tt.style.top = evt.clientY + 'px';
+      tt.classList.add('visible');
+    }
+    function moveTooltip(evt) { el.mapTooltip.style.left = evt.clientX + 'px'; el.mapTooltip.style.top = evt.clientY + 'px'; }
+    function hideTooltip() { el.mapTooltip.classList.remove('visible'); }
+
+    /* ═══════════════════════════════════════════════════════════
+       MAP
+    ═══════════════════════════════════════════════════════════ */
+    function renderMap() {
+      const ns = "http://www.w3.org/2000/svg";
+      el.overviewMap.innerHTML = "";
+      const INACTIVE_R = 10, ACTIVE_R = 16, LABEL_DIST = 30;
+
+      D.unmatched.forEach(u => {
+        const c = document.createElementNS(ns, "circle");
+        c.setAttribute("cx", u.plot_x); c.setAttribute("cy", u.plot_y);
+        c.setAttribute("r", INACTIVE_R); c.setAttribute("fill", "var(--red)");
+        c.setAttribute("stroke", "#fff"); c.setAttribute("stroke-width", "2.5");
+        c.setAttribute("opacity", "0.7"); c.setAttribute("cursor", "pointer");
+        c.addEventListener("mouseenter", e => showTooltip(e, u.nmls));
+        c.addEventListener("mousemove", moveTooltip);
+        c.addEventListener("mouseleave", hideTooltip);
+        el.overviewMap.appendChild(c);
       });
 
-      control.input.addEventListener("keydown", (event) => {
-        if (event.key === "ArrowDown") {
-          event.preventDefault();
-          openCombo(key);
-          moveComboHighlight(1);
-          return;
+      D.pairs.forEach(pair => {
+        const [ctrl, treat] = pair.members.slice().sort((a, b) => a.assignment.localeCompare(b.assignment));
+        const active = pair.pair_id === state.activePairId;
+
+        if (active) {
+          const mx = (ctrl.plot_x + treat.plot_x) / 2, my = (ctrl.plot_y + treat.plot_y) / 2;
+          const dx = Math.abs(ctrl.plot_x - treat.plot_x), dy = Math.abs(ctrl.plot_y - treat.plot_y);
+          const ell = document.createElementNS(ns, "ellipse");
+          ell.setAttribute("cx", mx); ell.setAttribute("cy", my);
+          ell.setAttribute("rx", Math.max(55, dx / 2 + 46)); ell.setAttribute("ry", Math.max(46, dy / 2 + 40));
+          ell.setAttribute("fill", "rgba(0,0,0,0.025)"); ell.setAttribute("stroke", "rgba(0,0,0,0.15)");
+          ell.setAttribute("stroke-width", "1.5"); ell.setAttribute("stroke-dasharray", "5 4");
+          el.overviewMap.appendChild(ell);
         }
 
-        if (event.key === "ArrowUp") {
-          event.preventDefault();
-          openCombo(key);
-          moveComboHighlight(-1);
-          return;
-        }
+        const line = document.createElementNS(ns, "line");
+        line.setAttribute("x1", ctrl.plot_x); line.setAttribute("y1", ctrl.plot_y);
+        line.setAttribute("x2", treat.plot_x); line.setAttribute("y2", treat.plot_y);
+        line.setAttribute("class", active ? "pair-line active" : "pair-line");
+        line.addEventListener("click", () => selectPair(pair.pair_id));
+        el.overviewMap.appendChild(line);
 
-        if (event.key === "Enter") {
-          if (comboState.openKey === key && selectHighlightedComboOption()) {
-            event.preventDefault();
+        const lbl = document.createElementNS(ns, "text");
+        lbl.setAttribute("x", (ctrl.plot_x + treat.plot_x) / 2);
+        lbl.setAttribute("y", (ctrl.plot_y + treat.plot_y) / 2 - (active ? 22 : 14));
+        lbl.setAttribute("text-anchor", "middle");
+        lbl.setAttribute("class", active ? "pair-label-text active" : "pair-label-text");
+        lbl.textContent = `P${pair.pair_id}`;
+        el.overviewMap.appendChild(lbl);
+
+        [ctrl, treat].forEach(m => {
+          const g = document.createElementNS(ns, "g");
+          g.setAttribute("class", active ? "node active" : "node");
+          g.addEventListener("click", () => selectPair(pair.pair_id));
+          g.addEventListener("mouseenter", e => showTooltip(e, m.nmls));
+          g.addEventListener("mousemove", moveTooltip);
+          g.addEventListener("mouseleave", hideTooltip);
+          const isCtrl = m.assignment === "control";
+          const r = active ? ACTIVE_R : INACTIVE_R;
+          const circ = document.createElementNS(ns, "circle");
+          circ.setAttribute("cx", m.plot_x); circ.setAttribute("cy", m.plot_y);
+          circ.setAttribute("r", r);
+          circ.setAttribute("fill", isCtrl ? "var(--green)" : "var(--blue)");
+          circ.setAttribute("stroke", "#fff"); circ.setAttribute("stroke-width", "2");
+          circ.setAttribute("cursor", "pointer");
+          g.appendChild(circ);
+          el.overviewMap.appendChild(g);
+
+          if (active) {
+            const mx = (ctrl.plot_x + treat.plot_x) / 2, my = (ctrl.plot_y + treat.plot_y) / 2;
+            let ddx = m.plot_x - mx, ddy = m.plot_y - my;
+            const len = Math.sqrt(ddx * ddx + ddy * ddy) || 1;
+            ddx /= len; ddy /= len;
+            const dist = LABEL_DIST + ACTIVE_R;
+            let labelX = m.plot_x + ddx * dist, labelY = m.plot_y + ddy * dist;
+            labelX = Math.max(55, Math.min(955, labelX));
+            labelY = Math.max(20, Math.min(508, labelY));
+            const anchor = ddx >= 0 ? "start" : "end";
+
+            const ll = document.createElementNS(ns, "line");
+            ll.setAttribute("x1", m.plot_x + ddx * (ACTIVE_R + 2));
+            ll.setAttribute("y1", m.plot_y + ddy * (ACTIVE_R + 2));
+            ll.setAttribute("x2", labelX - ddx * 4); ll.setAttribute("y2", labelY + 4);
+            ll.setAttribute("class", "leader-line active");
+            el.overviewMap.appendChild(ll);
+
+            const pillW = 58, pillH = 22;
+            const pillX = anchor === "start" ? labelX - 5 : labelX - pillW + 5;
+            const pill = document.createElementNS(ns, "rect");
+            pill.setAttribute("x", pillX); pill.setAttribute("y", labelY - 12);
+            pill.setAttribute("width", pillW); pill.setAttribute("height", pillH);
+            pill.setAttribute("rx", 6);
+            pill.setAttribute("fill", isCtrl ? "var(--green-light)" : "var(--blue-light)");
+            pill.setAttribute("stroke", isCtrl ? "var(--green)" : "var(--blue)");
+            pill.setAttribute("stroke-width", "0.5");
+            pill.setAttribute("class", "nmls-pill active");
+            el.overviewMap.appendChild(pill);
+
+            const txt = document.createElementNS(ns, "text");
+            txt.setAttribute("x", labelX); txt.setAttribute("y", labelY + 4);
+            txt.setAttribute("text-anchor", anchor);
+            txt.setAttribute("class", "nmls-label active");
+            txt.setAttribute("fill", isCtrl ? "var(--green)" : "var(--blue)");
+            txt.textContent = m.nmls;
+            el.overviewMap.appendChild(txt);
+          }
+        });
+      });
+    }
+
+    function selectPair(pairId) {
+      state.activePairId = pairId;
+      const pair = getPair(pairId);
+      const treat = pair.members.find(m => m.assignment === 'treatment');
+      if (treat) el.nmlsInput.value = treat.nmls;
+      updateNmlsPairInfo(pair);
+      highlightRawRows(pair);
+      render();
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       DETAILS (5-column table)
+    ═══════════════════════════════════════════════════════════ */
+    function renderDetails() {
+      const pair = getPair(state.activePairId);
+      const ctrl = pair.members.find(m => m.assignment === "control");
+      const treat = pair.members.find(m => m.assignment === "treatment");
+      el.controlHeader.textContent = ctrl ? ctrl.nmls : 'Control';
+      el.treatmentHeader.textContent = treat ? treat.nmls : 'Treatment';
+
+      el.compareBody.innerHTML = D.match_features.map(metric => {
+        const cv = Math.abs(Number(ctrl[metric]));
+        const tv = Math.abs(Number(treat[metric]));
+        const range = D.feature_ranges[metric];
+        const rangeMax = Math.max(Math.abs(range.max), Math.abs(range.min), 1);
+        const cPct = ((cv / rangeMax) * 100).toFixed(1);
+        const tPct = ((tv / rangeMax) * 100).toFixed(1);
+        const d = metric.includes("pct") || metric.includes("mix") ? 2 : metric.includes("production") ? 1 : 0;
+        return `<tr>
+          <td class="td-metric">${prettyMetric(metric)}</td>
+          <td class="td-ctrl-val">${fmt(cv, d)}</td>
+          <td class="td-bar td-ctrl-bar"><div class="bar-track"><div class="bar-fill" style="width:${cPct}%"></div></div></td>
+          <td class="td-bar td-treat-bar"><div class="bar-track"><div class="bar-fill" style="width:${tPct}%"></div></div></td>
+          <td class="td-treat-val">${fmt(tv, d)}</td>
+        </tr>`;
+      }).join("");
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       RAW DATA TABLE
+    ═══════════════════════════════════════════════════════════ */
+    function buildRawTable() {
+      if (!csvRows.length) return;
+      // Priority columns first, then the rest in original order
+      const hidden = ['rank_bucket'];
+      const priority = ['nmls', 'assignment', 'twin_nmls', 'pair_distance', 'pair_id', 'match_score'];
+      const rest = csvHeaders.filter(h => !priority.includes(h) && !hidden.includes(h));
+      const orderedCols = priority.filter(h => csvHeaders.includes(h)).concat(rest);
+
+      const ths = orderedCols.map(h => `<th>${h}</th>`).join('');
+      const trs = csvRows.map((row, ri) => {
+        const nmls = row['nmls'] || '';
+        const cells = orderedCols.map(h => {
+          const v = row[h] || '';
+          let cls = '';
+          if (h === 'assignment') {
+            const lv = v.toLowerCase();
+            if (lv === 'control') cls = ' class="asgn-control"';
+            else if (lv === 'treatment') cls = ' class="asgn-treatment"';
+            else if (lv === 'outlier') cls = ' class="asgn-outlier"';
+          }
+          return `<td${cls}>${v}</td>`;
+        }).join('');
+        return `<tr data-nmls="${nmls}" data-row="${ri}" style="cursor:pointer">${cells}</tr>`;
+      }).join('');
+      el.rawTable.innerHTML = `<thead><tr>${ths}</tr></thead><tbody>${trs}</tbody>`;
+
+      // Click handler on rows
+      el.rawTable.querySelectorAll('tbody tr').forEach(tr => {
+        tr.addEventListener('click', () => {
+          const nmls = Number(tr.dataset.nmls);
+          if (!nmls) return;
+          // If it's a treatment NMLS, select that pair directly
+          if (treatNmlsToPair[nmls]) {
+            pickNmls(nmls);
             return;
           }
-          closeCombo();
-          applyFilterValue(key, control.input.value);
-          return;
-        }
-
-        if (event.key === "Escape") {
-          closeCombo();
-          setFilterInputValue(key);
-        }
-      });
-
-      control.input.addEventListener("blur", () => {
-        window.setTimeout(() => {
-          if (!control.box.contains(document.activeElement)) {
-            closeCombo();
-            setFilterInputValue(key);
+          // If it's a control NMLS, find the pair and select via treatment
+          const pairId = nmlsToPair[nmls];
+          if (pairId) {
+            selectPair(pairId);
           }
-        }, 0);
+        });
       });
 
-      control.menu.addEventListener("mousedown", (event) => {
-        event.preventDefault();
-      });
+      // Highlight initial pair
+      const initPair = getPair(state.activePairId);
+      if (initPair) highlightRawRows(initPair);
+    }
 
-      control.menu.addEventListener("click", (event) => {
-        const option = event.target.closest(".combo-option[data-value]");
-        if (!option) return;
-        closeCombo();
-        applyFilterValue(key, option.dataset.value || "");
+    function highlightRawRows(pair) {
+      clearRawHighlights();
+      if (!pair) return;
+      const ctrlNmls = String(pair.control_nmls);
+      const treatNmls = String(pair.treatment_nmls);
+      el.rawTable.querySelectorAll('tbody tr').forEach(tr => {
+        const n = tr.dataset.nmls;
+        if (n === ctrlNmls) tr.classList.add('row-ctrl');
+        else if (n === treatNmls) tr.classList.add('row-treat');
       });
     }
 
-    Object.keys(filterControls).forEach(bindFilterControl);
-
-    document.querySelectorAll(".combo-toggle").forEach((button) => {
-      button.addEventListener("click", () => {
-        const key = button.dataset.toggle;
-        if (comboState.openKey === key) {
-          closeCombo();
-          setFilterInputValue(key);
-          return;
-        }
-        openCombo(key);
-        filterControls[key].input.focus();
+    function clearRawHighlights() {
+      el.rawTable.querySelectorAll('tr.row-ctrl, tr.row-treat').forEach(tr => {
+        tr.classList.remove('row-ctrl', 'row-treat');
       });
-    });
+    }
 
-    document.addEventListener("mousedown", (event) => {
-      if (!event.target.closest(".combo-box")) {
-        closeCombo();
-      }
-    });
-
-    els.tableHeader.addEventListener("click", (event) => {
-      const th = event.target.closest("th.sortable");
-      if (!th) return;
-      const key = th.dataset.sort;
-      if (state.sort.key === key) {
-        state.sort.dir = state.sort.dir === "asc" ? "desc" : "asc";
-      } else {
-        state.sort.key = key;
-        state.sort.dir = "asc";
-      }
-      state.page = 1;
-      render();
-    });
-
-    els.resetFilters.addEventListener("click", () => {
-      resetFilters(true);
-    });
-
-    els.prevPage.addEventListener("click", () => {
-      state.page = Math.max(1, state.page - 1);
-      renderTable(state.filteredRows);
-    });
-
-    els.nextPage.addEventListener("click", () => {
-      const totalPages = Math.max(1, Math.ceil(state.filteredRows.length / PAGE_SIZE));
-      state.page = Math.min(totalPages, state.page + 1);
-      renderTable(state.filteredRows);
-    });
-
-    els.fileInput.addEventListener("change", handleUpload);
-
-    updateDatasetMeta();
-    render();
+    /* ═══════════════════════════════════════════════════════════
+       RENDER
+    ═══════════════════════════════════════════════════════════ */
+    function render() {
+      renderMap();
+      renderDetails();
+    }
   </script>
-</body>
+<script data-pplx-inline-edit>
+(function(){
+  if(window===window.top)return;
+  function inlineAll(orig,clone){
+    if(orig.nodeType!==1)return;
+    try{
+      var cs=getComputedStyle(orig);
+      var t='';
+      for(var i=0;i<cs.length;i++){t+=cs[i]+':'+cs.getPropertyValue(cs[i])+';';}
+      clone.style.cssText=t;
+    }catch(e){}
+    var oc=orig.children,cc=clone.children;
+    for(var j=0;j<oc.length&&j<cc.length;j++){inlineAll(oc[j],cc[j]);}
+  }
+  function stripExternal(clone){
+    var imgs=clone.querySelectorAll('img');
+    for(var i=0;i<imgs.length;i++){
+      var s=imgs[i].getAttribute('src');
+      if(s&&!s.startsWith('data:'))imgs[i].removeAttribute('src');
+    }
+    var all=clone.querySelectorAll('*');
+    for(var i=0;i<all.length;i++){
+      var st=all[i].style.cssText;
+      if(st&&st.indexOf('url(')>=0){
+        all[i].style.cssText=st.replace(/url\(["']?(?!data:)[^)"']*["']?\)/gi,'none');
+      }
+    }
+  }
+  window.addEventListener('message',function(e){
+    if(!e.data||e.data.type!=='INLINE_EDIT_CAPTURE_REQUEST')return;
+    var scrollX=window.scrollX||window.pageXOffset||0;
+    var scrollY=window.scrollY||window.pageYOffset||0;
+    var w=window.innerWidth,h=window.innerHeight;
+    try{
+      var clone=document.documentElement.cloneNode(true);
+      var rm=clone.querySelectorAll('script,link[rel="stylesheet"],style');
+      for(var i=0;i<rm.length;i++){rm[i].remove();}
+      inlineAll(document.documentElement,clone);
+      stripExternal(clone);
+      var html=new XMLSerializer().serializeToString(clone);
+      var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'">'
+        +'<foreignObject width="100%" height="100%">'
+        +'<div xmlns="http://www.w3.org/1999/xhtml" style="width:'+w+'px;height:'+h+'px;overflow:hidden">'
+        +'<div style="transform:translate(-'+scrollX+'px,-'+scrollY+'px);transform-origin:top left">'
+        +html+'</div></div></foreignObject></svg>';
+      var svgUrl='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+      var img=new Image();
+      img.onload=function(){
+        var c=document.createElement('canvas');c.width=w;c.height=h;
+        c.getContext('2d').drawImage(img,0,0);
+        window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:c.toDataURL('image/png'),scrollX:scrollX,scrollY:scrollY},'*');
+      };
+      img.onerror=function(){
+        window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:null,scrollX:scrollX,scrollY:scrollY},'*');
+      };
+      img.src=svgUrl;
+    }catch(err){
+      window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:null,scrollX:scrollX,scrollY:scrollY},'*');
+    }
+  });
+})();
+</script></body>
 </html>
