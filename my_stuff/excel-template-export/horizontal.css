@@ -1,0 +1,166 @@
+body.layout-horizontal .flash-card {
+  min-height: 560px;
+}
+
+body.layout-horizontal .flash-card-inner {
+  min-height: 560px;
+}
+
+body.layout-horizontal .flash-card-back {
+  display: block;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+body.layout-horizontal .flash-card-back .card-chip {
+  left: 50%;
+  min-width: 94px;
+  max-width: calc(100% - 40px);
+}
+
+body.layout-horizontal .back-stage-stack-horizontal {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+body.layout-horizontal .back-stage-horizontal {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
+  transition:
+    opacity 200ms ease,
+    transform 220ms ease;
+}
+
+body.layout-horizontal .back-stage-horizontal.is-active {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+body.layout-horizontal .back-horizontal-card {
+  align-self: stretch;
+  min-height: 0;
+  margin: 82px 16px 16px;
+  padding: 22px 22px 18px;
+  border: 3px solid rgba(24, 34, 47, 0.12);
+  border-radius: 22px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 12px 24px rgba(24, 34, 47, 0.08);
+  overflow-y: auto;
+  display: grid;
+  align-content: start;
+  gap: 16px;
+}
+
+body.layout-horizontal .back-horizontal-card h4 {
+  margin: 0;
+  font-family: "Avenir Next", "Trebuchet MS", sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  text-align: center;
+}
+
+body.layout-horizontal .back-horizontal-card p {
+  margin: 0;
+  font-family: "Avenir Next", "Trebuchet MS", sans-serif;
+  font-size: 1.5rem;
+  line-height: 1.56;
+  color: #283546;
+}
+
+body.layout-horizontal .back-horizontal-copy {
+  margin: 0;
+  font-family: "Avenir Next", "Trebuchet MS", sans-serif;
+  font-size: 1.5rem;
+  line-height: 1.56;
+  color: #283546;
+  display: grid;
+  gap: 14px;
+}
+
+body.layout-horizontal .back-horizontal-copy p {
+  margin: 0;
+}
+
+body.layout-horizontal .back-horizontal-card .card-casual,
+body.layout-horizontal .back-horizontal-card .card-example,
+body.layout-horizontal .back-horizontal-card .card-technical {
+  white-space: pre-line;
+}
+
+body.layout-horizontal .back-horizontal-next {
+  align-self: end;
+  margin-top: 6px;
+  color: #677284;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: lowercase;
+  text-align: right;
+}
+
+body.layout-horizontal .back-horizontal-card-casual {
+  background: linear-gradient(180deg, var(--casual-panel-start, #f3e6fb), var(--casual-panel-end, #ebdcf6));
+  border-color: var(--casual-panel-border, #7e579f);
+}
+
+body.layout-horizontal .back-horizontal-card-casual h4 {
+  color: var(--casual-panel-border, #7e579f);
+}
+
+body.layout-horizontal .back-horizontal-card-example {
+  background: linear-gradient(180deg, var(--example-panel-start, #f8e0dc), var(--example-panel-end, #f2cfc9));
+  border-color: var(--example-panel-border, #d94a45);
+}
+
+body.layout-horizontal .back-horizontal-card-example h4 {
+  color: var(--example-panel-border, #d94a45);
+}
+
+body.layout-horizontal .back-horizontal-card-technical {
+  background: linear-gradient(180deg, var(--technical-panel-start, #eef6ff), var(--technical-panel-end, #ece8fb));
+  border-color: var(--technical-panel-border, #365172);
+}
+
+body.layout-horizontal .back-horizontal-card-technical h4 {
+  color: var(--technical-panel-border, #365172);
+}
+
+@media (max-width: 1180px) {
+  body.layout-horizontal .flash-card {
+    min-height: 620px;
+  }
+
+  body.layout-horizontal .flash-card-inner {
+    min-height: 620px;
+  }
+
+  body.layout-horizontal .back-horizontal-card {
+    margin-inline: 14px;
+  }
+}
+
+@media (max-width: 760px) {
+  body.layout-horizontal .flash-card {
+    min-height: 700px;
+  }
+
+  body.layout-horizontal .flash-card-inner {
+    min-height: 700px;
+  }
+
+  body.layout-horizontal .back-horizontal-card {
+    margin: 82px 0 0;
+    border-width: 1px 0 0;
+    border-radius: 0 0 24px 24px;
+    box-shadow: none;
+  }
+}

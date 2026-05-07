@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Planets and Satellites</title>
+    <style>
+      :root {
+        --bg: #ffffff;
+        --surface: #ffffff;
+        --border: #dfe4ee;
+        --text: #202735;
+        --muted: #5f6b80;
+        --faint: #8a95a8;
+        --accent: #00b7ff;
+        --accent-strong: #009fdb;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Lato", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        color: var(--text);
+        background: var(--bg);
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      .mobile-bar {
+        display: none;
+      }
+
+      .shell {
+        width: min(1420px, 100%);
+        min-height: 100vh;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 250px minmax(0, 1fr) 250px;
+        background: var(--surface);
+      }
+
+      .sidebar,
+      .toc {
+        position: sticky;
+        top: 0;
+        align-self: start;
+        height: 100vh;
+        overflow: auto;
+        background: var(--surface);
+      }
+
+      .sidebar {
+        padding: 34px 22px 28px 28px;
+        border-right: 1px solid var(--border);
+      }
+
+      .toc {
+        padding: 22px 24px 28px;
+      }
+
+      .brand {
+        margin-bottom: 22px;
+        line-height: 1.08;
+      }
+
+      .brand strong {
+        display: block;
+        font-size: 1.02rem;
+        font-weight: 700;
+      }
+
+      .brand span {
+        display: block;
+        margin-top: 4px;
+        color: var(--accent-strong);
+        font-size: 0.98rem;
+        font-style: italic;
+      }
+
+      .search-wrap {
+        margin-bottom: 22px;
+      }
+
+      .search-wrap input {
+        width: 100%;
+        height: 30px;
+        padding: 0 12px;
+        border: 1px solid #d7dde8;
+        border-radius: 4px;
+        color: var(--text);
+        background: #ffffff;
+        outline: none;
+      }
+
+      .search-wrap input:focus {
+        border-color: rgba(0, 183, 255, 0.75);
+        box-shadow: 0 0 0 3px rgba(0, 183, 255, 0.12);
+      }
+
+      .section-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .section-link {
+        display: block;
+        padding: 4px 0;
+        color: var(--muted);
+        line-height: 1.2;
+      }
+
+      .section-link.active {
+        color: var(--accent-strong);
+      }
+
+      .section-link .number {
+        display: inline-block;
+        width: 18px;
+      }
+
+      .main {
+        padding: 28px 68px 56px;
+        min-width: 0;
+      }
+
+      .article {
+        max-width: 760px;
+      }
+
+      .eyebrow {
+        margin-bottom: 10px;
+        color: var(--faint);
+        font-size: 0.82rem;
+      }
+
+      .article h1 {
+        margin: 0;
+        font-size: clamp(2.5rem, 4vw, 3.5rem);
+        line-height: 1;
+        font-weight: 700;
+      }
+
+      .lede {
+        margin: 18px 0 26px;
+        color: var(--muted);
+        font-size: 1.02rem;
+        line-height: 1.7;
+      }
+
+      .content-section + .content-section {
+        margin-top: 34px;
+      }
+
+      .content-section h2 {
+        margin: 0 0 12px;
+        font-size: 1.7rem;
+        line-height: 1.15;
+        font-weight: 700;
+      }
+
+      .content-section p {
+        margin: 0;
+        font-size: 1rem;
+        line-height: 1.75;
+        color: var(--text);
+      }
+
+      .toc h2 {
+        margin: 0 0 10px;
+        font-size: 1rem;
+        font-weight: 400;
+      }
+
+      .toc-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .toc-list li {
+        margin: 0;
+      }
+
+      .toc-link {
+        display: block;
+        padding: 4px 0 4px 10px;
+        border-left: 2px solid transparent;
+        color: var(--muted);
+        line-height: 1.2;
+      }
+
+      .toc-link + .toc-link {
+        margin-top: 4px;
+      }
+
+      .toc-link.active {
+        border-left-color: var(--accent-strong);
+        color: #1c5fda;
+      }
+
+      .toc-link .toc-number {
+        display: inline-block;
+        min-width: 34px;
+      }
+
+      .toc-caption {
+        margin-top: 18px;
+        color: var(--faint);
+        font-size: 0.86rem;
+        line-height: 1.5;
+      }
+
+      .empty-note {
+        margin-top: 14px;
+        color: var(--faint);
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+
+      .backdrop {
+        display: none;
+      }
+
+      @media (max-width: 980px) {
+        .mobile-bar {
+          position: sticky;
+          top: 0;
+          z-index: 20;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          height: 52px;
+          padding: 0 14px;
+          border-bottom: 1px solid var(--border);
+          background: rgba(255, 255, 255, 0.94);
+          backdrop-filter: blur(12px);
+        }
+
+        .mobile-toggle {
+          width: 34px;
+          height: 34px;
+          border: 0;
+          border-radius: 8px;
+          background: transparent;
+          color: var(--muted);
+          cursor: pointer;
+        }
+
+        .mobile-toggle svg {
+          width: 18px;
+          height: 18px;
+        }
+
+        .mobile-title small {
+          display: block;
+          color: var(--faint);
+          font-size: 0.68rem;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+        }
+
+        .mobile-title strong {
+          display: block;
+          font-size: 0.95rem;
+        }
+
+        .shell {
+          grid-template-columns: 1fr;
+          min-height: auto;
+        }
+
+        .sidebar {
+          position: fixed;
+          top: 52px;
+          left: 0;
+          bottom: 0;
+          width: min(84vw, 290px);
+          z-index: 25;
+          transform: translateX(-102%);
+          transition: transform 0.22s ease;
+          border-right: 1px solid var(--border);
+        }
+
+        body.nav-open .sidebar {
+          transform: translateX(0);
+        }
+
+        .toc {
+          display: none;
+        }
+
+        .main {
+          padding: 24px 20px 40px;
+        }
+
+        .article {
+          max-width: none;
+        }
+
+        .backdrop {
+          position: fixed;
+          inset: 52px 0 0;
+          z-index: 15;
+          display: block;
+          opacity: 0;
+          pointer-events: none;
+          background: rgba(12, 19, 31, 0.22);
+          transition: opacity 0.22s ease;
+        }
+
+        body.nav-open .backdrop {
+          opacity: 1;
+          pointer-events: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="mobile-bar">
+      <button class="mobile-toggle" id="menuToggle" aria-label="Toggle sidebar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"></path>
+        </svg>
+      </button>
+      <div class="mobile-title">
+        <small>Reference Layout</small>
+        <strong>Planets and Satellites</strong>
+      </div>
+    </header>
+
+    <div class="backdrop" id="backdrop"></div>
+
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <strong>Planetary Notes</strong>
+          <span>Reference Guide</span>
+        </div>
+
+        <div class="search-wrap">
+          <input id="tocSearch" type="text" placeholder="Search entries" />
+        </div>
+
+        <nav class="section-nav" id="sectionNav"></nav>
+      </aside>
+
+      <main class="main">
+        <article class="article">
+          <div class="eyebrow" id="articleEyebrow"></div>
+          <h1 id="articleTitle"></h1>
+          <p class="lede" id="articleLede"></p>
+
+          <section class="content-section">
+            <h2 id="sectionOneTitle"></h2>
+            <p id="sectionOneBody"></p>
+          </section>
+
+          <section class="content-section">
+            <h2 id="sectionTwoTitle"></h2>
+            <p id="sectionTwoBody"></p>
+          </section>
+        </article>
+      </main>
+
+      <aside class="toc">
+        <h2>Table of contents</h2>
+        <ul class="toc-list" id="itemNav"></ul>
+        <p class="toc-caption">The right rail changes with the selected left section, and the center shows only the currently selected item.</p>
+      </aside>
+    </div>
+
+    <script>
+      const content = {
+        planets: {
+          number: "1",
+          label: "Planets",
+          items: [
+            {
+              id: "mercury",
+              number: "1.1",
+              title: "Mercury",
+              lede: "Mercury is the closest planet to the Sun and the smallest of the eight major planets.",
+              sectionOneTitle: "Overview",
+              sectionOneBody: "Mercury is a rocky world with a heavily cratered surface. Because it sits so close to the Sun and has almost no atmosphere to hold heat, temperatures change dramatically between its bright daytime side and its dark nighttime side.",
+              sectionTwoTitle: "Why It Stands Out",
+              sectionTwoBody: "Mercury completes an orbit around the Sun very quickly and has one of the most extreme environments in the solar system. Its landscape tells the story of constant exposure to space weather, impacts, and intense sunlight."
+            },
+            {
+              id: "venus",
+              number: "1.2",
+              title: "Venus",
+              lede: "Venus is a rocky planet wrapped in thick clouds and known for its intense heat.",
+              sectionOneTitle: "Overview",
+              sectionOneBody: "Venus is similar to Earth in size, but its atmosphere is much denser and made largely of carbon dioxide. Thick clouds trap heat so effectively that the planet's surface becomes hotter than Mercury's even though Venus is farther from the Sun.",
+              sectionTwoTitle: "Why It Stands Out",
+              sectionTwoBody: "Venus is often described as Earth's sister planet because of its size, but its actual conditions are far more hostile. It is a strong example of how atmospheric composition can completely shape a planet's climate."
+            },
+            {
+              id: "earth",
+              number: "1.3",
+              title: "Earth",
+              lede: "Earth is the only known planet with life and stable liquid water on its surface.",
+              sectionOneTitle: "Overview",
+              sectionOneBody: "Earth has oceans, a breathable atmosphere, and a climate system that supports a wide range of ecosystems. Its balance of water, land, air, and temperature makes it uniquely suitable for the life we know.",
+              sectionTwoTitle: "Why It Stands Out",
+              sectionTwoBody: "Earth is important not just because it is home, but because it offers a reference point for studying all other planets. Comparing Earth with nearby worlds helps explain how different planetary systems evolve over time."
+            },
+            {
+              id: "mars",
+              number: "1.4",
+              title: "Mars",
+              lede: "Mars is a cold desert planet with dusty red terrain and signs of an active past.",
+              sectionOneTitle: "Overview",
+              sectionOneBody: "Mars has giant volcanoes, deep canyons, polar ice caps, and a thin atmosphere. Scientists have found strong evidence that liquid water once moved across its surface, making Mars a major target in the search for past habitability.",
+              sectionTwoTitle: "Why It Stands Out",
+              sectionTwoBody: "Mars feels familiar enough to imagine exploration, yet different enough to reveal how a planet can lose warmth and atmospheric density. Its surface preserves clues about ancient geology and climate change."
+            },
+            {
+              id: "jupiter",
+              number: "1.5",
+              title: "Jupiter",
+              lede: "Jupiter is the largest planet in the solar system and a classic gas giant.",
+              sectionOneTitle: "Overview",
+              sectionOneBody: "Jupiter is made mostly of hydrogen and helium and does not have a solid surface like Earth or Mars. It is famous for its colorful cloud bands, powerful storms, and enormous scale, which dominates the outer solar system.",
+              sectionTwoTitle: "Why It Stands Out",
+              sectionTwoBody: "Jupiter helps shape the solar system through its strong gravity and large family of moons. It is a central world for understanding giant planets, atmospheric motion, and planetary formation."
+            }
+          ]
+        },
+        satellites: {
+          number: "2",
+          label: "Satellites",
+          items: [
+            {
+              id: "moon",
+              number: "2.1",
+              title: "Moon",
+              lede: "The Moon is Earth's natural satellite and the brightest object in our night sky after the Sun.",
+              sectionOneTitle: "Overview",
+              sectionOneBody: "The Moon orbits Earth and plays an important role in ocean tides and long-term stability. Its surface is covered with craters, plains, and highlands formed through billions of years of impacts and volcanic history.",
+              sectionTwoTitle: "Why It Stands Out",
+              sectionTwoBody: "The Moon is the most accessible natural satellite for human study and exploration. It also provides a direct record of early solar system history that has been preserved with little weathering or erosion."
+            },
+            {
+              id: "europa",
+              number: "2.2",
+              title: "Europa",
+              lede: "Europa is one of Jupiter's major moons and is known for its icy shell.",
+              sectionOneTitle: "Overview",
+              sectionOneBody: "Europa has a bright, fractured surface made of ice. Beneath that outer layer, scientists suspect a deep subsurface ocean may exist, which makes Europa one of the most compelling places to study possible habitable environments beyond Earth.",
+              sectionTwoTitle: "Why It Stands Out",
+              sectionTwoBody: "Europa is important because it combines a frozen exterior with the possibility of hidden liquid water. That mix makes it a major focus for planetary science and future space missions."
+            }
+          ]
+        }
+      };
+
+      const state = {
+        section: "planets",
+        item: "mercury",
+        query: ""
+      };
+
+      const sectionNav = document.getElementById("sectionNav");
+      const itemNav = document.getElementById("itemNav");
+      const tocSearch = document.getElementById("tocSearch");
+      const articleEyebrow = document.getElementById("articleEyebrow");
+      const articleTitle = document.getElementById("articleTitle");
+      const articleLede = document.getElementById("articleLede");
+      const sectionOneTitle = document.getElementById("sectionOneTitle");
+      const sectionOneBody = document.getElementById("sectionOneBody");
+      const sectionTwoTitle = document.getElementById("sectionTwoTitle");
+      const sectionTwoBody = document.getElementById("sectionTwoBody");
+      const menuToggle = document.getElementById("menuToggle");
+      const backdrop = document.getElementById("backdrop");
+
+      function currentSection() {
+        return content[state.section];
+      }
+
+      function filteredItems() {
+        const query = state.query.trim().toLowerCase();
+        const items = currentSection().items;
+        if (!query) {
+          return items;
+        }
+        return items.filter((item) => item.title.toLowerCase().includes(query));
+      }
+
+      function currentItem() {
+        const visibleItems = filteredItems();
+        const match = visibleItems.find((item) => item.id === state.item);
+        return match || visibleItems[0] || currentSection().items[0];
+      }
+
+      function syncHash() {
+        window.location.hash = state.section + "/" + state.item;
+      }
+
+      function renderSectionNav() {
+        sectionNav.innerHTML = Object.entries(content)
+          .map(([key, section]) => {
+            const active = key === state.section ? " active" : "";
+            return '<a class="section-link' + active + '" href="#' + key + '" data-section="' + key + '"><span class="number">' + section.number + '</span>' + section.label + '</a>';
+          })
+          .join("");
+
+        sectionNav.querySelectorAll("[data-section]").forEach((link) => {
+          link.addEventListener("click", (event) => {
+            event.preventDefault();
+            const nextSection = event.currentTarget.dataset.section;
+            state.section = nextSection;
+            state.query = "";
+            tocSearch.value = "";
+            state.item = content[nextSection].items[0].id;
+            render();
+          });
+        });
+      }
+
+      function renderItemNav() {
+        const items = filteredItems();
+
+        if (!items.length) {
+          itemNav.innerHTML = '<li class="empty-note">No matches in this section.</li>';
+          return;
+        }
+
+        itemNav.innerHTML = items
+          .map((item) => {
+            const active = item.id === state.item ? " active" : "";
+            return '<li><a class="toc-link' + active + '" href="#' + state.section + '/' + item.id + '" data-item="' + item.id + '"><span class="toc-number">' + item.number + '</span>' + item.title + '</a></li>';
+          })
+          .join("");
+
+        itemNav.querySelectorAll("[data-item]").forEach((link) => {
+          link.addEventListener("click", (event) => {
+            event.preventDefault();
+            state.item = event.currentTarget.dataset.item;
+            render();
+          });
+        });
+      }
+
+      function renderArticle() {
+        const section = currentSection();
+        const item = currentItem();
+        state.item = item.id;
+
+        articleEyebrow.textContent = section.number + '. ' + section.label;
+        articleTitle.textContent = item.title;
+        articleLede.textContent = item.lede;
+        sectionOneTitle.textContent = item.sectionOneTitle;
+        sectionOneBody.textContent = item.sectionOneBody;
+        sectionTwoTitle.textContent = item.sectionTwoTitle;
+        sectionTwoBody.textContent = item.sectionTwoBody;
+      }
+
+      function render() {
+        renderSectionNav();
+        renderItemNav();
+        renderArticle();
+        syncHash();
+        document.body.classList.remove("nav-open");
+      }
+
+      function hydrateFromHash() {
+        const raw = window.location.hash.replace(/^#/, "");
+        if (!raw) {
+          return;
+        }
+
+        const [section, item] = raw.split("/");
+        if (content[section]) {
+          state.section = section;
+          if (item && content[section].items.some((entry) => entry.id === item)) {
+            state.item = item;
+          } else {
+            state.item = content[section].items[0].id;
+          }
+        }
+      }
+
+      tocSearch.addEventListener("input", (event) => {
+        state.query = event.target.value;
+        const visible = filteredItems();
+        if (visible.length && !visible.some((item) => item.id === state.item)) {
+          state.item = visible[0].id;
+        }
+        renderItemNav();
+        renderArticle();
+      });
+
+      if (menuToggle) {
+        menuToggle.addEventListener("click", () => {
+          document.body.classList.toggle("nav-open");
+        });
+      }
+
+      backdrop.addEventListener("click", () => {
+        document.body.classList.remove("nav-open");
+      });
+
+      hydrateFromHash();
+      render();
+
+      window.addEventListener("hashchange", () => {
+        hydrateFromHash();
+        render();
+      });
+    </script>
+  </body>
+</html>

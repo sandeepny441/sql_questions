@@ -1,0 +1,61 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  @apply m-0 font-sans text-frost antialiased;
+  background:
+    radial-gradient(circle at 15% 15%, rgba(91, 213, 201, 0.18), transparent 28%),
+    radial-gradient(circle at 85% 10%, rgba(124, 208, 255, 0.18), transparent 24%),
+    radial-gradient(circle at 50% 100%, rgba(255, 164, 99, 0.14), transparent 26%),
+    linear-gradient(180deg, #08141c 0%, #07111a 35%, #0c151d 100%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.glass-panel {
+  background: linear-gradient(180deg, rgba(10, 24, 33, 0.86), rgba(7, 17, 25, 0.92));
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(159, 210, 231, 0.13);
+  box-shadow: 0 20px 60px rgba(2, 9, 15, 0.28);
+}
+
+.metric-card {
+  background: linear-gradient(180deg, rgba(18, 34, 44, 0.92), rgba(12, 22, 31, 0.96));
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.scene-panel {
+  background:
+    radial-gradient(circle at 50% 16%, rgba(123, 221, 255, 0.13), transparent 30%),
+    linear-gradient(180deg, rgba(8, 22, 30, 0.95), rgba(5, 15, 22, 0.98));
+}
+
+.scroll-skin::-webkit-scrollbar {
+  width: 10px;
+}
+
+.scroll-skin::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 999px;
+}
+
+.scroll-skin::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(74, 214, 194, 0.75), rgba(124, 208, 255, 0.35));
+  border-radius: 999px;
+}
