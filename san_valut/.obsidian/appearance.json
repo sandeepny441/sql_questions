@@ -1,0 +1,9 @@
+{
+  "cssTheme": "Blue Topaz",
+  "accentColor": "#882fb1",
+  "baseFontSize": 20,
+  "baseFontSizeAction": true,
+  "showViewHeader": false,
+  "showRibbon": false,
+  "nativeMenus": false
+}

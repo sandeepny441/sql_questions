@@ -1,0 +1,25 @@
+{
+	"nodes":[
+		{"id":"f8c77639d3c0c303","type":"text","text":"Linear Regression\n","x":-2220,"y":-1460,"width":141,"height":60,"color":"#c05454"},
+		{"id":"40d30150e0923cef","type":"text","text":"Logistic Regression\n","x":-2220,"y":-1380,"width":141,"height":60,"color":"4"},
+		{"id":"e47ca972377aaaaa","type":"text","text":"Linear Regression\n","x":-2220,"y":-1300,"width":140,"height":60,"color":"2"},
+		{"id":"3f31a0ae987ca9ed","type":"text","text":"Logistic Regression\n","x":-2219,"y":-1220,"width":141,"height":60,"color":"5"},
+		{"id":"af8e1f2470be3b9e","type":"text","text":"Linear Regression\n","x":-2039,"y":-1460,"width":140,"height":60,"color":"#c05454"},
+		{"id":"2e99932c426d3041","type":"text","text":"Logistic Regression\n","x":-2040,"y":-1380,"width":141,"height":60,"color":"4"},
+		{"id":"e6b99c7605e6d6f8","type":"text","text":"Linear Regression\n","x":-2040,"y":-1300,"width":140,"height":60,"color":"2"},
+		{"id":"ae0d19e679fa5b6f","type":"text","text":"Logistic Regression\n","x":-2039,"y":-1220,"width":141,"height":60,"color":"5"},
+		{"id":"21583e04cd6a0d94","type":"text","text":"","x":-1855,"y":-1220,"width":55,"height":60},
+		{"id":"737d0ff2af06aa1e","x":-2169,"y":-1587,"width":259,"height":60,"type":"text","text":""}
+	],
+	"edges":[
+		{"id":"53b2217761989dfe","fromNode":"f8c77639d3c0c303","fromSide":"bottom","toNode":"40d30150e0923cef","toSide":"top"},
+		{"id":"f41dfef80144b19a","fromNode":"e47ca972377aaaaa","fromSide":"bottom","toNode":"3f31a0ae987ca9ed","toSide":"top"},
+		{"id":"7d16598942529499","fromNode":"40d30150e0923cef","fromSide":"bottom","toNode":"e47ca972377aaaaa","toSide":"top"},
+		{"id":"2cfc5172876b3db8","fromNode":"af8e1f2470be3b9e","fromSide":"bottom","toNode":"2e99932c426d3041","toSide":"top"},
+		{"id":"46d67811fa3d314d","fromNode":"2e99932c426d3041","fromSide":"bottom","toNode":"e6b99c7605e6d6f8","toSide":"top"},
+		{"id":"8a71a68e8c23b2cc","fromNode":"e6b99c7605e6d6f8","fromSide":"bottom","toNode":"ae0d19e679fa5b6f","toSide":"top"},
+		{"id":"1830343ed8dfb3d8","fromNode":"ae0d19e679fa5b6f","fromSide":"right","toNode":"21583e04cd6a0d94","toSide":"left"},
+		{"id":"eaadce81062e7b55","fromNode":"737d0ff2af06aa1e","fromSide":"bottom","toNode":"f8c77639d3c0c303","toSide":"top"},
+		{"id":"0b41e6df3fdec2c2","fromNode":"737d0ff2af06aa1e","fromSide":"bottom","toNode":"af8e1f2470be3b9e","toSide":"top"}
+	]
+}
