@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pilot Funnel Sankeys</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./sankey.css" />
+    <script src="./sankey.js" defer></script>
+  </head>
+  <body>
+    <div class="deck-shell">
+      <main class="deck-card" id="sankey-root"></main>
+
+      <button class="nav-button nav-left" id="prev-slide" type="button" aria-label="Previous slide">
+        <span>&larr;</span>
+      </button>
+      <button class="nav-button nav-right" id="next-slide" type="button" aria-label="Next slide">
+        <span>&rarr;</span>
+      </button>
+
+      <div class="deck-progress" id="deck-progress" aria-label="Slide progress"></div>
+    </div>
+  </body>
+</html>

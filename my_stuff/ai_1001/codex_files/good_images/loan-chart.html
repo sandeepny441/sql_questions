@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Loans Closed Chart</title>
+  <style>
+    :root {
+      --bg: #d7cfbf;
+      --grid: rgba(97, 84, 67, 0.15);
+      --card-top: #fcfaf6;
+      --card-bottom: #f4eee4;
+      --text: #2c2924;
+      --muted: #9f917e;
+      --grid-line: rgba(123, 109, 91, 0.18);
+      --bar-text: #f8f3ec;
+      --button-bg: rgba(252, 248, 241, 0.96);
+      --button-shadow: rgba(72, 58, 43, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 32px;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background:
+        linear-gradient(var(--grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+        var(--bg);
+      background-size: 180px 180px, 180px 180px, auto;
+      overflow: hidden;
+    }
+
+    .frame {
+      width: min(980px, 100%);
+      border-radius: 28px;
+      padding: 0;
+    }
+
+    .card {
+      position: relative;
+      background: linear-gradient(180deg, var(--card-top), var(--card-bottom));
+      border-radius: 24px;
+      padding: 48px 54px 58px;
+      box-shadow: 0 16px 44px rgba(57, 48, 37, 0.1);
+      backdrop-filter: blur(10px);
+    }
+
+    .stats {
+      display: flex;
+      gap: 56px;
+      flex-wrap: wrap;
+      margin-bottom: 34px;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 6px;
+      letter-spacing: 0.02em;
+    }
+
+    .stat-value {
+      font-size: clamp(28px, 3.2vw, 36px);
+      line-height: 1;
+      font-weight: 500;
+      letter-spacing: -0.04em;
+      color: var(--text);
+    }
+
+    .chart-wrap {
+      position: relative;
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .scale-label {
+      fill: #9f927f;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+    }
+
+    .year-label {
+      fill: #494139;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+    }
+
+    .value-label {
+      fill: var(--bar-text);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .grid-line {
+      stroke: var(--grid-line);
+      stroke-width: 1;
+    }
+
+    .bar-track {
+      fill: url(#trackFill);
+    }
+
+    .bar-fill {
+      fill: url(#barFill);
+    }
+
+    .bar-fill.accent {
+      fill: url(#barAccent);
+    }
+
+    .download-button {
+      position: absolute;
+      right: 20px;
+      bottom: 16px;
+      width: 42px;
+      height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 0;
+      border-radius: 999px;
+      background: var(--button-bg);
+      color: var(--text);
+      box-shadow: 0 10px 24px var(--button-shadow);
+      cursor: pointer;
+      transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
+    }
+
+    .download-button:hover {
+      transform: translateY(-1px);
+      background: #fffdf8;
+      box-shadow: 0 14px 28px rgba(72, 58, 43, 0.18);
+    }
+
+    .download-button:active {
+      transform: translateY(0);
+    }
+
+    .download-button:focus-visible {
+      outline: 2px solid rgba(169, 123, 75, 0.46);
+      outline-offset: 3px;
+    }
+
+    .download-button svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    @media (max-width: 720px) {
+      body {
+        padding: 18px;
+      }
+
+      .card {
+        padding: 28px 20px 54px;
+        border-radius: 22px;
+      }
+
+      .stats {
+        gap: 20px;
+        margin-bottom: 18px;
+      }
+
+      .stat-value {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <div class="card">
+      <div class="stats">
+        <div>
+          <div class="stat-label">Total loans closed</div>
+          <div class="stat-value" id="totalLoans">0</div>
+        </div>
+        <div>
+          <div class="stat-label">Average per year</div>
+          <div class="stat-value" id="avgLoans">0</div>
+        </div>
+        <div>
+          <div class="stat-label">Peak year</div>
+          <div class="stat-value" id="bestYear">-</div>
+        </div>
+      </div>
+
+      <div class="chart-wrap">
+        <svg id="loanChart" viewBox="0 0 860 430" aria-label="Loans closed over the last five years as horizontal bars">
+          <defs>
+            <linearGradient id="trackFill" x1="0" x2="1" y1="0" y2="0">
+              <stop offset="0%" stop-color="#ebe3d6" />
+              <stop offset="100%" stop-color="#ddd1bf" />
+            </linearGradient>
+            <linearGradient id="barFill" x1="0" x2="1" y1="0" y2="0">
+              <stop offset="0%" stop-color="#304651" />
+              <stop offset="100%" stop-color="#4d6570" />
+            </linearGradient>
+            <linearGradient id="barAccent" x1="0" x2="1" y1="0" y2="0">
+              <stop offset="0%" stop-color="#9b6d40" />
+              <stop offset="100%" stop-color="#c79d6f" />
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+
+      <button class="download-button" id="downloadChart" type="button" aria-label="Download chart image" title="Download chart image">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 4v9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          <path d="M8.5 10.5 12 14l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M6 18h12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const data = [
+      { year: "2021", loans: 84 },
+      { year: "2022", loans: 96 },
+      { year: "2023", loans: 164 },
+      { year: "2024", loans: 181 },
+      { year: "2025", loans: 212 }
+    ];
+
+    const card = document.querySelector(".card");
+    const svg = document.getElementById("loanChart");
+    const downloadButton = document.getElementById("downloadChart");
+    const width = 860;
+    const height = 430;
+    const margin = { top: 58, right: 64, bottom: 28, left: 96 };
+    const chartWidth = width - margin.left - margin.right;
+    const chartHeight = height - margin.top - margin.bottom;
+    const maxValue = Math.max(...data.map((d) => d.loans));
+    const paddedMax = Math.ceil(maxValue / 25) * 25;
+    const scaleSteps = 4;
+
+    const total = data.reduce((sum, item) => sum + item.loans, 0);
+    const average = Math.round(total / data.length);
+    const peak = data.reduce((best, item) => item.loans > best.loans ? item : best, data[0]);
+
+    document.getElementById("totalLoans").textContent = total.toLocaleString();
+    document.getElementById("avgLoans").textContent = average.toLocaleString();
+    document.getElementById("bestYear").textContent = peak.year;
+
+    const make = (name, attrs = {}) => {
+      const node = document.createElementNS("http://www.w3.org/2000/svg", name);
+      Object.entries(attrs).forEach(([key, value]) => node.setAttribute(key, value));
+      return node;
+    };
+
+    function formatLoans(value) {
+      return value.toLocaleString();
+    }
+
+    for (let step = 0; step <= scaleSteps; step += 1) {
+      const value = Math.round((paddedMax / scaleSteps) * step);
+      const x = margin.left + (chartWidth / scaleSteps) * step;
+      const anchor = step === 0 ? "start" : step === scaleSteps ? "end" : "middle";
+      const label = make("text", {
+        x,
+        y: margin.top - 22,
+        class: "scale-label",
+        "text-anchor": anchor
+      });
+      label.textContent = formatLoans(value);
+      svg.appendChild(label);
+
+      svg.appendChild(make("line", {
+        x1: x,
+        y1: margin.top - 6,
+        x2: x,
+        y2: height - margin.bottom + 4,
+        class: "grid-line"
+      }));
+    }
+
+    const rowGap = 16;
+    const barHeight = 38;
+    const totalBarArea = data.length * barHeight + (data.length - 1) * rowGap;
+    const startY = margin.top + Math.max(0, (chartHeight - totalBarArea) / 2);
+
+    data.forEach((item, index) => {
+      const y = startY + index * (barHeight + rowGap);
+      const barWidth = (item.loans / paddedMax) * chartWidth;
+      const insideLabel = barWidth >= 88;
+      const valueX = insideLabel ? margin.left + barWidth - 14 : margin.left + barWidth + 12;
+
+      const yearLabel = make("text", {
+        x: margin.left - 16,
+        y: y + (barHeight / 2) + 5,
+        class: "year-label",
+        "text-anchor": "end"
+      });
+      yearLabel.textContent = item.year;
+      svg.appendChild(yearLabel);
+
+      svg.appendChild(make("rect", {
+        x: margin.left,
+        y,
+        width: chartWidth,
+        height: barHeight,
+        rx: barHeight / 2,
+        ry: barHeight / 2,
+        class: "bar-track"
+      }));
+
+      svg.appendChild(make("rect", {
+        x: margin.left,
+        y,
+        width: Math.max(barWidth, 10),
+        height: barHeight,
+        rx: barHeight / 2,
+        ry: barHeight / 2,
+        class: index === data.length - 1 ? "bar-fill accent" : "bar-fill"
+      }));
+
+      const valueLabel = make("text", {
+        x: valueX,
+        y: y + (barHeight / 2) + 5,
+        class: "value-label",
+        "text-anchor": insideLabel ? "end" : "start",
+        fill: insideLabel ? "#f8f3ec" : "#7d6e5d"
+      });
+      valueLabel.textContent = formatLoans(item.loans);
+      svg.appendChild(valueLabel);
+    });
+
+    function escapeXml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&apos;");
+    }
+
+    function triggerDownload(url, fileName) {
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+
+    function buildCardSvgMarkup() {
+      const cardRect = card.getBoundingClientRect();
+      const chartRect = svg.getBoundingClientRect();
+      const labelStyle = getComputedStyle(document.querySelector(".stat-label"));
+      const valueStyle = getComputedStyle(document.querySelector(".stat-value"));
+      const borderRadius = parseFloat(getComputedStyle(card).borderRadius) || 24;
+
+      const statMarkup = Array.from(document.querySelectorAll(".stats > div"))
+        .map((item) => {
+          const labelEl = item.querySelector(".stat-label");
+          const valueEl = item.querySelector(".stat-value");
+          const labelRect = labelEl.getBoundingClientRect();
+          const valueRect = valueEl.getBoundingClientRect();
+
+          const labelX = labelRect.left - cardRect.left;
+          const labelY = labelRect.top - cardRect.top;
+          const valueX = valueRect.left - cardRect.left;
+          const valueY = valueRect.top - cardRect.top;
+
+          return `
+            <text x="${labelX}" y="${labelY}" fill="#b5b0aa" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="${parseFloat(labelStyle.fontSize)}" dominant-baseline="hanging">${escapeXml(labelEl.textContent)}</text>
+            <text x="${valueX}" y="${valueY}" fill="#2f312e" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="${parseFloat(valueStyle.fontSize)}" font-weight="${valueStyle.fontWeight}" letter-spacing="-1.2" dominant-baseline="hanging">${escapeXml(valueEl.textContent)}</text>
+          `;
+        })
+        .join("");
+
+      const svgClone = svg.cloneNode(true);
+      svgClone.removeAttribute("id");
+      svgClone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      svgClone.setAttribute("x", String(chartRect.left - cardRect.left));
+      svgClone.setAttribute("y", String(chartRect.top - cardRect.top));
+      svgClone.setAttribute("width", String(chartRect.width));
+      svgClone.setAttribute("height", String(chartRect.height));
+      svgClone.setAttribute("preserveAspectRatio", "none");
+      svgClone.removeAttribute("aria-label");
+
+      const chartMarkup = new XMLSerializer().serializeToString(svgClone);
+
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" width="${cardRect.width}" height="${cardRect.height}" viewBox="0 0 ${cardRect.width} ${cardRect.height}">
+          <defs>
+            <linearGradient id="exportCardFill" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="#fcfaf6" />
+              <stop offset="100%" stop-color="#f4eee4" />
+            </linearGradient>
+          </defs>
+          <rect x="0" y="0" width="${cardRect.width}" height="${cardRect.height}" rx="${borderRadius}" ry="${borderRadius}" fill="url(#exportCardFill)" />
+          ${statMarkup}
+          ${chartMarkup}
+        </svg>
+      `;
+    }
+
+    function downloadSvgFallback(svgMarkup) {
+      const blob = new Blob([svgMarkup], { type: "image/svg+xml;charset=utf-8" });
+      const blobUrl = URL.createObjectURL(blob);
+      triggerDownload(blobUrl, "loans-closed-chart.svg");
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    }
+
+    async function downloadCardAsPng() {
+      const scale = Math.max(2, window.devicePixelRatio || 1);
+      const svgMarkup = buildCardSvgMarkup();
+      const blob = new Blob([svgMarkup], { type: "image/svg+xml;charset=utf-8" });
+      const blobUrl = URL.createObjectURL(blob);
+
+      try {
+        const image = await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = blobUrl;
+        });
+
+        const exportWidth = image.width;
+        const exportHeight = image.height;
+        const canvas = document.createElement("canvas");
+        canvas.width = exportWidth * scale;
+        canvas.height = exportHeight * scale;
+
+        const context = canvas.getContext("2d");
+        if (!context) {
+          throw new Error("Canvas context unavailable");
+        }
+
+        context.scale(scale, scale);
+        context.drawImage(image, 0, 0, exportWidth, exportHeight);
+        triggerDownload(canvas.toDataURL("image/png"), "loans-closed-chart.png");
+      } catch (error) {
+        console.warn("PNG export failed, downloading SVG instead.", error);
+        downloadSvgFallback(svgMarkup);
+      } finally {
+        URL.revokeObjectURL(blobUrl);
+      }
+    }
+
+    downloadButton.addEventListener("click", downloadCardAsPng);
+  </script>
+</body>
+</html>

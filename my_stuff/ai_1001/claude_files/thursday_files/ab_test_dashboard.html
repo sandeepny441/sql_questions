@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Dynamic Pricing Pilot — A/B Test Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#F0F4F8;color:#1E293B;font-size:14px}
+a{color:inherit}
+header{background:#0F172A;color:#fff;padding:24px 40px 20px}
+header h1{font-size:20px;font-weight:600;letter-spacing:-.02em;margin-bottom:4px}
+header p{font-size:12px;opacity:.55;letter-spacing:.02em}
+.wrap{max-width:1280px;margin:0 auto;padding:28px 28px 60px}
+.sec-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#64748B;margin:36px 0 16px;display:flex;align-items:center;gap:10px}
+.sec-label::after{content:'';flex:1;height:1px;background:#CBD5E1}
+.summary-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:8px}
+.sum-card{background:#fff;border-radius:12px;padding:18px 22px;border:1px solid #E2E8F0}
+.sum-card.warn{border-top:3px solid #E24B4A}
+.sum-card.ok{border-top:3px solid #378ADD}
+.sum-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#94A3B8;margin-bottom:8px}
+.sum-val{font-size:26px;font-weight:700;color:#0F172A;line-height:1}
+.sum-sub{font-size:11px;color:#94A3B8;margin:4px 0 8px}
+.sum-rate{font-size:13px;font-weight:600}
+.sum-rate.good{color:#185FA5}.sum-rate.bad{color:#A32D2D}
+.chart-card{background:#fff;border-radius:14px;border:1px solid #E2E8F0;overflow:hidden;margin-bottom:20px}
+.card-header{padding:14px 24px;border-bottom:1px solid #F1F5F9;display:flex;align-items:center;gap:10px}
+.card-header h2{font-size:14px;font-weight:600;color:#0F172A}
+.card-header span.sub{font-size:12px;color:#94A3B8}
+.badge{display:inline-block;padding:3px 11px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.03em}
+.b-ctrl{background:#E6F1FB;color:#0C447C}
+.b-trt{background:#FBEAF0;color:#72243E}
+.b-una{background:#F1EFE8;color:#444441}
+.b-cmp{background:#EAF3DE;color:#27500A}
+.card-body{display:flex}
+.chart-pane{flex:1;padding:20px 20px 16px;min-width:0}
+.insight-pane{width:340px;min-width:280px;padding:20px 24px;background:#F8FAFC;border-left:1px solid #F1F5F9}
+.ins-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#94A3B8;margin-bottom:14px}
+.ins-item{display:flex;gap:9px;margin-bottom:13px;align-items:flex-start}
+.ins-dot{width:7px;height:7px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.ins-text{font-size:12.5px;line-height:1.65;color:#334155}
+.ins-text strong{font-weight:600;color:#0F172A}
+.delta-tbl{margin-top:16px;border-top:1px solid #E2E8F0;padding-top:12px}
+.d-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #F1F5F9;font-size:12px}
+.d-row:last-child{border:none}
+.d-lbl{color:#64748B;font-weight:500}
+.d-bef{color:#94A3B8}
+.d-aft{font-weight:600}
+.d-pct{font-weight:700;font-size:12.5px}
+.pos{color:#3B6D11}.neg{color:#A32D2D}.neu{color:#854F0B}
+.chart-title-sm{font-size:11px;font-weight:600;color:#64748B;text-align:center;margin-bottom:8px}
+.legend-row{display:flex;gap:16px;justify-content:center;margin-bottom:10px;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:#64748B}
+.legend-swatch{width:10px;height:10px;border-radius:2px}
+@media(max-width:820px){
+  .card-body{flex-direction:column}
+  .insight-pane{width:100%;min-width:0}
+  .summary-row{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Dynamic Pricing Pilot — A/B Test Dashboard</h1>
+  <p>Pilot start: Apr 20, 2026 &nbsp;·&nbsp; Matched 24-day windows &nbsp;·&nbsp; Before: Mar 27–Apr 19 &nbsp;·&nbsp; During: Apr 20–May 13</p>
+</header>
+
+<div class="wrap">
+
+<div class="sec-label">Pipeline overview</div>
+<div class="summary-row">
+  <div class="sum-card ok">
+    <div class="sum-label">2025 full year — baseline</div>
+    <div class="sum-val">14,582</div>
+    <div class="sum-sub">Imports &nbsp;·&nbsp; 7,027 Submissions &nbsp;·&nbsp; 6,559 Locks</div>
+    <div class="sum-rate good">48.2% submit / import rate</div>
+  </div>
+  <div class="sum-card ok">
+    <div class="sum-label">Pre-pilot — Jan 1 to Apr 19, 2026</div>
+    <div class="sum-val">5,112</div>
+    <div class="sum-sub">Imports &nbsp;·&nbsp; 2,306 Submissions &nbsp;·&nbsp; 2,090 Locks</div>
+    <div class="sum-rate good">45.1% submit / import rate</div>
+  </div>
+  <div class="sum-card warn">
+    <div class="sum-label">Pilot — Apr 20 to present</div>
+    <div class="sum-val">904</div>
+    <div class="sum-sub">Imports &nbsp;·&nbsp; 281 Submissions &nbsp;·&nbsp; 206 Locks</div>
+    <div class="sum-rate bad">31.1% submit / import rate &nbsp;▼ 17.1pp vs 2025</div>
+  </div>
+</div>
+
+<div class="sec-label">Funnel analysis by group — 24-day matched windows</div>
+
+<!-- CONTROL -->
+<div class="chart-card">
+  <div class="card-header">
+    <span class="badge b-ctrl">Control group</span>
+    <span class="sub">Not exposed to dynamic pricing</span>
+  </div>
+  <div class="card-body">
+    <div class="chart-pane">
+      <div class="chart-title-sm">Loan funnel: before pilot vs. during pilot</div>
+      <svg id="svg-ctrl" width="100%" style="display:block"></svg>
+    </div>
+    <div class="insight-pane">
+      <div class="ins-title">Key insights</div>
+      <div class="ins-item"><div class="ins-dot" style="background:#3B6D11"></div><div class="ins-text"><strong>Consistent growth at every stage.</strong> All four funnel metrics rose, with Locks delivering the strongest gain (+22%) — the market was converting pipeline into closings at an accelerated pace.</div></div>
+      <div class="ins-item"><div class="ins-dot" style="background:#185FA5"></div><div class="ins-text"><strong>Submission rate held steady.</strong> 45.2% → 47.0% submit/import — no behavioral friction. LOs submitted what they imported, business as usual.</div></div>
+      <div class="ins-item"><div class="ins-dot" style="background:#854F0B"></div><div class="ins-text"><strong>Wires lagged (+2%).</strong> The closing pipeline reflects a natural lag — locks from the prior period, not this one. Expect wires to accelerate in coming weeks given the +22% lock surge.</div></div>
+      <div class="ins-item"><div class="ins-dot" style="background:#533AB7"></div><div class="ins-text"><strong>EQ visits surged +32%.</strong> Control LOs checked rates more aggressively — a sign of competitive urgency and active engagement, not reliance on an automated engine.</div></div>
+      <div class="delta-tbl">
+        <div class="d-row"><span class="d-lbl">Imports</span><span class="d-bef">409</span><span class="d-aft" style="color:#0C447C">→ 423</span><span class="d-pct pos">+3%</span></div>
+        <div class="d-row"><span class="d-lbl">Submissions</span><span class="d-bef">185</span><span class="d-aft" style="color:#0C447C">→ 199</span><span class="d-pct pos">+8%</span></div>
+        <div class="d-row"><span class="d-lbl">Locks</span><span class="d-bef">209</span><span class="d-aft" style="color:#0C447C">→ 256</span><span class="d-pct pos">+22%</span></div>
+        <div class="d-row"><span class="d-lbl">Wires</span><span class="d-bef">171</span><span class="d-aft" style="color:#0C447C">→ 174</span><span class="d-pct neu">+2%</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TREATMENT -->
+<div class="chart-card">
+  <div class="card-header">
+    <span class="badge b-trt">Treatment group</span>
+    <span class="sub">Exposed to dynamic pricing pilot</span>
+  </div>
+  <div class="card-body">
+    <div class="chart-pane">
+      <div class="chart-title-sm">Loan funnel: before pilot vs. during pilot</div>
+      <svg id="svg-trt" width="100%" style="display:block"></svg>
+    </div>
+    <div class="insight-pane">
+      <div class="ins-title">Key insights</div>
+      <div class="ins-item"><div class="ins-dot" style="background:#A32D2D"></div><div class="ins-text"><strong>Submissions fell 25% — the most critical signal.</strong> Against a backdrop of +11% market growth and +8% Control growth, this is a 33–36pp gap. Dynamic pricing is suppressing which loans LOs choose to submit.</div></div>
+      <div class="ins-item"><div class="ins-dot" style="background:#A32D2D"></div><div class="ins-text"><strong>Imports fell 10% while the market grew 11%.</strong> LOs are pre-filtering at the very top of the funnel — only importing loans they believe will price well under dynamic pricing. That's a ~21pp swing against market trend.</div></div>
+      <div class="ins-item"><div class="ins-dot" style="background:#854F0B"></div><div class="ins-text"><strong>Locks grew only +12% vs. market's +21%.</strong> Even the best performing Treatment metric underperforms both peers by roughly 10 points — the funnel compression above is working its way down to closings.</div></div>
+      <div class="ins-item"><div class="ins-dot" style="background:#533AB7"></div><div class="ins-text"><strong>EQ visits dropped 10%.</strong> Treatment LOs check rates 10% less while Control checks 32% more — a 42-point behavioral divergence showing the dynamic engine has replaced manual rate exploration, but isn't delivering competitive enough output to convert.</div></div>
+      <div class="delta-tbl">
+        <div class="d-row"><span class="d-lbl">Imports</span><span class="d-bef">179</span><span class="d-aft" style="color:#72243E">→ 161</span><span class="d-pct neg">−10%</span></div>
+        <div class="d-row"><span class="d-lbl">Submissions</span><span class="d-bef">96</span><span class="d-aft" style="color:#72243E">→ 72</span><span class="d-pct neg">−25%</span></div>
+        <div class="d-row"><span class="d-lbl">Locks</span><span class="d-bef">89</span><span class="d-aft" style="color:#72243E">→ 100</span><span class="d-pct neu">+12%</span></div>
+        <div class="d-row"><span class="d-lbl">Wires</span><span class="d-bef">77</span><span class="d-aft" style="color:#72243E">→ 69</span><span class="d-pct neg">−10%</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- UNASSIGNED -->
+<div class="chart-card">
+  <div class="card-header">
+    <span class="badge b-una">Unassigned — market baseline</span>
+    <span class="sub">Neither treatment nor control &nbsp;·&nbsp; organic market trend</span>
+  </div>
+  <div class="card-body">
+    <div class="chart-pane">
+      <div class="chart-title-sm">Loan funnel: before pilot vs. during pilot</div>
+      <svg id="svg-una" width="100%" style="display:block"></svg>
+    </div>
+    <div class="insight-pane">
+      <div class="ins-title">Key insights</div>
+      <div class="ins-item"><div class="ins-dot" style="background:#3B6D11"></div><div class="ins-text"><strong>Every metric grew 11–21%.</strong> This group establishes the true market baseline during the pilot window — the broader market was accelerating, which makes Treatment's declines even more alarming in context.</div></div>
+      <div class="ins-item"><div class="ins-dot" style="background:#444441"></div><div class="ins-text"><strong>Locks +21% — matching Control almost exactly.</strong> Both non-Treatment groups benefited equally from market momentum, while Treatment captured only +12% of the same tailwind.</div></div>
+      <div class="ins-item"><div class="ins-dot" style="background:#444441"></div><div class="ins-text"><strong>Imports grew +11%.</strong> Market-wide loan flow was rising. Treatment's −10% decline against a +11% market baseline represents a true market-adjusted swing of −21 points at the very top of funnel.</div></div>
+      <div class="ins-item"><div class="ins-dot" style="background:#3B6D11"></div><div class="ins-text"><strong>PRO Score improved +39%</strong> — lower-scoring LOs in this group improved during the exact same window when both pilot groups deteriorated. No dynamic pricing exposure = no drag on competitive pricing quality.</div></div>
+      <div class="delta-tbl">
+        <div class="d-row"><span class="d-lbl">Imports</span><span class="d-bef">288</span><span class="d-aft" style="color:#444441">→ 321</span><span class="d-pct pos">+11%</span></div>
+        <div class="d-row"><span class="d-lbl">Submissions</span><span class="d-bef">124</span><span class="d-aft" style="color:#444441">→ 138</span><span class="d-pct pos">+11%</span></div>
+        <div class="d-row"><span class="d-lbl">Locks</span><span class="d-bef">174</span><span class="d-aft" style="color:#444441">→ 211</span><span class="d-pct pos">+21%</span></div>
+        <div class="d-row"><span class="d-lbl">Wires</span><span class="d-bef">108</span><span class="d-aft" style="color:#444441">→ 120</span><span class="d-pct pos">+11%</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- COMBINED COMPARISON -->
+<div class="chart-card">
+  <div class="card-header">
+    <span class="badge b-cmp">Combined comparison</span>
+    <span class="sub">All three groups — % change during pilot vs. before pilot</span>
+  </div>
+  <div class="card-body">
+    <div class="chart-pane">
+      <div class="legend-row">
+        <span class="legend-item"><span class="legend-swatch" style="background:#378ADD"></span>Control</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:#D4537E"></span>Treatment</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:#888780"></span>Unassigned</span>
+      </div>
+      <div style="position:relative;height:280px">
+        <canvas id="chart-combined" role="img" aria-label="Grouped bar chart showing percent change in Imports, Submissions, Locks, and Wires for Control, Treatment, and Unassigned groups. Treatment shows negative changes in Imports (-10%), Submissions (-25%), and Wires (-10%), while Control and Unassigned show positive changes across all metrics.">Treatment group declined across Imports (-10%), Submissions (-25%), Wires (-10%). Control and Unassigned grew across all metrics.</canvas>
+      </div>
+    </div>
+    <div class="insight-pane">
+      <div class="ins-title">The core story</div>
+      <div class="ins-item"><div class="ins-dot" style="background:#A32D2D"></div><div class="ins-text"><strong>Treatment is the only group declining</strong> across Imports, Submissions, and Wires — while Control and Unassigned both grew during the same 24-day market window. This is not a seasonal effect; it's a behavioral signal.</div></div>
+      <div class="ins-item"><div class="ins-dot" style="background:#854F0B"></div><div class="ins-text"><strong>Submissions gap is the loudest alarm.</strong> Control +8%, Unassigned +11%, Treatment −25%. That's a 33–36 percentage point gap against peers operating in the identical market environment.</div></div>
+      <div class="ins-item"><div class="ins-dot" style="background:#185FA5"></div><div class="ins-text"><strong>Locks are Treatment's lone bright spot (+12%),</strong> but even here it captures barely half the market's momentum (Unassigned +21%, Control +22%). The pipeline accumulated before the pilot is closing — but the incoming pipeline is drying up.</div></div>
+      <div class="ins-item"><div class="ins-dot" style="background:#0F172A"></div><div class="ins-text"><strong>Market-adjusted Treatment impact</strong> (vs. Unassigned baseline): Imports −21pp, Submissions −36pp, Locks −9pp, Wires −21pp. Every stage of the funnel shows a net negative market-adjusted effect from dynamic pricing.</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="sec-label">Behavioral metrics</div>
+
+<!-- EQ VISITS -->
+<div class="chart-card">
+  <div class="card-header">
+    <h2>EQ visits (rate checks)</h2>
+    <span class="sub">How actively are LOs checking rates manually?</span>
+  </div>
+  <div class="card-body">
+    <div class="chart-pane">
+      <div class="legend-row">
+        <span class="legend-item"><span class="legend-swatch" style="background:#B5D4F4;border:1px solid #378ADD"></span>Before pilot</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:#378ADD"></span>During pilot (Control)</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:#D4537E"></span>During pilot (Treatment)</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:#888780"></span>During pilot (Unassigned)</span>
+      </div>
+      <div style="position:relative;height:260px">
+        <canvas id="chart-eq" role="img" aria-label="Grouped bar chart comparing EQ visits before and during the pilot across Control, Treatment, and Unassigned groups. Control increased 32%, Treatment decreased 10%, Unassigned increased 17%.">Control: 149,746 → 197,504 (+32%). Treatment: 66,958 → 60,357 (−10%). Unassigned: 736 → 861 (+17%).</canvas>
+      </div>
+    </div>
+    <div class="insight-pane">
+      <div class="ins-title">Key insights</div>
+      <div class="ins-item"><div class="ins-dot" style="background:#A32D2D"></div><div class="ins-text"><strong>A 42-point behavioral divergence.</strong> In the same 24-day window, Control LOs checked rates 32% more often while Treatment LOs checked 10% less. This is the clearest behavioral fingerprint of the pilot.</div></div>
+      <div class="ins-item"><div class="ins-dot" style="background:#185FA5"></div><div class="ins-text"><strong>Control's surge signals competitive urgency.</strong> Rising from 149K to 197K visits — LOs are working harder to find competitive pricing for each loan. This extra effort is converting: submissions and locks both rose.</div></div>
+      <div class="ins-item"><div class="ins-dot" style="background:#854F0B"></div><div class="ins-text"><strong>Treatment's decline is the adoption fingerprint.</strong> These LOs handed rate discovery to the dynamic engine — but the engine is not delivering rates competitive enough to convert: submissions fell 25% in the same period.</div></div>
+      <div class="ins-item"><div class="ins-dot" style="background:#3B6D11"></div><div class="ins-text"><strong>Net implication:</strong> Treatment LOs are doing less rate-checking work yet achieving worse outcomes. The engine may be creating passive dependency while delivering subcompetitive pricing that LOs aren't catching because they've stopped checking manually.</div></div>
+      <div class="delta-tbl">
+        <div class="d-row"><span class="d-lbl">Control</span><span class="d-bef">149,746</span><span class="d-aft" style="color:#0C447C">→ 197,504</span><span class="d-pct pos">+32%</span></div>
+        <div class="d-row"><span class="d-lbl">Treatment</span><span class="d-bef">66,958</span><span class="d-aft" style="color:#72243E">→ 60,357</span><span class="d-pct neg">−10%</span></div>
+        <div class="d-row"><span class="d-lbl">Unassigned</span><span class="d-bef">736</span><span class="d-aft" style="color:#444441">→ 861</span><span class="d-pct pos">+17%</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PRO SCORE -->
+<div class="chart-card">
+  <div class="card-header">
+    <h2>PRO score</h2>
+    <span class="sub">Competitive pricing quality metric — higher is better</span>
+  </div>
+  <div class="card-body">
+    <div class="chart-pane">
+      <div class="legend-row">
+        <span class="legend-item"><span class="legend-swatch" style="background:#B5D4F4;border:1px solid #378ADD"></span>Before pilot</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:#378ADD"></span>During pilot (Control)</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:#D4537E"></span>During pilot (Treatment)</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:#888780"></span>During pilot (Unassigned)</span>
+      </div>
+      <div style="position:relative;height:260px">
+        <canvas id="chart-pro" role="img" aria-label="Grouped bar chart comparing PRO scores before and during the pilot. Control fell 24% (53.3 to 40.5), Treatment fell 29% (51.4 to 36.7), Unassigned improved 39% (20.0 to 27.8).">Control: 53.3 → 40.5 (−24%). Treatment: 51.4 → 36.7 (−29%). Unassigned: 20.0 → 27.8 (+39%).</canvas>
+      </div>
+    </div>
+    <div class="insight-pane">
+      <div class="ins-title">Key insights</div>
+      <div class="ins-item"><div class="ins-dot" style="background:#A32D2D"></div><div class="ins-text"><strong>Treatment's PRO Score fell 5 points steeper than Control's.</strong> Both groups started nearly equal (53.3 vs 51.4), so the divergence is not pre-existing — it's entirely pilot-induced. The dynamic engine is producing less competitive prices.</div></div>
+      <div class="ins-item"><div class="ins-dot" style="background:#854F0B"></div><div class="ins-text"><strong>The matched baseline matters here.</strong> Groups were well-paired before the pilot. The widening gap during the pilot period — Control −24% vs. Treatment −29% — is attributable to dynamic pricing adjustments, not LO quality differences.</div></div>
+      <div class="ins-item"><div class="ins-dot" style="background:#3B6D11"></div><div class="ins-text"><strong>Unassigned improved +39%</strong> — a completely opposite trajectory. Lower-scoring LOs with no pilot exposure improved across the same market window. This makes the pilot groups' declines impossible to attribute to market conditions alone.</div></div>
+      <div class="ins-item"><div class="ins-dot" style="background:#533AB7"></div><div class="ins-text"><strong>Call data corroborates directly:</strong> 40% of complaints cited rate competitiveness, with LOs reporting UWM rates 25–50+ bps worse than WF, Chase, and PennyMac — the exact pricing gap that a declining PRO Score reflects.</div></div>
+      <div class="delta-tbl">
+        <div class="d-row"><span class="d-lbl">Control</span><span class="d-bef">53.3</span><span class="d-aft" style="color:#0C447C">→ 40.5</span><span class="d-pct neg">−24%</span></div>
+        <div class="d-row"><span class="d-lbl">Treatment</span><span class="d-bef">51.4</span><span class="d-aft" style="color:#72243E">→ 36.7</span><span class="d-pct neg">−29%</span></div>
+        <div class="d-row"><span class="d-lbl">Unassigned</span><span class="d-bef">20.0</span><span class="d-aft" style="color:#444441">→ 27.8</span><span class="d-pct pos">+39%</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end .wrap -->
+
+<script>
+const NS = 'http://www.w3.org/2000/svg';
+const METRICS = ['imports','submissions','locks','wires'];
+const M_LABELS = ['Imports','Submissions','Locks','Wires'];
+
+const DATA = {
+  ctrl: {
+    before:{imports:409,submissions:185,locks:209,wires:171},
+    after: {imports:423,submissions:199,locks:256,wires:174},
+    fill:'#B5D4F4', stroke:'#185FA5', text:'#0C447C', trapA:'#E6F1FB', trapB:'#B5D4F4'
+  },
+  trt: {
+    before:{imports:179,submissions:96,locks:89,wires:77},
+    after: {imports:161,submissions:72,locks:100,wires:69},
+    fill:'#F4C0D1', stroke:'#993556', text:'#72243E', trapA:'#FBEAF0', trapB:'#F4C0D1'
+  },
+  una: {
+    before:{imports:288,submissions:124,locks:174,wires:108},
+    after: {imports:321,submissions:138,locks:211,wires:120},
+    fill:'#D3D1C7', stroke:'#5F5E5A', text:'#444441', trapA:'#F1EFE8', trapB:'#D3D1C7'
+  }
+};
+
+function el(tag,attrs,parent){
+  const e=document.createElementNS(NS,tag);
+  for(const[k,v]of Object.entries(attrs))e.setAttribute(k,v);
+  if(parent)parent.appendChild(e);
+  return e;
+}
+function txt(str,attrs,parent){
+  const t=el('text',attrs,parent);
+  t.textContent=str;
+  return t;
+}
+
+function drawFunnel(svgId, gKey) {
+  const svgEl = document.getElementById(svgId);
+  if(!svgEl) return;
+  const W = svgEl.parentElement.clientWidth || 560;
+  const H = 330;
+  svgEl.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svgEl.setAttribute('height', H);
+
+  const ml=72, mr=10, mt=56, mb=14;
+  const iW=W-ml-mr, iH=H-mt-mb;
+  const barH=28, n=METRICS.length;
+  const yStep=iH/(n-1);
+
+  const G = DATA[gKey];
+  const allV=[...Object.values(G.before),...Object.values(G.after)];
+  const maxV=Math.max(...allV);
+  const mHW=iW*0.185;
+  const bCx=iW*0.215, aCx=iW*0.785, divX=iW*0.5;
+
+  const g=el('g',{transform:`translate(${ml},${mt})`},svgEl);
+
+  // Period labels
+  [['Before pilot','Mar 27–Apr 19',bCx],['During pilot','Apr 20–May 13',aCx]].forEach(([t,s,cx])=>{
+    txt(t,{'text-anchor':'middle','font-size':12,'font-weight':500,fill:'#475569',x:cx,y:-34},g);
+    txt(s,{'text-anchor':'middle','font-size':10,fill:'#94A3B8',x:cx,y:-18},g);
+  });
+
+  // Divider
+  el('line',{x1:divX,y1:-50,x2:divX,y2:iH,stroke:'#CBD5E1','stroke-width':1.5,'stroke-dasharray':'5,4'},g);
+
+  // Metric labels (far left)
+  METRICS.forEach((m,i)=>{
+    const y=i*yStep;
+    txt(M_LABELS[i],{'text-anchor':'end','font-size':11,'font-weight':500,fill:'#64748B',x:-6,y:y+5},g);
+  });
+
+  // Funnels
+  ['before','after'].forEach(period=>{
+    const data=G[period];
+    const cx=period==='before'?bCx:aCx;
+    const isBef=period==='before';
+    const rFill=isBef?'#E6F1FB':G.fill;
+    const sCol=isBef?'#93C5FD':G.stroke;
+    const tCol=isBef?'#185FA5':G.text;
+    const trapFill=isBef?G.trapA:G.trapB;
+
+    // Trapezoid connectors — Sankey-style fill
+    METRICS.forEach((m,i)=>{
+      if(i>=n-1)return;
+      const v1=data[m], v2=data[METRICS[i+1]];
+      const hw1=(v1/maxV)*mHW, hw2=(v2/maxV)*mHW;
+      const y1=i*yStep+barH/2, y2=(i+1)*yStep-barH/2;
+
+      // Bezier Sankey path (smooth connection like a real Sankey)
+      const my=(y1+y2)/2;
+      const d=`M${cx-hw1} ${y1} C${cx-hw1} ${my} ${cx-hw2} ${my} ${cx-hw2} ${y2}`+
+              ` L${cx+hw2} ${y2} C${cx+hw2} ${my} ${cx+hw1} ${my} ${cx+hw1} ${y1} Z`;
+      el('path',{d,fill:trapFill,opacity:0.45},g);
+    });
+
+    // Bars (nodes)
+    METRICS.forEach((m,i)=>{
+      const val=data[m];
+      const hw=(val/maxV)*mHW, y=i*yStep;
+      el('rect',{x:cx-hw,y:y-barH/2,width:hw*2,height:barH,fill:rFill,stroke:sCol,'stroke-width':1.5,rx:5},g);
+      txt(val.toLocaleString(),{'text-anchor':'middle','font-size':11,'font-weight':500,fill:tCol,x:cx,y:y+5},g);
+    });
+  });
+
+  // Delta badges (center column)
+  METRICS.forEach((m,i)=>{
+    const bv=G.before[m], av=G.after[m];
+    const pct=((av-bv)/bv*100);
+    const isPos=pct>=0;
+    const y=i*yStep;
+    el('rect',{x:divX-23,y:y-12,width:46,height:24,fill:isPos?'#EAF3DE':'#FCEBEB',rx:12},g);
+    txt(`${isPos?'▲':'▼'}${Math.abs(pct).toFixed(0)}%`,{
+      'text-anchor':'middle','font-size':10,'font-weight':600,
+      fill:isPos?'#27500A':'#791F1F',x:divX,y:y+5
+    },g);
+  });
+}
+
+// ── CHART.JS HELPERS ─────────────────────────────────────────────────────
+function pct(after,before){return +((after-before)/before*100).toFixed(1);}
+
+// Combined % change chart
+new Chart(document.getElementById('chart-combined'),{
+  type:'bar',
+  data:{
+    labels:M_LABELS,
+    datasets:[
+      {label:'Control',
+       data:METRICS.map(m=>pct(DATA.ctrl.after[m],DATA.ctrl.before[m])),
+       backgroundColor:'#378ADD',borderRadius:4},
+      {label:'Treatment',
+       data:METRICS.map(m=>pct(DATA.trt.after[m],DATA.trt.before[m])),
+       backgroundColor:'#D4537E',borderRadius:4},
+      {label:'Unassigned',
+       data:METRICS.map(m=>pct(DATA.una.after[m],DATA.una.before[m])),
+       backgroundColor:'#888780',borderRadius:4},
+    ]
+  },
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y>0?'+':''}${ctx.parsed.y.toFixed(1)}%`}}},
+    scales:{
+      x:{grid:{display:false},ticks:{font:{size:12}}},
+      y:{grid:{color:'#F1F5F9'},ticks:{callback:v=>`${v>0?'+':''}${v}%`,font:{size:11}},
+         title:{display:true,text:'% change vs. before pilot',font:{size:11},color:'#94A3B8'}}
+    }
+  }
+});
+
+// EQ Visits chart
+const eqLabels=['Control','Treatment','Unassigned'];
+const eqBefore=[149746,66958,736];
+const eqAfter=[197504,60357,861];
+const eqColors=['#378ADD','#D4537E','#888780'];
+new Chart(document.getElementById('chart-eq'),{
+  type:'bar',
+  data:{
+    labels:eqLabels,
+    datasets:[
+      {label:'Before pilot',data:eqBefore,backgroundColor:'#B5D4F4',borderColor:'#378ADD',borderWidth:1,borderRadius:4},
+      {label:'During pilot',data:eqAfter,backgroundColor:eqColors,borderRadius:4}
+    ]
+  },
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()}`}}},
+    scales:{
+      x:{grid:{display:false},ticks:{font:{size:12}}},
+      y:{grid:{color:'#F1F5F9'},ticks:{callback:v=>v>=1000?`${(v/1000).toFixed(0)}K`:v,font:{size:11}}}
+    }
+  }
+});
+
+// PRO Score chart
+const proLabels=['Control','Treatment','Unassigned'];
+const proBefore=[53.3,51.4,20.0];
+const proAfter=[40.5,36.7,27.8];
+new Chart(document.getElementById('chart-pro'),{
+  type:'bar',
+  data:{
+    labels:proLabels,
+    datasets:[
+      {label:'Before pilot',data:proBefore,backgroundColor:'#B5D4F4',borderColor:'#378ADD',borderWidth:1,borderRadius:4},
+      {label:'During pilot',data:proAfter,backgroundColor:['#378ADD','#D4537E','#888780'],borderRadius:4}
+    ]
+  },
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}`}}},
+    scales:{
+      x:{grid:{display:false},ticks:{font:{size:12}}},
+      y:{grid:{color:'#F1F5F9'},ticks:{font:{size:11}},
+         title:{display:true,text:'PRO score (higher = more competitive)',font:{size:11},color:'#94A3B8'}}
+    }
+  }
+});
+
+// Draw all funnels after layout settles
+requestAnimationFrame(()=>{
+  drawFunnel('svg-ctrl','ctrl');
+  drawFunnel('svg-trt','trt');
+  drawFunnel('svg-una','una');
+});
+</script>
+</body>
+</html>

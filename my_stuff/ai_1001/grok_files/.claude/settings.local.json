@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(curl -L -o \"Famous_Drum_Beats_Ebook.pdf\" \"https://shedrums.de/tip-famous-drum-beats-ebook/\")",
+      "WebFetch(domain:learndrumsforfree.com)",
+      "Bash(curl -L -o \"Drum_Exercises_and_Worksheets.pdf\" \"https://bangthedrumschool.com/resources/resources-drumming-exercises-on-pdf/\")",
+      "Bash(curl -L -o \"Drumming_Patterns_Guide.pdf\" \"https://www.drummingpatterns.com/post/free-drum-books-pdf-downloads\")",
+      "Bash(awk '{print $9, \"-\", $5}')",
+      "Bash(file *)"
+    ]
+  }
+}

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DS Resources</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: #f8f9fb;
+      color: #1e293b;
+      line-height: 1.6;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* ── Top Ribbon ── */
+    .ribbon {
+      width: 100%;
+      padding: 14px 24px;
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      text-align: center;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      flex-shrink: 0;
+    }
+
+    /* ── Center wrapper ── */
+    .center-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 24px;
+    }
+
+    /* ── Topic Grid ── */
+    .topics {
+      max-width: 1060px;
+      width: 100%;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 22px;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 26px 24px;
+      border: 1px solid #e2e8f0;
+      transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: var(--accent);
+      border-radius: 14px 14px 0 0;
+      opacity: 0; transition: opacity .25s ease;
+    }
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 28px rgba(99,102,241,.1);
+      border-color: var(--accent);
+    }
+    .card:hover::before { opacity: 1; }
+
+    .card-icon {
+      width: 46px; height: 46px;
+      border-radius: 12px;
+      display: grid; place-items: center;
+      margin-bottom: 16px;
+      background: var(--icon-bg);
+      color: var(--accent);
+    }
+    .card-icon i {
+      width: 22px; height: 22px;
+      stroke-width: 2;
+    }
+    .card h3 {
+      font-size: 1.1rem; font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+    .card .tag {
+      display: inline-block; margin-top: 10px;
+      padding: 3px 10px; border-radius: 999px;
+      font-size: .7rem; font-weight: 600;
+      color: var(--accent); background: var(--icon-bg);
+    }
+
+    /* ── Per-card Palette ── */
+    .card.statistics   { --accent: #6366f1; --icon-bg: #eef2ff; }
+    .card.matrices     { --accent: #f59e0b; --icon-bg: #fffbeb; }
+    .card.calculus     { --accent: #10b981; --icon-bg: #ecfdf5; }
+    .card.vectors      { --accent: #ec4899; --icon-bg: #fdf2f8; }
+    .card.nlp          { --accent: #3b82f6; --icon-bg: #eff6ff; }
+    .card.cv           { --accent: #8b5cf6; --icon-bg: #f5f3ff; }
+    .card.markets      { --accent: #0d9488; --icon-bg: #f0fdfa; }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .grid { grid-template-columns: repeat(2, 1fr); }
+      .ribbon { font-size: .9rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Ribbon -->
+  <div class="ribbon">Data Science Resources</div>
+
+  <!-- Centered Cards -->
+  <div class="center-wrap">
+    <section class="topics">
+      <div class="grid">
+
+        <div class="card statistics">
+          <div class="card-icon"><i data-lucide="bar-chart-3"></i></div>
+          <h3>Statistics</h3>
+          <span class="tag">Foundations</span>
+        </div>
+
+        <div class="card matrices">
+          <div class="card-icon"><i data-lucide="grid-3x3"></i></div>
+          <h3>Matrices</h3>
+          <span class="tag">Linear Algebra</span>
+        </div>
+
+        <div class="card calculus">
+          <div class="card-icon"><i data-lucide="sigma"></i></div>
+          <h3>Calculus</h3>
+          <span class="tag">Mathematics</span>
+        </div>
+
+        <div class="card vectors">
+          <div class="card-icon"><i data-lucide="move-diagonal"></i></div>
+          <h3>Vectors</h3>
+          <span class="tag">Mathematics</span>
+        </div>
+
+        <div class="card nlp">
+          <div class="card-icon"><i data-lucide="message-square-text"></i></div>
+          <h3>NLP</h3>
+          <span class="tag">AI / ML</span>
+        </div>
+
+        <div class="card cv">
+          <div class="card-icon"><i data-lucide="scan-eye"></i></div>
+          <h3>Computer Vision</h3>
+          <span class="tag">AI / ML</span>
+        </div>
+
+        <div class="card markets">
+          <div class="card-icon"><i data-lucide="trending-up"></i></div>
+          <h3>Capital Markets</h3>
+          <span class="tag">Finance</span>
+        </div>
+
+      </div>
+    </section>
+  </div>
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>

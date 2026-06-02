@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Green Molecule Neighbor Selection Simulation</title>
+<style>
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #0b1020;
+    color: white;
+  }
+
+  .header {
+    text-align: center;
+    padding: 20px;
+  }
+
+  .header h1 {
+    margin: 0;
+    font-size: 28px;
+  }
+
+  .header p {
+    color: #aab3d1;
+  }
+
+  .controls {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  button {
+    background: #1f8cff;
+    border: none;
+    color: white;
+    padding: 10px 16px;
+    margin: 5px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+
+  button:hover {
+    background: #4aa3ff;
+  }
+
+  .stage {
+    display: flex;
+    justify-content: center;
+    gap: 60px;
+    position: relative;
+  }
+
+  .bucket-wrapper {
+    text-align: center;
+  }
+
+  .bucket-title {
+    margin-bottom: 10px;
+    font-weight: bold;
+    color: #dce6ff;
+  }
+
+  .bucket {
+    width: 360px;
+    height: 430px;
+    border: 2px solid rgba(255,255,255,0.25);
+    border-radius: 30px 30px 60px 60px;
+    background: rgba(255,255,255,0.06);
+    box-shadow: inset 0 0 40px rgba(255,255,255,0.08);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .marble {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    position: absolute;
+    transition: all 1.2s ease;
+  }
+
+  .green {
+    background: #24e070;
+    box-shadow: 0 0 12px #24e070;
+  }
+
+  .selected-green {
+    transform: scale(1.5);
+    box-shadow: 0 0 25px #33ff88;
+    border: 2px solid white;
+  }
+
+  .neighbor {
+    transform: scale(1.4);
+    box-shadow: 0 0 18px yellow;
+    border: 2px solid yellow;
+  }
+
+  .radius {
+    position: absolute;
+    border: 2px dashed #33ff88;
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 0.8;
+  }
+
+  .line {
+    position: absolute;
+    height: 2px;
+    background: rgba(255,255,100,0.8);
+    transform-origin: left center;
+    pointer-events: none;
+  }
+
+  .legend {
+    max-width: 900px;
+    margin: 30px auto;
+    background: rgba(255,255,255,0.06);
+    padding: 18px;
+    border-radius: 14px;
+    color: #d9e2ff;
+    line-height: 1.5;
+  }
+
+  .badge {
+    display: inline-block;
+    background: #16264a;
+    padding: 5px 10px;
+    border-radius: 8px;
+    margin: 4px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Radius-Based Neighbor Selection Simulation</h1>
+  <p>Select green molecules, drop them into a mixed population, then find nearby neighbors.</p>
+</div>
+
+<div class="controls">
+  <button onclick="startSimulation()">Start Simulation</button>
+  <button onclick="resetSimulation()">Reset</button>
+  <button onclick="increaseRadius()">Increase Radius</button>
+  <button onclick="decreaseRadius()">Decrease Radius</button>
+  <span class="badge">Radius: <span id="radiusValue">75</span></span>
+</div>
+
+<div class="stage">
+  <div class="bucket-wrapper">
+    <div class="bucket-title">Source Bucket: Candidate Green Molecules</div>
+    <div class="bucket" id="leftBucket"></div>
+  </div>
+
+  <div class="bucket-wrapper">
+    <div class="bucket-title">Target Bucket: Mixed Population</div>
+    <div class="bucket" id="rightBucket"></div>
+  </div>
+</div>
+
+<div class="legend">
+  <b>Business Analogy:</b><br>
+  Green marbles represent selected profile vectors.  
+  The right bucket represents a larger population.  
+  The radius circle represents similarity distance.  
+  Nearby marbles are selected because they are close to the dropped green profile vectors.
+</div>
+
+<script>
+const leftBucket = document.getElementById("leftBucket");
+const rightBucket = document.getElementById("rightBucket");
+const radiusText = document.getElementById("radiusValue");
+
+let radius = 75;
+let leftMarbles = [];
+let rightMarbles = [];
+let droppedGreens = [];
+
+const colors = ["#ff4d4d", "#4da6ff", "#ffd84d", "#b84dff", "#ff8c1a", "#24e070"];
+
+function random(min, max) {
+  return Math.random() * (max - min) + min;
+}
+
+function createMarble(bucket, color, x, y, isGreen=false) {
+  const m = document.createElement("div");
+  m.className = "marble";
+  if (isGreen) m.classList.add("green");
+  m.style.background = color;
+  m.style.left = x + "px";
+  m.style.top = y + "px";
+  bucket.appendChild(m);
+
+  return { el: m, x, y, color, isGreen };
+}
+
+function populateBuckets() {
+  leftBucket.innerHTML = "";
+  rightBucket.innerHTML = "";
+  leftMarbles = [];
+  rightMarbles = [];
+  droppedGreens = [];
+
+  for (let i = 0; i < 75; i++) {
+    const isGreen = Math.random() < 0.18;
+    const color = isGreen ? "#24e070" : colors[Math.floor(Math.random() * (colors.length - 1))];
+    leftMarbles.push(createMarble(leftBucket, color, random(25, 320), random(25, 380), isGreen));
+  }
+
+  for (let i = 0; i < 90; i++) {
+    const color = colors[Math.floor(Math.random() * (colors.length - 1))];
+    rightMarbles.push(createMarble(rightBucket, color, random(25, 320), random(25, 380), false));
+  }
+}
+
+function startSimulation() {
+  clearHighlights();
+
+  const selected = leftMarbles.filter(m => m.isGreen).slice(0, 3);
+
+  selected.forEach((m, idx) => {
+    m.el.classList.add("selected-green");
+
+    setTimeout(() => {
+      const newX = random(80, 280);
+      const newY = random(90, 340);
+
+      const clone = createMarble(rightBucket, "#24e070", newX, newY, true);
+      clone.el.classList.add("selected-green");
+
+      droppedGreens.push(clone);
+      rightMarbles.push(clone);
+
+      drawRadiusAndNeighbors(clone);
+
+      m.el.style.opacity = 0.15;
+    }, 800 + idx * 700);
+  });
+}
+
+function drawRadiusAndNeighbors(center) {
+  const circle = document.createElement("div");
+  circle.className = "radius";
+  circle.style.width = radius * 2 + "px";
+  circle.style.height = radius * 2 + "px";
+  circle.style.left = center.x - radius + 7 + "px";
+  circle.style.top = center.y - radius + 7 + "px";
+  rightBucket.appendChild(circle);
+
+  rightMarbles.forEach(m => {
+    if (m === center) return;
+
+    const dx = m.x - center.x;
+    const dy = m.y - center.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist <= radius) {
+      m.el.classList.add("neighbor");
+      drawLine(center, m);
+    }
+  });
+}
+
+function drawLine(a, b) {
+  const line = document.createElement("div");
+  line.className = "line";
+
+  const x1 = a.x + 7;
+  const y1 = a.y + 7;
+  const x2 = b.x + 7;
+  const y2 = b.y + 7;
+
+  const length = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
+  const angle = Math.atan2(y2-y1, x2-x1) * 180 / Math.PI;
+
+  line.style.left = x1 + "px";
+  line.style.top = y1 + "px";
+  line.style.width = length + "px";
+  line.style.transform = `rotate(${angle}deg)`;
+
+  rightBucket.appendChild(line);
+}
+
+function clearHighlights() {
+  document.querySelectorAll(".radius, .line").forEach(e => e.remove());
+  document.querySelectorAll(".neighbor").forEach(e => e.classList.remove("neighbor"));
+}
+
+function resetSimulation() {
+  populateBuckets();
+}
+
+function increaseRadius() {
+  radius += 15;
+  radiusText.textContent = radius;
+  redraw();
+}
+
+function decreaseRadius() {
+  radius = Math.max(30, radius - 15);
+  radiusText.textContent = radius;
+  redraw();
+}
+
+function redraw() {
+  clearHighlights();
+  droppedGreens.forEach(g => drawRadiusAndNeighbors(g));
+}
+
+populateBuckets();
+</script>
+
+</body>
+</html>
