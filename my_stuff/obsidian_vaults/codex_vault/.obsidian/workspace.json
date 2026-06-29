@@ -1,0 +1,230 @@
+{
+  "main": {
+    "id": "9f6baee89ec35ba4",
+    "type": "split",
+    "children": [
+      {
+        "id": "db85f8f1d1a7005d",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "5f1fc2ba7b1854f7",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "buybacks/05-lender-economics-loss-severity.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "05-lender-economics-loss-severity"
+            }
+          },
+          {
+            "id": "053b03b3a2e9feb6",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "buybacks/00-buyback-end-to-end-flowchart-a4-parts.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "00-buyback-end-to-end-flowchart-a4-parts"
+            }
+          }
+        ],
+        "currentTab": 1
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "653818908731df06",
+    "type": "split",
+    "children": [
+      {
+        "id": "ffa15c5e7f107ef9",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "dc55b26717954254",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "8f2005089caa36e3",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "94b9476b23f74201",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 372.5110321044922
+  },
+  "right": {
+    "id": "7149d5382aeed2b6",
+    "type": "split",
+    "children": [
+      {
+        "id": "a33abe813210810d",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "adfa51ada5fa66c7",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks"
+            }
+          },
+          {
+            "id": "4f640f43d10540d7",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links"
+            }
+          },
+          {
+            "id": "ea8b69da51a46344",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "c26ceeea53963dde",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "25be86d34c2dd6c3",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "053b03b3a2e9feb6",
+  "lastOpenFiles": [
+    "buybacks/0001-buyback-end-to-end-flowchart.md",
+    "buybacks/00-buyback-end-to-end-flowchart-a4-parts.md",
+    "Untitled.md",
+    "001_jargon 1 1.md",
+    "buybacks/0001_jargon.md",
+    "margin/001_jargon 1.md",
+    "001_jargon 1.md",
+    "mortgage_screening/001_jargon.md",
+    "001_jargon.md",
+    "buybacks/06-how-losses-are-covered.md",
+    "buybacks/05-lender-economics-loss-severity.md",
+    "buybacks/04-math-of-repurchase-price.md",
+    "buybacks/07-post-buyback-management-and-mitigation.md",
+    "buybacks/03-buyback-process-end-to-end.md",
+    "buybacks/01-triggers-and-root-causes.md",
+    "mortgage_screening/02-ofac-and-sanctions.md",
+    "buybacks/README.md",
+    "buybacks/08-sources.md",
+    "buybacks",
+    "mortgage_screening/README.md",
+    "mortgage_screening/07-sources.md",
+    "mortgage_screening/05-when-to-screen.md",
+    "mortgage_screening/06-hit-handling-playbook.md",
+    "mortgage_screening/04-exclusion-eligibility-and-watchlists.md",
+    "mortgage_screening/03-fraudguard-and-fraud-tools.md",
+    "mortgage_screening/01-landscape.md",
+    "margin/03-two-dummy-examples.md",
+    "mortgage_screening",
+    "margin"
+  ]
+}

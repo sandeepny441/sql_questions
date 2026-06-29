@@ -1,0 +1,14 @@
+{
+  "cssTheme": "Blue Topaz",
+  "accentColor": "#a462da",
+  "baseFontSize": 30,
+  "baseFontSizeAction": true,
+  "showViewHeader": false,
+  "showRibbon": true,
+  "nativeMenus": true,
+  "interfaceFontFamily": "Inter",
+  "translucency": false,
+  "enabledCssSnippets": [
+    "blue-divider"
+  ]
+}
