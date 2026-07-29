@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>One Loan — the Revenue Block, carved</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F5F7; --ink:#1A2433; --muted:#75818F; --line:#DFE4E9;
+    --green:#1E8A63; --red:#C23B4E; --ghost:#EEF1F4;
+    --mono:'IBM Plex Mono', ui-monospace, Menlo, monospace;
+    --sans:'IBM Plex Sans', system-ui, sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--ink); font-family:var(--sans); font-variant-numeric:tabular-nums;}
+  .wrap{max-width:1040px; margin:0 auto; padding:36px 20px 56px;}
+  header{text-align:center;}
+  h1{font-weight:700; font-size:clamp(22px,3.6vw,34px); letter-spacing:-.015em; color:#1F4E79;}
+  .sub{color:var(--muted); font-size:13.5px; margin-top:7px;}
+  .legend{display:flex; justify-content:center; gap:22px; margin-top:10px; font-size:12.5px; color:var(--muted); flex-wrap:wrap;}
+  .sw{display:inline-block; width:11px; height:11px; border-radius:3px; margin-right:6px; vertical-align:-1px;}
+  .board{background:#fff; border:1px solid var(--line); border-radius:14px; padding:8px 4px; margin-top:16px;
+         box-shadow:0 1px 2px rgba(26,36,51,.05);}
+  svg{display:block; width:100%; height:auto;}
+  .t-name{font-family:var(--sans); font-weight:700; font-size:16px; fill:var(--ink);}
+  .t-ded{font-family:var(--sans); font-weight:600; font-size:13px; fill:var(--ink);}
+  .t-ded-g{font-family:var(--sans); font-weight:700; font-size:14px; fill:var(--green);}
+  .t-usd{font-family:var(--mono); font-weight:600; font-size:13px; fill:var(--ink);}
+  .t-usd-lg{font-family:var(--mono); font-weight:600; font-size:14px; fill:var(--ink);}
+  .t-bps-g{font-family:var(--mono); font-weight:600; font-size:12px; fill:var(--green);}
+  .t-bps-r{font-family:var(--mono); font-weight:600; font-size:12px; fill:var(--red);}
+  .t-sub{font-family:var(--sans); font-size:11.5px; fill:var(--muted);}
+  .t-item{font-family:var(--sans); font-size:12px; fill:var(--muted);}
+  .t-item-usd{font-family:var(--mono); font-size:12px; fill:var(--ink);}
+  .t-cap{font-family:var(--mono); font-size:10px; letter-spacing:.14em; fill:var(--muted);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>One Loan — the Revenue Block, Carved</h1>
+    <p class="sub">Lender view · $400,000 conventional 30-yr at 6.625% · the dashed outline is all the revenue; every red piece is carved out of it; the green piece is what remains</p>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--ghost); border:1px dashed var(--muted)"></i>the whole block (revenue)</span>
+      <span><i class="sw" style="background:var(--red)"></i>piece carved away (area = amount)</span>
+      <span><i class="sw" style="background:var(--green)"></i>piece that remains — profit</span>
+    </div>
+  </header>
+  <div class="board"><svg id="blk" viewBox="0 0 1010 925" role="img" aria-label="Revenue rectangle carved into deduction pieces with remaining green profit piece"></svg></div>
+</div>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const fmt=v=>'$'+Math.round(v).toLocaleString('en-US');
+  const bps=v=>Math.round(v/40);
+
+  const BX=180, BW=300, TOP=190;       // block position
+  const K=648/14100;                    // px height per dollar (area scale, width fixed)
+  const PULL=30;                        // how far carved pieces slide out
+  const LX=540, MEND=975;               // label columns
+
+  const REVROWS=[
+    ['#9AA1AB','Loan sale premium (TBA)',6400],
+    ['#AFB6BF','Servicing value (MSR)',4600],
+    ['#C5CAD2','Borrower-paid fees',1600],
+    ['#D9DDE3','LLPA collected via price',1500],
+  ];
+  const PIECES=[
+    {name:'LLPA remitted to GSE', v:1500, red:true, cap:'DIRECT COSTS'},
+    {name:'Broker comp (LPC)', v:4000, red:true},
+    {name:'Hedge & lock costs', v:800, red:true},
+    {name:'Buyback & EPO reserve', v:300, red:true},
+    {name:'Underwriting & ops', v:1800, red:true, cap:'MANUFACTURING'},
+    {name:'AE & support', v:800, red:true},
+    {name:'Technology', v:700, red:true},
+    {name:'Corporate G&A', v:600, red:true},
+    {name:'Tax', v:850, red:true, cap:'TAX'},
+    {name:'Net profit — what\u2019s left', v:2750, red:false, cap:'KEPT'},
+  ];
+
+  let g='';
+  const money=(x,y,anchor,v,neg,lg)=>'<text text-anchor="'+anchor+'" x="'+x+'" y="'+y+'">'+
+      '<tspan class="'+(lg?'t-usd-lg':'t-usd')+'">'+(neg?'('+fmt(v)+')':fmt(v))+'</tspan>'+
+      '<tspan class="'+(neg?'t-bps-r':'t-bps-g')+'" dx="8">'+(neg?'\u2212':'+')+bps(v)+' bps</tspan></text>';
+
+  /* ---- revenue sources ledger ---- */
+  let y=40;
+  REVROWS.forEach(([col,name,v])=>{
+    g+='<rect x="24" y="'+(y-10)+'" width="11" height="11" rx="3" fill="'+col+'"/>';
+    g+='<text class="t-item" x="44" y="'+y+'">'+name+'</text>';
+    g+='<text class="t-item-usd" x="284" y="'+y+'">'+fmt(v)+'</text>';
+    g+='<text class="t-bps-g" x="364" y="'+y+'">+'+bps(v)+' bps</text>';
+    y+=26;
+  });
+
+  /* ---- block title ---- */
+  g+='<text class="t-name" x="'+BX+'" y="'+(TOP-38)+'">Total revenue \u2014 the whole block</text>';
+  g+=money(BX,(TOP-16),'start',14100,false,true);
+
+  /* ---- ghost of the whole block ---- */
+  const TOTH=14100*K;
+  g+='<rect x="'+BX+'" y="'+TOP+'" width="'+BW+'" height="'+TOTH+'" fill="var(--ghost)"/>';
+
+  /* ---- pieces ---- */
+  let py=TOP;
+  const labelNudge={2:-4, 3:+4, 6:-2, 7:+3};   // separate tight neighbours
+  PIECES.forEach((p,i)=>{
+    const h=p.v*K, cy=py+h/2, x=p.red?BX+PULL:BX;
+    if(p.red){
+      g+='<rect x="'+x+'" y="'+(py+1)+'" width="'+BW+'" height="'+Math.max(h-2,4)+'" rx="2" fill="var(--red)"/>';
+    }else{
+      g+='<rect x="'+x+'" y="'+(py+1)+'" width="'+BW+'" height="'+(h-2)+'" rx="2" fill="var(--green)" stroke="var(--ink)" stroke-width="2"/>';
+      g+='<text text-anchor="middle" x="'+(x+BW/2)+'" y="'+(cy+5)+'" style="font-family:var(--sans);font-weight:700;font-size:15px" fill="#fff">KEPT</text>';
+    }
+    const ly=cy+(labelNudge[i]||0);
+    if(p.cap) g+='<text class="t-cap" text-anchor="end" x="'+(BX-16)+'" y="'+(py+12)+'">'+p.cap+'</text>';
+    g+='<line x1="'+(x+BW+6)+'" x2="'+(LX-12)+'" y1="'+ly+'" y2="'+ly+'" stroke="var(--line)" stroke-width="1"/>';
+    g+='<text class="'+(p.red?'t-ded':'t-ded-g')+'" x="'+LX+'" y="'+(ly+4.5)+'">'+p.name+'</text>';
+    g+=money(MEND, ly+4.5, 'end', p.v, p.red);
+    py+=h;
+  });
+
+  /* ---- dashed outline of the original block, on top ---- */
+  g+='<rect x="'+BX+'" y="'+TOP+'" width="'+BW+'" height="'+TOTH+'" fill="none" stroke="var(--muted)" stroke-width="1.6" stroke-dasharray="6 5"/>';
+
+  /* ---- summary ---- */
+  const sy=TOP+TOTH+40;
+  g+='<text class="t-ded" x="'+BX+'" y="'+sy+'">Carved away</text>';
+  g+=money(BX+300, sy, 'end', 11350, true);
+  g+='<text class="t-ded-g" x="'+(BX+360)+'" y="'+sy+'">Kept</text>';
+  g+=money(BX+660, sy, 'end', 2750, false);
+  g+='<text class="t-sub" x="'+BX+'" y="'+(sy+24)+'">Piece heights share one area scale \u2014 the nine red pieces plus the green piece rebuild the dashed block exactly. All figures illustrative.</text>';
+
+  $('blk').innerHTML=g;
+})();
+</script>
+</body>
+</html>

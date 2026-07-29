@@ -1,0 +1,58 @@
+<svg width="100%" viewBox="0 0 680 410" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>Sales over the last seven months</title>
+<desc>A slate-blue editorial-style seven-bar sales histogram using seven distinct colors.</desc>
+
+<rect x="0" y="0" width="680" height="410" fill="#3F4852"/>
+
+<g font-family="Anthropic Sans, -apple-system, system-ui, Segoe UI, sans-serif">
+  <text x="80" y="38" fill="#F2F5F6" font-size="16">Sales over the last seven months</text>
+  <text x="80" y="58" fill="#C4CCD3" font-size="12">Monthly sales, illustrative values</text>
+
+  <line x1="80" y1="80" x2="80" y2="340" stroke="#9AA6AF" stroke-width="0.5" opacity="0.8"/>
+  <line x1="80" y1="340" x2="620" y2="340" stroke="#9AA6AF" stroke-width="0.5" opacity="0.8"/>
+
+  <line x1="80" y1="275" x2="620" y2="275" stroke="#9AA6AF" stroke-width="0.5" stroke-dasharray="3 5" opacity="0.26"/>
+  <line x1="80" y1="210" x2="620" y2="210" stroke="#9AA6AF" stroke-width="0.5" stroke-dasharray="3 5" opacity="0.26"/>
+  <line x1="80" y1="145" x2="620" y2="145" stroke="#9AA6AF" stroke-width="0.5" stroke-dasharray="3 5" opacity="0.26"/>
+
+  <g fill="#C4CCD3" font-size="11" text-anchor="end">
+    <text x="68" y="344">0</text>
+    <text x="68" y="279">25</text>
+    <text x="68" y="214">50</text>
+    <text x="68" y="149">75</text>
+  </g>
+
+  <g font-size="12" text-anchor="middle">
+    <rect x="106" y="226" width="44" height="114" rx="5" fill="#7ED7F2"/>
+    <text x="128" y="216" fill="#D7DEE4">44</text>
+    <text x="128" y="364" fill="#D7DEE4">Jan</text>
+
+    <rect x="180" y="184" width="44" height="156" rx="5" fill="#F3A46D"/>
+    <text x="202" y="174" fill="#D7DEE4">60</text>
+    <text x="202" y="364" fill="#D7DEE4">Feb</text>
+
+    <rect x="254" y="203" width="44" height="137" rx="5" fill="#67D3C5"/>
+    <text x="276" y="193" fill="#D7DEE4">53</text>
+    <text x="276" y="364" fill="#D7DEE4">Mar</text>
+
+    <rect x="328" y="150" width="44" height="190" rx="5" fill="#F08B83"/>
+    <text x="350" y="140" fill="#D7DEE4">73</text>
+    <text x="350" y="364" fill="#D7DEE4">Apr</text>
+
+    <rect x="402" y="171" width="44" height="169" rx="5" fill="#92C9FF"/>
+    <text x="424" y="161" fill="#D7DEE4">65</text>
+    <text x="424" y="364" fill="#D7DEE4">May</text>
+
+    <rect x="476" y="119" width="44" height="221" rx="5" fill="#DDBC75"/>
+    <text x="498" y="109" fill="#D7DEE4">85</text>
+    <text x="498" y="364" fill="#D7DEE4">Jun</text>
+
+    <rect x="550" y="137" width="44" height="203" rx="5" fill="#B8A4F6"/>
+    <text x="572" y="127" fill="#D7DEE4">78</text>
+    <text x="572" y="364" fill="#D7DEE4">Jul</text>
+  </g>
+
+  <text x="350" y="392" text-anchor="middle" fill="#F2F5F6" font-size="14">Month</text>
+  <text x="31" y="210" text-anchor="middle" fill="#F2F5F6" font-size="14" transform="rotate(-90 31 210)">Sales</text>
+</g>
+</svg>

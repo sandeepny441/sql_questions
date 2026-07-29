@@ -1,0 +1,247 @@
+{
+  "main": {
+    "id": "9f6baee89ec35ba4",
+    "type": "split",
+    "children": [
+      {
+        "id": "db85f8f1d1a7005d",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "5f1fc2ba7b1854f7",
+            "type": "leaf",
+            "state": {
+              "type": "image",
+              "state": {
+                "file": "viz_tips/five box violin plots/horizontal_violin_sales.png"
+              },
+              "icon": "lucide-image",
+              "title": "horizontal_violin_sales"
+            }
+          },
+          {
+            "id": "9a776ba7aecc6244",
+            "type": "leaf",
+            "state": {
+              "type": "image",
+              "state": {
+                "file": "loan_info/sales_last_ten_months_slate_blue_compact.svg"
+              },
+              "icon": "lucide-image",
+              "title": "sales_last_ten_months_slate_blue_compact"
+            }
+          }
+        ],
+        "currentTab": 1
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "653818908731df06",
+    "type": "split",
+    "children": [
+      {
+        "id": "ffa15c5e7f107ef9",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "dc55b26717954254",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "8f2005089caa36e3",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "94b9476b23f74201",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 372.5110321044922
+  },
+  "right": {
+    "id": "7149d5382aeed2b6",
+    "type": "split",
+    "children": [
+      {
+        "id": "a33abe813210810d",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "adfa51ada5fa66c7",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks"
+            }
+          },
+          {
+            "id": "4f640f43d10540d7",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links"
+            }
+          },
+          {
+            "id": "ea8b69da51a46344",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "c26ceeea53963dde",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "25be86d34c2dd6c3",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false,
+      "iconic:Open rulebook": false,
+      "copilot:Open Copilot Chat": false,
+      "fix-math:Current file": false
+    }
+  },
+  "active": "9a776ba7aecc6244",
+  "lastOpenFiles": [
+    "loan_info/sales_last_seven_months_slate_blue.svg",
+    "loan_info/msr_natural_hedge_curve_blue_graphite_35.svg",
+    "loan_info/msr_natural_hedge_curve_mist_gray_35.svg",
+    "loan_info/pricing_engine_rate_sheet_inputs.svg",
+    "loan_info/msr_natural_hedge_curve_slate_blue_35.svg",
+    "loan_info/msr_natural_hedge_curve_slate_blue.svg",
+    "lender_profit/wholesale_lender_ml_profit_optimization/10-prioritized-roadmap.md",
+    "lender_profit/wholesale_lender_ml_profit_optimization/07-servicing-msr-recapture.md",
+    "lender_profit/wholesale_lender_ml_profit_optimization/06-credit-quality-repurchase-risk.md",
+    "lender_profit/wholesale_lender_ml_profit_optimization/08-model-catalog-data-design.md",
+    "lender_profit/wholesale_lender_ml_profit_optimization/03-borrower-conversion-retention.md",
+    "lender_profit/wholesale_lender_ml_profit_optimization/02-broker-loan-officer-channel.md",
+    "lender_profit/wholesale_lender_ml_profit_optimization/01-pricing-margin-conversion.md",
+    "lender_profit/full_loan_profit_loss_sections/03-pricing-borrower-concessions.md",
+    "lender_profit/wholesale_lender_ml_profit_optimization/09-experimentation-governance-compliance.md",
+    "lender_profit/wholesale_lender_ml_profit_optimization/05-operations-cycle-time-cost.md",
+    "lender_profit/wholesale_lender_ml_profit_optimization/04-capital-markets-hedging-execution.md",
+    "lender_profit/wholesale_lender_ml_profit_optimization/README.md",
+    "lender_profit/wholesale_lender_ml_profit_optimization",
+    "lender_profit/full_loan_profit_loss_sections/02-secondary-market-servicing-value.md",
+    "lender_profit/full_loan_profit_loss_sections/01-borrower-transaction-revenue.md",
+    "Hedge Part.md",
+    "Dodd Frank.md",
+    "lender_profit/full_loan_profit_loss_sections/12-income-tax.md",
+    "lender_profit/full_loan_profit_loss_sections/11-corporate-overhead-allocation.md",
+    "lender_profit/full_loan_profit_loss_sections/10-credit-operational-regulatory-risk.md",
+    "lender_profit/full_loan_profit_loss_sections/09-servicing-cost-reserves.md",
+    "lender_profit/full_loan_profit_loss_sections/08-funding-warehouse-hedging.md",
+    "lender_profit/full_loan_profit_loss_sections/07-third-party-data-technology.md",
+    "lender_profit/full_loan_profit_loss_sections/06-fulfillment-labor.md",
+    "lender_profit/full_loan_profit_loss_sections/05-sales-customer-acquisition.md",
+    "lender_profit/full_loan_profit_loss_sections/04-investor-gse-delivery-costs.md",
+    "lender_profit/full_loan_profit_loss_sections",
+    "lender_profit/full_loan_profit_loss_ledger.html",
+    "Untitled.canvas",
+    "lender_profit/butterfly_ledger_1.html",
+    "lender_profit",
+    "untitled folder",
+    "viz_tips/five box violin plots/horizontal_violin_sales.png",
+    "viz_tips/five box violin plots/five_box_violin_sales.png",
+    "viz_tips/histogram_08 color combination/histogram_08_12_bar_colors.png",
+    "viz_tips/ravens_three_bar_summary.png",
+    "viz_tips/ravens_purchase_refi_breakdown_light.png",
+    "loan_info/1212vick.pdf",
+    "TBA/1212vick.pdf",
+    "TBA/1212vick.pdf.crdownload",
+    "TBA"
+  ]
+}

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Five tubes — where the loan's premium goes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAFBFC; --ink:#1A2433; --muted:#75818F; --line:#DFE4E9; --line2:#C6CDD5;
+    --margin:#3B77B8; --gse:#7A6BD1; --hedge:#D9A03C; --broker:#C2653B; --borrower:#2C9B72; --deficit:#C23B4E;
+    --mono:'IBM Plex Mono', ui-monospace, Menlo, monospace;
+    --sans:'IBM Plex Sans', system-ui, sans-serif;
+    --u:8px;                    /* base grid unit */
+    --scale:96px;               /* px per point  = 12u */
+    --tube-h:264px;             /* 2.75 pt       = 33u */
+    --tube-w:56px;              /* 7u */
+    --col:128px;                /* 16u */
+    --gap:32px;                 /* 4u */
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--ink); font-family:var(--sans); font-size:15px;
+       font-variant-numeric:tabular-nums;}
+  .wrap{max-width:864px; margin:0 auto; padding:48px 24px 64px;}
+  header{text-align:center;}
+  h1{font-weight:600; font-size:clamp(20px,3.2vw,26px); letter-spacing:-.01em;}
+  .sub{color:var(--muted); font-size:13.5px; margin-top:8px; max-width:54ch; margin-left:auto; margin-right:auto; line-height:1.55;}
+
+  .eq{font-family:var(--mono); font-size:13px; text-align:center; margin:32px 0 40px; color:var(--muted); letter-spacing:.01em;}
+  .eq b{color:var(--ink); font-weight:600;}
+  .c-m{color:var(--margin);} .c-g{color:var(--gse);} .c-h{color:var(--hedge);}
+  .c-b{color:var(--broker);} .c-w{color:var(--borrower);} .c-d{color:var(--deficit);}
+
+  /* ---- bench grid: every station identical row heights ---- */
+  .bench-scroll{overflow-x:auto; margin:0 -24px; padding:0 24px;}
+  .bench{display:grid; grid-template-columns:repeat(5, var(--col)); gap:0 var(--gap);
+         justify-content:center; min-width:calc(5*var(--col) + 4*var(--gap));}
+  .cell{display:flex; flex-direction:column; align-items:center;}
+  .name{height:40px; display:flex; align-items:flex-end; justify-content:center;
+        font-size:12.5px; font-weight:600; text-align:center; line-height:1.25;}
+  .who{height:24px; display:flex; align-items:center; font-family:var(--mono); font-size:9.5px;
+       letter-spacing:.1em; text-transform:uppercase; color:var(--muted);}
+
+  .tube-slot{height:calc(var(--tube-h) + 16px); display:flex; align-items:flex-end;}
+  .tube{position:relative; width:var(--tube-w); height:var(--tube-h);}
+  .glass{position:absolute; inset:0; border:2px solid var(--ink); border-top:none;
+         border-radius:0 0 28px 28px; overflow:hidden;
+         background:linear-gradient(105deg, rgba(255,255,255,.9), rgba(226,233,239,.4) 45%, rgba(255,255,255,.85));}
+  .glass::before{content:""; position:absolute; top:0; bottom:8px; left:8px; width:8px; border-radius:8px;
+                 background:linear-gradient(180deg, rgba(255,255,255,.9), rgba(255,255,255,0)); z-index:5; pointer-events:none;}
+  .rim{position:absolute; top:-8px; left:-8px; right:-8px; height:8px; border:2px solid var(--ink);
+       border-radius:4px; background:var(--bg); z-index:6;}
+  .cap{position:absolute; top:-16px; left:8px; right:8px; height:8px; border:2px solid var(--ink);
+       border-radius:4px 4px 0 0; background:var(--line); z-index:6;}
+  .liq{position:absolute; left:0; right:0; bottom:0; transition:height .3s cubic-bezier(.3,.9,.35,1); z-index:1;}
+  .liq.deficit{background:repeating-linear-gradient(-45deg, rgba(194,59,78,.30) 0 6px, rgba(194,59,78,.12) 6px 12px) !important;
+               border-top:2px dashed var(--deficit);}
+
+  /* ticks: identical on every tube, every 0.5 pt = 48px */
+  .tick{position:absolute; left:0; width:8px; border-top:1px solid var(--line2); z-index:4; pointer-events:none;}
+  .tick.major{width:12px; border-top-color:var(--muted);}
+  .tick-lab{position:absolute; right:calc(100% + 6px); transform:translateY(-50%);
+            font-family:var(--mono); font-size:9px; color:var(--muted); z-index:4; pointer-events:none;}
+
+  /* ---- piston ---- */
+  .piston{position:absolute; left:0; right:0; z-index:3; height:56px; margin-top:-46px; /* grip+rod above disc */
+          cursor:grab; touch-action:none; transition:top .3s cubic-bezier(.3,.9,.35,1);}
+  .piston:active{cursor:grabbing;}
+  .piston:focus-visible{outline:none;}
+  .piston:focus-visible .disc{box-shadow:0 0 0 2.5px var(--bg), 0 0 0 4.5px var(--ink);}
+  .piston .rod{position:absolute; left:50%; transform:translateX(-50%); bottom:10px; width:4px; height:40px;
+               background:var(--ink); border-radius:2px;}
+  .piston .grip{position:absolute; left:50%; transform:translateX(-50%); top:0; width:24px; height:8px;
+                background:var(--ink); border-radius:4px;}
+  .piston .disc{position:absolute; left:2px; right:2px; bottom:0; height:10px; border-radius:3px;
+                background:linear-gradient(180deg,#F2F5F8,#C9D1D9); border:2px solid var(--ink);}
+  .piston.dragging, .piston.dragging + .liq{transition:none;}
+
+  /* ---- bench line + readouts ---- */
+  .bench-line{grid-column:1 / -1; border-top:2px solid var(--ink); margin-top:-2px;}
+  .readout{height:64px; padding-top:12px; text-align:center; font-family:var(--mono);}
+  .readout .pts{font-weight:600; font-size:16px; line-height:1.2;}
+  .readout .usd{font-size:10.5px; color:var(--muted); margin-top:2px;}
+  .hint{height:24px; display:flex; align-items:center; font-family:var(--mono); font-size:9px;
+        letter-spacing:.08em; text-transform:uppercase; color:var(--muted);}
+
+  .result{margin:40px auto 0; max-width:568px; text-align:center; font-family:var(--mono); font-size:13px;
+          border-top:1px solid var(--line); padding-top:24px; line-height:2;}
+  .result b{font-size:15px;}
+  .note{margin-top:24px; text-align:center; color:var(--muted); font-size:12px; max-width:56ch;
+        margin-left:auto; margin-right:auto; line-height:1.6;}
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>The loan is worth 2.750 points over par. Five tubes share it.</h1>
+    <p class="sub">Drag a piston. Nothing is created or destroyed — whatever you push out of one tube reappears in the borrower's, and whatever you draw in comes out of it. $400,000 loan, anchored at 6.625%.</p>
+  </header>
+
+  <p class="eq" aria-live="polite">
+    <b>2.750</b> = <span class="c-m" id="e-m">1.150</span> + <span class="c-g" id="e-g">0.375</span> + <span class="c-h" id="e-h">0.200</span> + <span class="c-b" id="e-b">1.000</span> + <span class="c-w" id="e-w">0.025</span>
+  </p>
+
+  <div class="bench-scroll"><div class="bench" id="bench">
+    <!-- name row -->
+    <div class="cell name">Lender<br>margin</div>
+    <div class="cell name">GSE cost<br>(LLPA)</div>
+    <div class="cell name">Hedge<br>cost</div>
+    <div class="cell name">Broker<br>comp</div>
+    <div class="cell name">Borrower's<br>share</div>
+    <!-- who row -->
+    <div class="cell who">the desk's choice</div>
+    <div class="cell who">borrower's file</div>
+    <div class="cell who">the market</div>
+    <div class="cell who">broker's plan</div>
+    <div class="cell who">the residue</div>
+    <!-- tube row -->
+    <div class="cell tube-slot"><div class="tube" data-tube="m"></div></div>
+    <div class="cell tube-slot"><div class="tube" data-tube="g"></div></div>
+    <div class="cell tube-slot"><div class="tube" data-tube="h"></div></div>
+    <div class="cell tube-slot"><div class="tube" data-tube="b"></div></div>
+    <div class="cell tube-slot"><div class="tube" data-tube="w"></div></div>
+    <!-- bench line -->
+    <div class="bench-line"></div>
+    <!-- readout row -->
+    <div class="cell readout" id="r-m"></div>
+    <div class="cell readout" id="r-g"></div>
+    <div class="cell readout" id="r-h"></div>
+    <div class="cell readout" id="r-b"></div>
+    <div class="cell readout" id="r-w"></div>
+    <!-- hint row -->
+    <div class="cell hint">drag · ↑↓ keys</div>
+    <div class="cell hint">drag · ↑↓ keys</div>
+    <div class="cell hint">drag · ↑↓ keys</div>
+    <div class="cell hint">drag · ↑↓ keys</div>
+    <div class="cell hint">sealed</div>
+  </div></div>
+
+  <div class="result" aria-live="polite" id="result"></div>
+  <p class="note">The lender only truly controls the first tube. The GSE tube is set by the borrower's file, the hedge tube by the market, the broker tube by the broker's plan — and the last tube is the rate the borrower feels.</p>
+</div>
+
+<script>
+(function(){
+  const SCALE=96, TOTAL=2.75, TUBE_H=264;
+  const $=id=>document.getElementById(id);
+  const fmt$=n=>'$'+Math.abs(Math.round(n)).toLocaleString('en-US');
+  const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+
+  const CFG={
+    m:{val:1.15, min:0.40, max:2.00, step:0.05,  color:'var(--margin)',  name:'Lender margin'},
+    g:{val:0.375,min:0.00, max:1.50, step:0.125, color:'var(--gse)',     name:'GSE cost (LLPA)'},
+    h:{val:0.20, min:0.10, max:0.50, step:0.05,  color:'var(--hedge)',   name:'Hedge cost'},
+    b:{val:1.00, min:0.50, max:2.75, step:0.25,  color:'var(--broker)',  name:'Broker comp'},
+  };
+
+  // ---- build tubes ----
+  document.querySelectorAll('.tube').forEach(tube=>{
+    const key=tube.dataset.tube;
+    tube.insertAdjacentHTML('beforeend','<div class="rim"></div>');
+    if(key==='w') tube.insertAdjacentHTML('beforeend','<div class="cap"></div>');
+    const glass=document.createElement('div'); glass.className='glass';
+    const liq=document.createElement('div'); liq.className='liq'; liq.id='t-'+key;
+    if(key!=='w') liq.style.background=CFG[key].color; else liq.style.background='var(--borrower)';
+    glass.appendChild(liq);
+    // ticks every 0.5pt, majors at 1.0 / 2.0 with labels
+    for(let v=0.5; v<=2.5; v+=0.5){
+      const major = (v===1||v===2);
+      const t=document.createElement('div');
+      t.className='tick'+(major?' major':'');
+      t.style.bottom=(v*SCALE)+'px';
+      glass.appendChild(t);
+      if(major){
+        const l=document.createElement('div');
+        l.className='tick-lab'; l.textContent=v.toFixed(1);
+        l.style.bottom=(v*SCALE)+'px'; l.style.transform='translateY(50%)';
+        tube.appendChild(l);
+      }
+    }
+    tube.appendChild(glass);
+    // piston on adjustable tubes
+    if(key!=='w'){
+      const p=document.createElement('div');
+      p.className='piston'; p.id='p-'+key; p.tabIndex=0;
+      p.setAttribute('role','slider');
+      p.setAttribute('aria-label',CFG[key].name+', points of the premium');
+      p.setAttribute('aria-valuemin',CFG[key].min);
+      p.setAttribute('aria-valuemax',CFG[key].max);
+      p.innerHTML='<div class="grip"></div><div class="rod"></div><div class="disc"></div>';
+      tube.appendChild(p);
+      wirePiston(p,key,tube);
+    }
+  });
+
+  function setPiston(key){
+    const c=CFG[key];
+    const p=$('p-'+key), liq=$('t-'+key);
+    liq.style.height=(c.val*SCALE)+'px';
+    p.style.top=(TUBE_H - c.val*SCALE - 10)+'px';  // disc (10px) rests on liquid surface
+    p.setAttribute('aria-valuenow',c.val.toFixed(3));
+    p.setAttribute('aria-valuetext',c.val.toFixed(3)+' points, '+fmt$(c.val*4000));
+  }
+
+  function wirePiston(p,key,tube){
+    let dragging=false;
+    p.addEventListener('pointerdown',e=>{
+      dragging=true; p.classList.add('dragging'); $('t-'+key).style.transition='none';
+      p.setPointerCapture(e.pointerId); e.preventDefault();
+    });
+    p.addEventListener('pointermove',e=>{
+      if(!dragging) return;
+      const rect=tube.getBoundingClientRect();
+      const c=CFG[key];
+      let v=(rect.bottom - e.clientY)/SCALE;
+      v=Math.round(v/c.step)*c.step;
+      c.val=clamp(v,c.min,c.max);
+      render(false);
+    });
+    const stop=()=>{ if(!dragging) return; dragging=false; p.classList.remove('dragging'); $('t-'+key).style.transition=''; };
+    p.addEventListener('pointerup',stop); p.addEventListener('pointercancel',stop);
+    p.addEventListener('keydown',e=>{
+      const c=CFG[key]; let hit=true;
+      if(e.key==='ArrowUp'||e.key==='ArrowRight') c.val=clamp(+(c.val+c.step).toFixed(3),c.min,c.max);
+      else if(e.key==='ArrowDown'||e.key==='ArrowLeft') c.val=clamp(+(c.val-c.step).toFixed(3),c.min,c.max);
+      else if(e.key==='Home') c.val=c.min;
+      else if(e.key==='End') c.val=c.max;
+      else hit=false;
+      if(hit){ e.preventDefault(); render(); }
+    });
+  }
+
+  function parRate(w){
+    let best=6.625,bd=1e9;
+    for(let r=5.75;r<=7.8751;r+=0.125){
+      const s=(r-6.625)/0.25;
+      const price=100+w+(s>0? s*0.95-s*s*0.06 : s*0.98);
+      const d=Math.abs(price-100); if(d<bd){bd=d;best=r;}
+    }
+    return best;
+  }
+  const pmt=r=>{const i=r/100/12;return 400000*i/(1-Math.pow(1+i,-360));};
+
+  function readout(id,pts,label,color){
+    $(id).innerHTML='<div class="pts" style="color:'+color+'">'+pts.toFixed(3)+'</div>'+
+                    '<div class="usd">'+label+'</div>';
+  }
+
+  function render(animate=true){
+    const {m,g,h,b}=CFG;
+    ['m','g','h','b'].forEach(setPiston);
+    const w=TOTAL-m.val-g.val-h.val-b.val;
+
+    $('e-m').textContent=m.val.toFixed(3); $('e-g').textContent=g.val.toFixed(3);
+    $('e-h').textContent=h.val.toFixed(3); $('e-b').textContent=b.val.toFixed(3);
+    readout('r-m',m.val,fmt$(m.val*4000),'var(--margin)');
+    readout('r-g',g.val,fmt$(g.val*4000),'var(--gse)');
+    readout('r-h',h.val,fmt$(h.val*4000),'var(--hedge)');
+    readout('r-b',b.val,fmt$(b.val*4000),'var(--broker)');
+
+    const tw=$('t-w'), ew=$('e-w');
+    if(w>=0){
+      tw.classList.remove('deficit'); tw.style.background='var(--borrower)';
+      tw.style.height=(w*SCALE)+'px';
+      readout('r-w',w,fmt$(w*4000)+' credit','var(--borrower)');
+      ew.textContent=w.toFixed(3); ew.className='c-w';
+    }else{
+      tw.classList.add('deficit');
+      tw.style.height=(Math.min(-w,TOTAL)*SCALE)+'px';
+      readout('r-w',-w,fmt$(-w*4000)+' pts due','var(--deficit)');
+      ew.textContent='('+w.toFixed(3)+')'; ew.className='c-d';
+    }
+
+    const pr=parRate(w);
+    $('result').innerHTML = w>=0
+      ? 'At 6.625% the borrower gets <b class="c-w">'+fmt$(w*4000)+' of lender credit</b>.<br>'+
+        'The "free" par rate: <b>'+pr.toFixed(3)+'%</b> · '+fmt$(pmt(pr))+'/mo P&I.'
+      : 'The tubes overflow the premium: at 6.625% the borrower owes <b class="c-d">'+fmt$(-w*4000)+' in points</b><br>'+
+        '— or climbs to the new par rate: <b>'+pr.toFixed(3)+'%</b> · '+fmt$(pmt(pr))+'/mo P&I.';
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>

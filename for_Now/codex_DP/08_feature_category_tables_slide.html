@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pre-Churn Model Feature Categories</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #607087;
+      --grid: #d8e0ea;
+      --price: #b8442e;
+      --price-soft: #fff4f0;
+      --profile: #2f64b4;
+      --profile-soft: #f1f6fd;
+      --loan: #6546a8;
+      --loan-soft: #f6f2fc;
+      --market: #147d92;
+      --market-soft: #edf8fa;
+      --ops: #2c8a5b;
+      --ops-soft: #eef8f2;
+      --epo: #b7791f;
+      --epo-soft: #fff8e8;
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #dfe7f1;
+      color: var(--ink);
+      font-family: Inter, Aptos, "Segoe UI", Arial, sans-serif;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+    }
+
+    .slide {
+      width: min(100vw, calc(100vh * 16 / 9));
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 15% -15%, #eef5ff 0, transparent 30%),
+        #ffffff;
+      padding: 2.8% 3.6% 2.2%;
+      position: relative;
+      box-shadow: 0 18px 60px rgb(41 58 82 / 18%);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 2.1%;
+    }
+
+    .eyebrow {
+      color: #2f64b4;
+      font-size: clamp(9px, .72vw, 13px);
+      font-weight: 700;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      margin-bottom: .3em;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(23px, 2.15vw, 37px);
+      line-height: 1.08;
+      letter-spacing: -.035em;
+      font-weight: 750;
+    }
+
+    .tables {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2.4%;
+      min-height: 0;
+      align-items: stretch;
+    }
+
+    table {
+      width: 100%;
+      height: 100%;
+      table-layout: fixed;
+      border-collapse: separate;
+      border-spacing: 0;
+      border: 1px solid #cbd5e1;
+      border-radius: .65em;
+      overflow: hidden;
+      font-size: clamp(8px, .72vw, 12px);
+      background: #ffffff;
+    }
+
+    col.index { width: 7%; }
+    col.feature { width: 31%; }
+
+    th,
+    td {
+      padding: 0 .72em;
+      text-align: left;
+      vertical-align: middle;
+      border-right: 1px solid var(--grid);
+      border-top: 1px solid var(--grid);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    th {
+      height: 13%;
+      color: #ffffff;
+      font-size: 1.02em;
+      font-weight: 800;
+      border-top: 0;
+      border-right-color: rgb(255 255 255 / 55%);
+    }
+
+    td { height: 10.85%; }
+    th:last-child,
+    td:last-child { border-right: 0; }
+
+    .index-head { background: #334155; text-align: center; }
+    .index-cell { background: #f1f5f9; text-align: center; font-weight: 700; color: #5d6a7c; }
+    .price-head { background: var(--price); }
+    .price-cell { background: var(--price-soft); }
+    .profile-head { background: var(--profile); }
+    .profile-cell { background: var(--profile-soft); }
+    .loan-head { background: var(--loan); }
+    .loan-cell { background: var(--loan-soft); }
+    .market-head { background: var(--market); }
+    .market-cell { background: var(--market-soft); }
+    .ops-head { background: var(--ops); }
+    .ops-cell { background: var(--ops-soft); }
+    .epo-head { background: var(--epo); }
+    .epo-cell { background: var(--epo-soft); }
+
+    .analysis-flow {
+      display: grid;
+      grid-template-columns: 1.05fr .18fr 1.12fr .18fr 1.45fr .18fr 1.12fr .18fr .9fr;
+      align-items: center;
+      gap: .25%;
+      min-height: 0;
+    }
+
+    .flow-node {
+      min-height: clamp(50px, 5.4vw, 86px);
+      padding: .65em .9em;
+      border-radius: .55em;
+      border: 1.5px solid #94a3b8;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      font-size: clamp(9px, .8vw, 14px);
+      line-height: 1.2;
+      font-weight: 800;
+    }
+
+    .flow-node small {
+      display: block;
+      margin-top: .35em;
+      font-size: .78em;
+      font-weight: 600;
+      color: #4c6484;
+    }
+
+    .flow-node.analyzed {
+      background: var(--epo-soft);
+      border-color: #d99a25;
+      color: #704b09;
+    }
+
+    .flow-node.dataset {
+      background: #edf2f7;
+      border-color: #64748b;
+    }
+
+    .analysis-stack {
+      display: grid;
+      gap: .4em;
+    }
+
+    .flow-node.analysis {
+      min-height: clamp(32px, 3.5vw, 54px);
+      background: #eaf2ff;
+      border-color: #4f7fce;
+      color: #173d73;
+      font-size: clamp(8px, .68vw, 12px);
+    }
+
+    .flow-node.validated {
+      background: #eaf8f1;
+      border-color: #45a675;
+      color: #185638;
+    }
+
+    .flow-node.model {
+      background: #263c70;
+      border-color: #263c70;
+      color: #ffffff;
+    }
+
+    .flow-arrow {
+      color: #75849a;
+      text-align: center;
+      font-size: clamp(16px, 1.65vw, 28px);
+      font-weight: 800;
+    }
+
+    .slide-number {
+      position: absolute;
+      right: 2.1%;
+      bottom: 1.4%;
+      color: var(--muted);
+      font-size: clamp(8px, .7vw, 12px);
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <main class="slide" aria-labelledby="slide-title">
+    <header>
+      <div class="eyebrow">Pre-churn model · analyzed features</div>
+      <h1 id="slide-title">Six feature families create one analytical view.</h1>
+    </header>
+
+    <section class="tables" aria-label="Analyzed feature categories">
+      <table aria-label="Pricing, loan officer profile, and loan characteristics">
+        <colgroup>
+          <col class="index">
+          <col class="feature">
+          <col class="feature">
+          <col class="feature">
+        </colgroup>
+        <thead>
+          <tr>
+            <th class="index-head">#</th>
+            <th class="price-head">Pricing &amp; Margin</th>
+            <th class="profile-head">LO Profile</th>
+            <th class="loan-head">Loan Characteristics</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="index-cell">1</td><td class="price-cell">Note Rate Adjustment (BPS)</td><td class="profile-cell">Pull-Through Rate</td><td class="loan-cell">Credit Score / FICO</td></tr>
+          <tr><td class="index-cell">2</td><td class="price-cell">Base Price</td><td class="profile-cell">Monthly Funded Volume</td><td class="loan-cell">LTV Ratio</td></tr>
+          <tr><td class="index-cell">3</td><td class="price-cell">Channel Margin</td><td class="profile-cell">Average Loan Size</td><td class="loan-cell">CLTV Ratio</td></tr>
+          <tr><td class="index-cell">4</td><td class="price-cell">LOPP / Price Points</td><td class="profile-cell">Tenure</td><td class="loan-cell">Loan Amount</td></tr>
+          <tr><td class="index-cell">5</td><td class="price-cell">Broker Compensation</td><td class="profile-cell">PRO Score</td><td class="loan-cell">DTI / Back-End</td></tr>
+          <tr><td class="index-cell">6</td><td class="price-cell">AE Exception BPS</td><td class="profile-cell">Ultimate Tool Usage</td><td class="loan-cell">Loan Purpose</td></tr>
+          <tr><td class="index-cell">7</td><td class="price-cell">Yield Spread Premium</td><td class="profile-cell">Talk Time</td><td class="loan-cell">Product Type</td></tr>
+        </tbody>
+      </table>
+
+      <table aria-label="Market, operations, and EPO risk features">
+        <colgroup>
+          <col class="index">
+          <col class="feature">
+          <col class="feature">
+          <col class="feature">
+        </colgroup>
+        <thead>
+          <tr>
+            <th class="index-head">#</th>
+            <th class="market-head">Market &amp; Competition</th>
+            <th class="ops-head">Operations &amp; Engagement</th>
+            <th class="epo-head">EPO Risk Scores</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="index-cell">1</td><td class="market-cell">Loan Count Share</td><td class="ops-cell">Lock-to-Close Days</td><td class="epo-cell">Broker-Level EPO Score</td></tr>
+          <tr><td class="index-cell">2</td><td class="market-cell">Wallet Share</td><td class="ops-cell">Concession Request Frequency</td><td class="epo-cell">Loan-Officer-Level EPO Score</td></tr>
+          <tr><td class="index-cell">3</td><td class="market-cell">Market Spread</td><td class="ops-cell">Rate-Shop Frequency</td><td class="epo-cell">Recent EPO Rate</td></tr>
+          <tr><td class="index-cell">4</td><td class="market-cell">Competitor Count</td><td class="ops-cell">Days to Lock Expiry</td><td class="epo-cell">EPO Count</td></tr>
+          <tr><td class="index-cell">5</td><td class="market-cell">Purchase Mix</td><td class="ops-cell">Open Condition Count</td><td class="epo-cell">EPO Loan-Balance Exposure</td></tr>
+          <tr><td class="index-cell">6</td><td class="market-cell">Referral Concentration</td><td class="ops-cell">Price Change Count</td><td class="epo-cell">EPO Trend</td></tr>
+          <tr><td class="index-cell">7</td><td class="market-cell">Repeat Borrower Rate</td><td class="ops-cell">DocLess Usage</td><td class="epo-cell">EPO Concentration</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="analysis-flow" aria-label="Flow from analyzed features to churn model">
+      <div class="flow-node analyzed">Analyzed Features<small>Six categories above</small></div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node dataset">Unified Analytical Dataset</div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="analysis-stack">
+        <div class="flow-node analysis">Correlation Analysis<small>Direction · Strength · Stability</small></div>
+        <div class="flow-node analysis">Margin Sensitivity<small>Closing impact at each basis point</small></div>
+      </div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node validated">Validated Churn Features</div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node model">Churn Model</div>
+    </section>
+
+    <div class="slide-number">02 / 02</div>
+  </main>
+</body>
+</html>

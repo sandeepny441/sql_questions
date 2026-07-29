@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anatomy of one loan — where the money flows</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F5F7; --ink:#1A2433; --muted:#75818F; --line:#DFE4E9;
+    --green:#2C9B72; --red:#C23B4E; --gray:#8B929C; --teal:#2E86A8;
+    --f-green:#9ED0B4; --f-red:#E5A6A6; --f-gray:#C7CCD3; --f-teal:#A3CBDA;
+    --mono:'IBM Plex Mono', ui-monospace, Menlo, monospace;
+    --sans:'IBM Plex Sans', system-ui, sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--ink); font-family:var(--sans); font-variant-numeric:tabular-nums;}
+  .wrap{max-width:1160px; margin:0 auto; padding:40px 20px 64px;}
+  header{text-align:center;}
+  h1{font-weight:700; font-size:clamp(24px,4vw,38px); letter-spacing:-.015em; color:#1F4E79;}
+  .sub{color:var(--muted); font-size:14px; margin-top:8px;}
+  .tabs{display:flex; justify-content:center; gap:8px; margin:24px 0 8px;}
+  .tab{font-family:var(--mono); font-size:12px; letter-spacing:.04em; padding:9px 18px; border-radius:6px;
+       border:1.5px solid var(--line); background:#fff; color:var(--ink); cursor:pointer;}
+  .tab[aria-pressed="true"]{background:var(--ink); color:#fff; border-color:var(--ink);}
+  .tab:focus-visible{outline:2px solid var(--ink); outline-offset:2px;}
+  .viewnote{text-align:center; font-size:13px; color:var(--muted); max-width:78ch; margin:8px auto 4px; line-height:1.55; min-height:40px;}
+  .board{background:#fff; border:1px solid var(--line); border-radius:14px; padding:8px 4px; margin-top:12px;
+         box-shadow:0 1px 2px rgba(26,36,51,.05);}
+  svg{display:block; width:100%; height:auto;}
+  .nlab{font-family:var(--sans); font-weight:600; font-size:15px;}
+  .nval{font-family:var(--mono); font-weight:600; font-size:14.5px;}
+  .nsub{font-family:var(--sans); font-size:11px; fill:var(--muted);}
+  .foot{margin-top:16px; text-align:center; font-family:var(--mono); font-size:11px; color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="title">One Loan, Fully Traced — the Lender's P&amp;L</h1>
+    <p class="sub">Illustrative economics of a single $400,000 conventional 30-yr at 6.625% · green = money kept · red = money lost or paid out</p>
+  </header>
+
+  <div class="tabs" role="group" aria-label="Choose a point of view">
+    <button class="tab" data-v="lender" aria-pressed="true">As the lender</button>
+    <button class="tab" data-v="broker" aria-pressed="false">As the broker shop</button>
+    <button class="tab" data-v="borrower" aria-pressed="false">As the borrower</button>
+  </div>
+  <p class="viewnote" id="viewnote"></p>
+
+  <div class="board"><svg id="sankey" viewBox="0 0 1240 720" role="img" aria-label="Sankey diagram of money flows for one loan"></svg></div>
+  <p class="foot" id="foot"></p>
+</div>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const fmt=v=>'$'+Math.round(v).toLocaleString('en-US');
+  const NODE_W=26, GAP=26, H=720, W=1240;
+
+  const C={green:'var(--green)', red:'var(--red)', gray:'var(--gray)', ink:'var(--ink)', teal:'var(--teal)'};
+  const F={green:'var(--f-green)', red:'var(--f-red)', gray:'var(--f-gray)', teal:'var(--f-teal)'};
+
+  /* ============ VIEW DATA ============ */
+  const VIEWS={
+  lender:{
+    title:"One Loan, Fully Traced — the Lender's P&L",
+    note:"Where the lender makes money: the premium from selling the loan, the servicing strip, and fees. Where it loses money: everything in red — the GSE's risk fee, the broker's comp, hedge slippage, buyback reserves, then the cost of running the shop, then tax. What survives the gauntlet is ~69 bps of net profit.",
+    foot:"Gross margin here ≈ 188 bps of the loan; UWM's reported gain margins bundle these lines. All figures illustrative.",
+    scale:0.0235,
+    cols:[130,380,635,885,1105],
+    nodes:{
+      tba:{c:0,label:'Loan sale premium',sub:'TBA / UMBS execution',v:6400,color:C.gray,side:'left'},
+      msr:{c:0,label:'Servicing value',sub:'MSR capitalized ~4.6× fee',v:4600,color:C.gray,side:'left'},
+      fees:{c:0,label:'Borrower-paid fees',sub:'underwriting, processing',v:1600,color:C.gray,side:'left'},
+      llpaIn:{c:0,label:'LLPA collected',sub:'via the borrower\u2019s price',v:1500,color:C.gray,side:'left'},
+      rev:{c:1,label:'Total revenue',sub:'3.53 pts of the loan',v:14100,color:C.ink,side:'top'},
+      gross:{c:2,label:'Gross profit',sub:'1.88 pts · 53% of revenue',v:7500,color:C.green,side:'top'},
+      direct:{c:2,label:'Direct costs',sub:'paid to others at/after sale',v:6600,color:C.red,side:'bottom'},
+      op:{c:3,label:'Operating profit',sub:'0.90 pts',v:3600,color:C.green,side:'top'},
+      opex:{c:3,label:'Operating expenses',sub:'cost to manufacture the loan',v:3900,color:C.red,side:'bottom'},
+      gse:{c:3,label:'LLPA to GSE',sub:'pass-through, nets to zero',v:1500,color:C.red,side:'right'},
+      lpc:{c:3,label:'Broker comp (LPC)',sub:'1.00% plan, paid after funding',v:4000,color:C.red,side:'right'},
+      hedge:{c:3,label:'Hedge & lock costs',sub:'convexity, extensions, fallout',v:800,color:C.red,side:'right'},
+      resv:{c:3,label:'Buyback & EPO reserve',sub:'repurchase / early-payoff risk',v:300,color:C.red,side:'right'},
+      net:{c:4,label:'Net profit',sub:'≈ 69 bps of the loan',v:2750,color:C.green,side:'right'},
+      tax:{c:4,label:'Tax',sub:'',v:850,color:C.red,side:'right'},
+      uw:{c:4,label:'Underwriting & ops',sub:'the human pipeline',v:1800,color:C.red,side:'right'},
+      tech:{c:4,label:'Technology',sub:'AUS, portal, pricing engine',v:700,color:C.red,side:'right'},
+      sales:{c:4,label:'AE & support',sub:'account execs, service',v:800,color:C.red,side:'right'},
+      ga:{c:4,label:'Corporate G&A',sub:'',v:600,color:C.red,side:'right'},
+    },
+    order:{0:['tba','msr','fees','llpaIn'],1:['rev'],2:['gross','direct'],
+           3:['op','opex','gse','lpc','hedge','resv'],
+           4:['net','tax','uw','tech','sales','ga']},
+    links:[
+      ['tba','rev',6400,F.gray],['msr','rev',4600,F.gray],['fees','rev',1600,F.gray],['llpaIn','rev',1500,F.gray],
+      ['rev','gross',7500,F.green],['rev','direct',6600,F.red],
+      ['gross','op',3600,F.green],['gross','opex',3900,F.red],
+      ['direct','gse',1500,F.red],['direct','lpc',4000,F.red],['direct','hedge',800,F.red],['direct','resv',300,F.red],
+      ['op','net',2750,F.green],['op','tax',850,F.red],
+      ['opex','uw',1800,F.red],['opex','tech',700,F.red],['opex','sales',800,F.red],['opex','ga',600,F.red],
+    ]
+  },
+  broker:{
+    title:"The Same Loan — the Broker Shop's P&L",
+    note:"The broker shop's entire revenue on this loan is the LPC the lender pays (plus a small processing fee). The biggest cost is the loan officer's commission split. What the shop nets — about $745 — explains why volume, not per-loan price, is the broker's whole game.",
+    foot:"LO splits of 30–50% of comp are typical; shop economics vary widely. All figures illustrative.",
+    scale:0.075,
+    cols:[130,380,635,885,1105],
+    nodes:{
+      lpcIn:{c:0,label:'LPC from lender',sub:'1.00% comp plan',v:4000,color:C.gray,side:'left'},
+      proc:{c:0,label:'Processing fee',sub:'borrower-paid',v:495,color:C.gray,side:'left'},
+      rev:{c:1,label:'Shop revenue',sub:'per this loan',v:4495,color:C.ink,side:'top'},
+      gross:{c:2,label:'Gross profit',sub:'after paying the people on the file',v:2295,color:C.green,side:'top'},
+      direct:{c:2,label:'Direct labor',sub:'the file\u2019s own costs',v:2200,color:C.red,side:'bottom'},
+      op:{c:3,label:'Operating profit',sub:'',v:995,color:C.green,side:'top'},
+      opex:{c:3,label:'Overhead',sub:'keeping the lights on',v:1300,color:C.red,side:'bottom'},
+      lo:{c:3,label:'LO commission',sub:'~45% split to the originator',v:1800,color:C.red,side:'right'},
+      pstaff:{c:3,label:'Processor',sub:'per-file payout',v:400,color:C.red,side:'right'},
+      net:{c:4,label:'Shop net',sub:'≈ 19 bps of the loan',v:745,color:C.green,side:'right'},
+      tax:{c:4,label:'Tax',sub:'',v:250,color:C.red,side:'right'},
+      rent:{c:4,label:'Rent, tech, E&O',sub:'licenses, LOS seats',v:600,color:C.red,side:'right'},
+      mktg:{c:4,label:'Marketing & leads',sub:'',v:700,color:C.red,side:'right'},
+    },
+    order:{0:['lpcIn','proc'],1:['rev'],2:['gross','direct'],
+           3:['op','opex','lo','pstaff'],4:['net','tax','rent','mktg']},
+    links:[
+      ['lpcIn','rev',4000,F.gray],['proc','rev',495,F.gray],
+      ['rev','gross',2295,F.green],['rev','direct',2200,F.red],
+      ['gross','op',995,F.green],['gross','opex',1300,F.red],
+      ['direct','lo',1800,F.red],['direct','pstaff',400,F.red],
+      ['op','net',745,F.green],['op','tax',250,F.red],
+      ['opex','rent',600,F.red],['opex','mktg',700,F.red],
+    ]
+  },
+  borrower:{
+    title:"The Same Loan — the Borrower's Closing Dollars",
+    note:"Where the cash you bring to closing actually goes. Only the slice in dark red reaches the lender as fees; the LLPA rides through to Fannie/Freddie; most of the rest goes to third parties — and the teal slice is your own money, parked in your own escrow account. The lender credit (green, far left) is the premium flowing back to you from the rate you chose.",
+    foot:"Excludes down payment and per-diem interest. Third-party costs vary by state. All figures illustrative.",
+    scale:0.052,
+    cols:[130,440,880,880,1105],
+    nodes:{
+      cash:{c:0,label:'Your cash to close',sub:'beyond the down payment',v:8000,color:C.gray,side:'left'},
+      credit:{c:0,label:'Lender credit',sub:'from your rate choice',v:100,color:C.green,side:'left'},
+      hub:{c:1,label:'Closing funds',sub:'',v:8100,color:C.ink,side:'top'},
+      lfees:{c:4,label:'Lender fees',sub:'underwriting, processing → lender',v:1600,color:C.red,side:'right'},
+      llpa:{c:4,label:'LLPA in your price',sub:'risk fee → Fannie / Freddie',v:1500,color:C.red,side:'right'},
+      title:{c:4,label:'Title & escrow',sub:'third parties',v:2000,color:C.gray,side:'right'},
+      appr:{c:4,label:'Appraisal & inspections',sub:'third parties',v:700,color:C.gray,side:'right'},
+      gov:{c:4,label:'Recording & transfer',sub:'government',v:500,color:C.gray,side:'right'},
+      escrow:{c:4,label:'Prepaid taxes & insurance',sub:'your own escrow — still your money',v:1800,color:C.teal,side:'right'},
+    },
+    order:{0:['cash','credit'],1:['hub'],4:['lfees','llpa','title','appr','gov','escrow']},
+    links:[
+      ['cash','hub',8000,F.gray],['credit','hub',100,F.green],
+      ['hub','lfees',1600,F.red],['hub','llpa',1500,F.red],
+      ['hub','title',2000,F.gray],['hub','appr',700,F.gray],['hub','gov',500,F.gray],
+      ['hub','escrow',1800,F.teal],
+    ]
+  }};
+
+  /* ============ RENDERER ============ */
+  function render(key){
+    const V=VIEWS[key], s=V.scale, N=V.nodes;
+    $('title').innerHTML=V.title.replace('P&L','P&amp;L');
+    $('viewnote').textContent=V.note;
+    $('foot').textContent=V.foot;
+
+    // heights & column stacking
+    Object.values(N).forEach(n=>{ n.h=n.v*s; n.in=0; n.out=0; });
+    Object.entries(V.order).forEach(([c,ids])=>{
+      const tot=ids.reduce((a,id)=>a+N[id].h,0)+GAP*(ids.length-1);
+      let y=(H-60-tot)/2+20;
+      ids.forEach(id=>{ N[id].x=V.cols[N[id].c]; N[id].y=y; y+=N[id].h+GAP; });
+    });
+
+    let ribbons='', rects='', labels='';
+    // ribbons
+    V.links.forEach(([a,b,v,color])=>{
+      const A=N[a], B=N[b], h=v*s;
+      const x1=A.x+NODE_W, x2=B.x;
+      const y1=A.y+A.out, y2=B.y+B.in;
+      const xm=(x1+x2)/2;
+      ribbons+='<path d="M'+x1+' '+y1+' C'+xm+' '+y1+','+xm+' '+y2+','+x2+' '+y2+
+               ' L'+x2+' '+(y2+h)+' C'+xm+' '+(y2+h)+','+xm+' '+(y1+h)+','+x1+' '+(y1+h)+' Z" fill="'+color+'" opacity="0.85"/>';
+      A.out+=h; B.in+=h;
+    });
+    // nodes + labels
+    Object.entries(N).forEach(([id,n])=>{
+      rects+='<rect x="'+n.x+'" y="'+n.y+'" width="'+NODE_W+'" height="'+Math.max(n.h,3)+'" fill="'+n.color+'" rx="2"/>';
+      const cy=n.y+n.h/2;
+      const valColor = n.color===C.green?'var(--green)':(n.color===C.red?'var(--red)':(n.color===C.teal?'var(--teal)':'var(--ink)'));
+      if(n.side==='left'){
+        labels+='<text class="nval" text-anchor="end" x="'+(n.x-12)+'" y="'+(cy-14)+'" fill="'+valColor+'">'+fmt(n.v)+'</text>';
+        labels+='<text class="nlab" text-anchor="end" x="'+(n.x-12)+'" y="'+(cy+4)+'">'+n.label+'</text>';
+        if(n.sub) labels+='<text class="nsub" text-anchor="end" x="'+(n.x-12)+'" y="'+(cy+20)+'">'+n.sub+'</text>';
+      } else if(n.side==='right'){
+        labels+='<text class="nlab" x="'+(n.x+NODE_W+12)+'" y="'+(cy-4)+'">'+n.label+'</text>';
+        labels+='<text class="nval" x="'+(n.x+NODE_W+12)+'" y="'+(cy+13)+'" fill="'+valColor+'">'+
+                (n.color===C.red?'('+fmt(n.v)+')':fmt(n.v))+'</text>';
+        if(n.sub) labels+='<text class="nsub" x="'+(n.x+NODE_W+12)+'" y="'+(cy+29)+'">'+n.sub+'</text>';
+      } else if(n.side==='top'){
+        labels+='<text class="nlab" text-anchor="middle" x="'+(n.x+NODE_W/2)+'" y="'+(n.y-40)+'" fill="'+valColor+'">'+n.label+'</text>';
+        labels+='<text class="nval" text-anchor="middle" x="'+(n.x+NODE_W/2)+'" y="'+(n.y-22)+'" fill="'+valColor+'">'+fmt(n.v)+'</text>';
+        if(n.sub) labels+='<text class="nsub" text-anchor="middle" x="'+(n.x+NODE_W/2)+'" y="'+(n.y-8)+'">'+n.sub+'</text>';
+      } else { // bottom
+        labels+='<text class="nlab" text-anchor="middle" x="'+(n.x+NODE_W/2)+'" y="'+(n.y+n.h+22)+'" fill="'+valColor+'">'+n.label+'</text>';
+        labels+='<text class="nval" text-anchor="middle" x="'+(n.x+NODE_W/2)+'" y="'+(n.y+n.h+40)+'" fill="'+valColor+'">('+fmt(n.v)+')</text>';
+        if(n.sub) labels+='<text class="nsub" text-anchor="middle" x="'+(n.x+NODE_W/2)+'" y="'+(n.y+n.h+56)+'">'+n.sub+'</text>';
+      }
+    });
+    $('sankey').innerHTML=ribbons+rects+labels;
+  }
+
+  document.querySelectorAll('.tab').forEach(t=>{
+    t.addEventListener('click',()=>{
+      document.querySelectorAll('.tab').forEach(x=>x.setAttribute('aria-pressed','false'));
+      t.setAttribute('aria-pressed','true');
+      render(t.dataset.v);
+    });
+  });
+  render('lender');
+})();
+</script>
+</body>
+</html>

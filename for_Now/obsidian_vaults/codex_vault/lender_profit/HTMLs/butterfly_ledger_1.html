@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>One Loan, Step by Step — Ledger View</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F5F7; --ink:#1A2433; --muted:#75818F;
+    --grid:#E4E8ED; --grid2:#C9CFD7;
+    --green:#1E8A63; --green-lt:#7FC3A4; --green-tint:#EDF7F2; --red:#C23B4E;
+    --mono:'IBM Plex Mono', ui-monospace, Menlo, monospace;
+    --sans:'IBM Plex Sans', system-ui, sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--ink); font-family:var(--sans); font-variant-numeric:tabular-nums;}
+  .wrap{max-width:1220px; margin:0 auto; padding:28px 20px 40px;}
+  header{text-align:center;}
+  h1{font-weight:700; font-size:clamp(20px,3vw,29px); letter-spacing:-.015em; color:#1F4E79;}
+  .sub{color:var(--muted); font-size:13px; margin-top:5px;}
+  .board{background:#fff; border:1px solid var(--grid2); border-radius:10px; padding:10px 8px; margin-top:14px;
+         box-shadow:0 1px 2px rgba(26,36,51,.05);}
+  svg{display:block; width:100%; height:auto;}
+  .hd{font-family:var(--mono); font-size:10px; letter-spacing:.12em; fill:var(--muted); font-weight:600;}
+  .sec{font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; fill:var(--ink); font-weight:600;}
+  .nm{font-family:var(--sans); font-weight:500; font-size:13px; fill:var(--ink);}
+  .nm-b{font-family:var(--sans); font-weight:700; font-size:13px; fill:var(--ink);}
+  .usd{font-family:var(--mono); font-weight:500; font-size:12.5px; fill:var(--ink);}
+  .usd-b{font-family:var(--mono); font-weight:600; font-size:12.5px; fill:var(--ink);}
+  .bps-g{font-family:var(--mono); font-weight:600; font-size:11.5px; fill:var(--green);}
+  .bps-r{font-family:var(--mono); font-weight:600; font-size:11.5px; fill:var(--red);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>One Loan, Step by Step — the Ledger</h1>
+    <p class="sub">Lender view · $400,000 conventional 30-yr at 6.625% · dollars in black, bps in green (profit) / red (loss) · all figures illustrative</p>
+  </header>
+  <div class="board"><svg id="fly" viewBox="0 0 1176 700" role="img" aria-label="Ledger-style butterfly chart of lender profit and loss per loan"></svg></div>
+</div>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const fmt=v=>'$'+Math.round(v).toLocaleString('en-US');
+  const bps=v=>Math.round(v/40);
+
+  /* ---- table geometry ---- */
+  const X0=16, X1=254, X2=344, X3=418;        // left block: name | $ | bps
+  const ZL=418, ZR=830;                        // bar zone
+  const X4=830, X5=1002, X6=1086, X7=1160;    // right block: name | $ | bps
+  const S=0.02232, SP=ZL+4000*S+8;             // spine x (red max + pad)
+  const ROW=30, SEC=26, HDR=32, TOP=8;
+
+  const ROWS=[
+    {t:'sec', txt:'MONEY POURING IN'},
+    {t:'in', name:'Loan sale premium (TBA)', v:6400},
+    {t:'in', name:'Servicing value (MSR)', v:4600},
+    {t:'in', name:'Borrower-paid fees', v:1600},
+    {t:'in', name:'LLPA collected via price', v:1500},
+    {t:'chk', name:'Total revenue', v:14100},
+    {t:'sec', txt:'STEP 1 \u00b7 DIRECT COSTS AT SALE'},
+    {t:'out', name:'LLPA remitted to GSE', v:1500},
+    {t:'out', name:'Broker comp (LPC)', v:4000},
+    {t:'out', name:'Hedge & lock costs', v:800},
+    {t:'out', name:'Buyback & EPO reserve', v:300},
+    {t:'chk', name:'Gross profit', v:7500},
+    {t:'sec', txt:'STEP 2 \u00b7 COST TO MANUFACTURE THE LOAN'},
+    {t:'out', name:'Underwriting & ops', v:1800},
+    {t:'out', name:'AE & support', v:800},
+    {t:'out', name:'Technology', v:700},
+    {t:'out', name:'Corporate G&A', v:600},
+    {t:'chk', name:'Operating profit', v:3600},
+    {t:'sec', txt:'STEP 3 \u00b7 TAX'},
+    {t:'out', name:'Tax', v:850},
+    {t:'fin', name:'Net profit — kept', v:2750},
+  ];
+
+  const H = TOP+HDR+ROWS.reduce((a,r)=>a+(r.t==='sec'?SEC:ROW),0)+10;
+
+  let bgs='', grid='', bars='', txt='';
+
+  /* ---- header row ---- */
+  let y=TOP;
+  bgs+='<rect x="'+X0+'" y="'+y+'" width="'+(X7-X0)+'" height="'+HDR+'" fill="#F1F3F6"/>';
+  const hcy=y+HDR/2+4;
+  txt+='<text class="hd" x="'+(X0+8)+'" y="'+hcy+'">LOSSES \u2014 LINE ITEM</text>';
+  txt+='<text class="hd" text-anchor="end" x="'+(X2-8)+'" y="'+hcy+'">$</text>';
+  txt+='<text class="hd" text-anchor="end" x="'+(X3-8)+'" y="'+hcy+'">BPS</text>';
+  txt+='<text class="hd" text-anchor="end" x="'+(SP-10)+'" y="'+hcy+'">\u25c0 LOSS</text>';
+  txt+='<text class="hd" x="'+(SP+10)+'" y="'+hcy+'">GAIN \u25b6</text>';
+  txt+='<text class="hd" x="'+(X4+8)+'" y="'+hcy+'">PROFITS \u2014 LINE ITEM</text>';
+  txt+='<text class="hd" text-anchor="end" x="'+(X6-8)+'" y="'+hcy+'">$</text>';
+  txt+='<text class="hd" text-anchor="end" x="'+(X7-8)+'" y="'+hcy+'">BPS</text>';
+  y+=HDR;
+
+  /* ---- body rows ---- */
+  const rowLines=[TOP, y];
+  ROWS.forEach(r=>{
+    const h=(r.t==='sec')?SEC:ROW, cy=y+h/2+4.5;
+    if(r.t==='sec'){
+      bgs+='<rect x="'+X0+'" y="'+y+'" width="'+(X7-X0)+'" height="'+h+'" fill="#F1F3F6"/>';
+      txt+='<text class="sec" x="'+(X0+8)+'" y="'+cy+'">'+r.txt+'</text>';
+    } else if(r.t==='out'){
+      const w=r.v*S;
+      bars+='<rect x="'+(SP-w)+'" y="'+(y+5)+'" width="'+w+'" height="'+(h-10)+'" fill="var(--red)"/>';
+      txt+='<text class="nm" x="'+(X0+8)+'" y="'+cy+'">'+r.name+'</text>';
+      txt+='<text class="usd" text-anchor="end" x="'+(X2-8)+'" y="'+cy+'">('+fmt(r.v)+')</text>';
+      txt+='<text class="bps-r" text-anchor="end" x="'+(X3-8)+'" y="'+cy+'">\u2212'+bps(r.v)+'</text>';
+    } else {
+      const w=r.v*S, isIn=(r.t==='in');
+      if(!isIn) bgs+='<rect x="'+X0+'" y="'+y+'" width="'+(X7-X0)+'" height="'+h+'" fill="var(--green-tint)"/>';
+      bars+='<rect x="'+SP+'" y="'+(y+5)+'" width="'+w+'" height="'+(h-10)+'" fill="'+(isIn?'var(--green-lt)':'var(--green)')+'"/>';
+      txt+='<text class="'+(isIn?'nm':'nm-b')+'" x="'+(X4+8)+'" y="'+cy+'">'+r.name+'</text>';
+      txt+='<text class="'+(isIn?'usd':'usd-b')+'" text-anchor="end" x="'+(X6-8)+'" y="'+cy+'">'+fmt(r.v)+'</text>';
+      txt+='<text class="bps-g" text-anchor="end" x="'+(X7-8)+'" y="'+cy+'">+'+bps(r.v)+'</text>';
+      if(r.t==='chk'||r.t==='fin'){ // accounting rule above subtotal
+        grid+='<line x1="'+X0+'" x2="'+X7+'" y1="'+y+'" y2="'+y+'" stroke="var(--grid2)" stroke-width="1.4"/>';
+      }
+      if(r.t==='fin'){ // double rule under the total
+        grid+='<line x1="'+X0+'" x2="'+X7+'" y1="'+(y+h)+'" y2="'+(y+h)+'" stroke="var(--ink)" stroke-width="1.4"/>';
+        grid+='<line x1="'+X0+'" x2="'+X7+'" y1="'+(y+h+3)+'" y2="'+(y+h+3)+'" stroke="var(--ink)" stroke-width="1.4"/>';
+      }
+    }
+    y+=h; rowLines.push(y);
+  });
+
+  /* ---- grid lines ---- */
+  rowLines.forEach(ry=>{ grid+='<line x1="'+X0+'" x2="'+X7+'" y1="'+ry+'" y2="'+ry+'" stroke="var(--grid)" stroke-width="1"/>'; });
+  [X1,X2].forEach(vx=>{ grid+='<line x1="'+vx+'" x2="'+vx+'" y1="'+TOP+'" y2="'+y+'" stroke="var(--grid)" stroke-width="1"/>'; });
+  [X5,X6].forEach(vx=>{ grid+='<line x1="'+vx+'" x2="'+vx+'" y1="'+TOP+'" y2="'+y+'" stroke="var(--grid)" stroke-width="1"/>'; });
+  [X3,X4].forEach(vx=>{ grid+='<line x1="'+vx+'" x2="'+vx+'" y1="'+TOP+'" y2="'+y+'" stroke="var(--grid2)" stroke-width="1.2"/>'; });
+  grid+='<rect x="'+X0+'" y="'+TOP+'" width="'+(X7-X0)+'" height="'+(y-TOP)+'" fill="none" stroke="var(--grid2)" stroke-width="1.4"/>';
+  // spine
+  grid+='<line x1="'+SP+'" x2="'+SP+'" y1="'+TOP+'" y2="'+y+'" stroke="var(--ink)" stroke-width="1.6"/>';
+
+  $('fly').innerHTML=bgs+grid+bars+txt;
+})();
+</script>
+</body>
+</html>

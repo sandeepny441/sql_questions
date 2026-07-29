@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The margin dial and the rate sheet — one feeds the other</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAFBFC; --panel:#FFFFFF; --ink:#1A2433; --muted:#75818F; --line:#DFE4E9; --line2:#C6CDD5;
+    --margin:#3B77B8; --gse:#7A6BD1; --hedge:#D9A03C; --broker:#C2653B;
+    --credit:#2C9B72; --credit-bg:#E4F3EC; --debit:#C23B4E; --debit-bg:#F9E7EA;
+    --mono:'IBM Plex Mono', ui-monospace, Menlo, monospace;
+    --sans:'IBM Plex Sans', system-ui, sans-serif;
+    --scale:88px;            /* px per point */
+    --tube-h:242px;          /* 2.75 pt */
+    --tube-w:48px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--ink); font-family:var(--sans); font-size:15px; font-variant-numeric:tabular-nums;}
+  .wrap{max-width:1080px; margin:0 auto; padding:44px 24px 72px;}
+  header{text-align:center; margin-bottom:28px;}
+  h1{font-weight:600; font-size:clamp(20px,3.2vw,27px); letter-spacing:-.01em;}
+  .sub{color:var(--muted); font-size:13.5px; margin-top:8px; max-width:60ch; margin-left:auto; margin-right:auto; line-height:1.55;}
+
+  .main{display:grid; grid-template-columns:1fr 96px 300px; gap:0; align-items:stretch;}
+  @media(max-width:900px){ .main{grid-template-columns:1fr;} .flowband{transform:rotate(90deg); margin:8px auto; width:96px;} }
+
+  .panel{background:var(--panel); border:1px solid var(--line2); border-radius:12px; padding:24px;}
+  .panel-title{font-family:var(--mono); font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted);}
+  .panel-sub{font-size:12px; color:var(--muted); margin-top:4px;}
+
+  /* ---- left: the cost stack ---- */
+  .stack{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:24px;}
+  .station{display:flex; flex-direction:column; align-items:center;}
+  .st-name{height:36px; display:flex; align-items:flex-end; justify-content:center; text-align:center;
+           font-size:11.5px; font-weight:600; line-height:1.2;}
+  .st-who{height:20px; font-family:var(--mono); font-size:8.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--muted);
+          display:flex; align-items:center;}
+  .tube{position:relative; width:var(--tube-w); height:var(--tube-h); margin-top:6px;}
+  .glass{position:absolute; inset:0; border:2px solid var(--ink); border-top:none; border-radius:0 0 24px 24px; overflow:hidden;
+         background:linear-gradient(105deg, rgba(255,255,255,.9), rgba(226,233,239,.4) 45%, rgba(255,255,255,.85));}
+  .glass::before{content:""; position:absolute; top:0; bottom:8px; left:7px; width:7px; border-radius:7px;
+                 background:linear-gradient(180deg, rgba(255,255,255,.9), rgba(255,255,255,0)); z-index:5; pointer-events:none;}
+  .rim{position:absolute; top:-7px; left:-6px; right:-6px; height:7px; border:2px solid var(--ink); border-radius:4px; background:var(--panel); z-index:6;}
+  .liq{position:absolute; left:0; right:0; bottom:0; z-index:1; transition:height .3s cubic-bezier(.3,.9,.35,1);}
+  .liq.instant{transition:none;}
+  .tick{position:absolute; left:0; width:7px; border-top:1px solid var(--line2); z-index:4; pointer-events:none;}
+  .tick.major{width:11px; border-top-color:var(--muted);}
+  .piston{position:absolute; left:0; right:0; z-index:3; height:48px; margin-top:-39px; cursor:grab; touch-action:none;
+          transition:top .3s cubic-bezier(.3,.9,.35,1);}
+  .piston.dragging{transition:none; cursor:grabbing;}
+  .piston:focus-visible{outline:none;}
+  .piston:focus-visible .disc{box-shadow:0 0 0 2.5px var(--panel), 0 0 0 4.5px var(--ink);}
+  .piston .grip{position:absolute; left:50%; transform:translateX(-50%); top:0; width:20px; height:7px; background:var(--ink); border-radius:4px;}
+  .piston .rod{position:absolute; left:50%; transform:translateX(-50%); top:6px; width:4px; height:34px; background:var(--ink); border-radius:2px;}
+  .piston .disc{position:absolute; left:2px; right:2px; bottom:0; height:9px; border-radius:3px;
+                background:linear-gradient(180deg,#F2F5F8,#C9D1D9); border:2px solid var(--ink);}
+  .station.locked .piston{display:none;}
+  .station.locked .liq{opacity:.45;}
+  .st-read{font-family:var(--mono); margin-top:12px; text-align:center;}
+  .st-read .pts{font-weight:600; font-size:14px;}
+  .st-read .usd{font-size:9.5px; color:var(--muted);}
+  .lockbtn{margin-top:10px; font-family:var(--mono); font-size:9px; letter-spacing:.08em; text-transform:uppercase;
+           padding:5px 8px; border-radius:4px; border:1px solid var(--line2); background:var(--panel); color:var(--muted); cursor:pointer;}
+  .lockbtn[aria-pressed="true"]{background:var(--ink); border-color:var(--ink); color:#fff;}
+  .lockbtn:focus-visible{outline:2px solid var(--ink); outline-offset:2px;}
+  .dial-tag{margin-top:10px; font-family:var(--mono); font-size:9px; letter-spacing:.08em; text-transform:uppercase;
+            padding:5px 8px; border-radius:4px; background:var(--margin); color:#fff;}
+
+  /* ---- flow band ---- */
+  .flowband{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;}
+  .chev{width:0; height:0; border-top:9px solid transparent; border-bottom:9px solid transparent;
+        border-left:12px solid var(--line2); opacity:.5; transition:border-color .2s, opacity .2s;}
+  .flowband.give .chev{border-left-color:var(--credit); animation:pulse 0.9s ease infinite;}
+  .flowband.take .chev{transform:rotate(180deg); border-left-color:var(--debit); animation:pulse 0.9s ease infinite;}
+  @keyframes pulse{0%,100%{opacity:.25;}50%{opacity:1;}}
+  .flow-lab{font-family:var(--mono); font-size:8.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted);
+            text-align:center; line-height:1.5; margin-top:8px;}
+
+  /* ---- right: the borrower ---- */
+  .headline{margin-top:20px; border-radius:8px; padding:14px 16px; text-align:center;}
+  .headline .word{font-family:var(--mono); font-weight:600; font-size:22px; letter-spacing:.02em;}
+  .headline .delta{font-family:var(--mono); font-size:12px; margin-top:2px;}
+  .headline.tight{background:var(--credit-bg); color:var(--credit);}
+  .headline.wide{background:var(--debit-bg); color:var(--debit);}
+  .headline.flat{background:#EFF2F5; color:var(--muted);}
+
+  .btube-zone{display:flex; justify-content:center; margin-top:24px;}
+  .btube{position:relative; width:72px; height:280px;}   /* ±~1.59pt at 88px/pt */
+  .bglass{position:absolute; inset:0; border:2px solid var(--ink); border-radius:10px; overflow:hidden;
+          background:linear-gradient(105deg, rgba(255,255,255,.9), rgba(226,233,239,.4) 45%, rgba(255,255,255,.85));}
+  .bliq{position:absolute; left:0; right:0; z-index:1;}
+  .bpar{position:absolute; left:-14px; right:-14px; top:50%; border-top:2px solid var(--ink); z-index:5;}
+  .bpar-lab{position:absolute; right:calc(100% + 20px); top:50%; transform:translateY(-50%);
+            font-family:var(--mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase;}
+  .bzone{position:absolute; left:calc(100% + 14px); font-family:var(--mono); font-size:8.5px; letter-spacing:.07em;
+         text-transform:uppercase; line-height:1.5; width:76px;}
+  .bzone.up{top:14%; color:var(--credit);} .bzone.down{bottom:14%; color:var(--debit);}
+  .btick{position:absolute; left:0; width:8px; border-top:1px solid var(--line2); z-index:4;}
+  .b-read{font-family:var(--mono); text-align:center; margin-top:14px;}
+  .b-read .pts{font-weight:600; font-size:17px;}
+  .b-read .usd{font-size:10.5px; color:var(--muted); margin-top:2px;}
+  .b-facts{font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:14px; line-height:2; text-align:center;}
+  .b-facts b{color:var(--ink);}
+
+  /* ---- correlation ---- */
+  .corr{margin-top:24px;}
+  .corr .cap{font-family:var(--mono); font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted);}
+  .corr .exp{font-size:12.5px; color:var(--muted); margin-top:4px;}
+  .corr .exp b{color:var(--ink);}
+  svg{display:block; width:100%; height:auto; margin-top:16px;}
+  .axis{stroke:var(--line2); stroke-width:1;}
+  .axis-lab{font-family:var(--mono); font-size:9.5px; fill:var(--muted); letter-spacing:.06em;}
+  .zero{stroke:var(--ink); stroke-width:1.5; stroke-dasharray:4 4;}
+  .corr-line{stroke:var(--ink); stroke-width:2;}
+  .trail{fill:var(--muted);}
+  .dot{fill:var(--margin); stroke:var(--panel); stroke-width:2.5;}
+  .note{margin-top:24px; text-align:center; color:var(--muted); font-size:12px; max-width:62ch; margin-left:auto; margin-right:auto; line-height:1.6;}
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important; animation:none !important;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Every basis point of margin comes out of the borrower's tube</h1>
+    <p class="sub">Left: the four costs inside the loan's 2.750-point premium. Right: what's left for the borrower. Hold the other three constant, move the margin piston, and watch the rate sheet tighten or widen — one for one. $400,000 loan, 6.625% anchor, plan margin 115 bps.</p>
+  </header>
+
+  <div class="main">
+    <!-- LEFT -->
+    <section class="panel" aria-label="The cost stack">
+      <div class="panel-title">The cost stack — what the premium must cover</div>
+      <div class="panel-sub">The margin is ours to set. The other three are held constant below (unlock to test sensitivities).</div>
+      <div class="stack" id="stack"></div>
+    </section>
+
+    <!-- FLOW -->
+    <div class="flowband" id="flow" aria-hidden="true">
+      <div class="chev"></div><div class="chev"></div><div class="chev"></div>
+      <div class="flow-lab">value<br>flows</div>
+    </div>
+
+    <!-- RIGHT -->
+    <section class="panel" aria-label="The borrower's share">
+      <div class="panel-title">The borrower — what the rate sheet does</div>
+      <div class="headline flat" id="headline" aria-live="polite">
+        <div class="word" id="h-word">ON PLAN</div>
+        <div class="delta" id="h-delta">margin at the 115 bps plan</div>
+      </div>
+      <div class="btube-zone">
+        <div class="btube">
+          <div class="bglass" id="bglass"><div class="bliq" id="bliq"></div></div>
+          <div class="bpar"></div><div class="bpar-lab">par</div>
+          <div class="bzone up">credit ↑<br>sheet tightens</div>
+          <div class="bzone down">points due ↓<br>sheet widens</div>
+        </div>
+      </div>
+      <div class="b-read" id="b-read" aria-live="polite"></div>
+      <div class="b-facts" id="b-facts"></div>
+    </section>
+  </div>
+
+  <!-- CORRELATION -->
+  <section class="panel corr" aria-label="Correlation of margin and borrower share">
+    <div class="cap">The correlation, drawn</div>
+    <div class="exp">Slope = <b>−1.00</b>: with the other tubes constant, each basis point added to margin is a basis point removed from the borrower. The dot is where we're pricing now; the breadcrumbs are where the piston has been.</div>
+    <svg id="plot" viewBox="0 0 960 300" role="img" aria-label="Line chart: borrower share falls one for one as margin rises"></svg>
+  </section>
+
+  <p class="note">Leadership read: choosing the margin <i>is</i> choosing the rate sheet. Widen it and the same borrower crosses par into points due; cut it and the credit grows — the market value of the loan never moved.</p>
+</div>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const TOTAL=2.75, SCALE=88, TUBE_H=242, REF=115;
+  const fmt$=n=>'$'+Math.abs(Math.round(n)).toLocaleString('en-US');
+  const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+
+  const CFG={
+    m:{val:1.15, min:0.40, max:2.00, step:0.05,  color:'var(--margin)', name:'Lender<br>margin', who:'our dial', locked:false, dial:true},
+    g:{val:0.375,min:0.00, max:1.50, step:0.125, color:'var(--gse)',    name:'GSE cost<br>(LLPA)', who:'constant', locked:true},
+    h:{val:0.20, min:0.10, max:0.50, step:0.05,  color:'var(--hedge)',  name:'Hedge<br>cost', who:'constant', locked:true},
+    b:{val:1.00, min:0.50, max:2.75, step:0.25,  color:'var(--broker)', name:'Broker<br>comp', who:'constant', locked:true},
+  };
+
+  /* ---- build stations ---- */
+  const stack=$('stack');
+  Object.keys(CFG).forEach(k=>{
+    const c=CFG[k];
+    const st=document.createElement('div');
+    st.className='station'+(c.locked?' locked':''); st.id='st-'+k;
+    st.innerHTML=
+      '<div class="st-name">'+c.name+'</div>'+
+      '<div class="st-who" id="who-'+k+'">'+c.who+'</div>'+
+      '<div class="tube"><div class="rim"></div><div class="glass" id="gl-'+k+'"><div class="liq" id="t-'+k+'" style="background:'+c.color+'"></div></div>'+
+        '<div class="piston" id="p-'+k+'" tabindex="0" role="slider" aria-label="'+c.name.replace('<br>',' ')+', points" aria-valuemin="'+c.min+'" aria-valuemax="'+c.max+'">'+
+        '<div class="grip"></div><div class="rod"></div><div class="disc"></div></div></div>'+
+      '<div class="st-read" id="r-'+k+'"></div>'+
+      (c.dial
+        ? '<div class="dial-tag">the decision</div>'
+        : '<button class="lockbtn" id="lk-'+k+'" aria-pressed="true">held constant</button>');
+    stack.appendChild(st);
+    // ticks
+    const gl=$('gl-'+k);
+    for(let v=0.5; v<TOTAL; v+=0.5){
+      const t=document.createElement('div');
+      t.className='tick'+((v===1||v===2)?' major':'');
+      t.style.bottom=(v/TOTAL*100)+'%';
+      gl.appendChild(t);
+    }
+  });
+  // borrower tube ticks (±0.5, ±1.0)
+  (function(){
+    const g=$('bglass');
+    [-1,-0.5,0.5,1].forEach(v=>{
+      const t=document.createElement('div');
+      t.className='btick'; t.style.top='calc(50% - '+(v*SCALE)+'px)';
+      g.appendChild(t);
+    });
+  })();
+
+  const B_HALF=140; // px half-height of borrower tube
+
+  function setPiston(k){
+    const c=CFG[k];
+    $('t-'+k).style.height=(c.val/TOTAL*TUBE_H)+'px';
+    const p=$('p-'+k);
+    p.style.top=(TUBE_H - c.val/TOTAL*TUBE_H - 9)+'px';
+    p.setAttribute('aria-valuenow',c.val.toFixed(3));
+    p.setAttribute('aria-valuetext',c.val.toFixed(3)+' points, '+fmt$(c.val*4000));
+  }
+  function parRate(w){
+    let best=6.625,bd=1e9;
+    for(let r=5.75;r<=7.8751;r+=0.125){
+      const s=(r-6.625)/0.25;
+      const price=100+w+(s>0? s*0.95-s*s*0.06 : s*0.98);
+      const d=Math.abs(price-100); if(d<bd){bd=d;best=r;}
+    }
+    return best;
+  }
+  const pmt=r=>{const i=r/100/12;return 400000*i/(1-Math.pow(1+i,-360));};
+
+  /* ---- correlation plot ---- */
+  const PLOT={x0:64,x1:928,y0:26,y1:246, mMin:40,mMax:200, wMin:-160,wMax:160};
+  const mx=m=>PLOT.x0+(m-PLOT.mMin)/(PLOT.mMax-PLOT.mMin)*(PLOT.x1-PLOT.x0);
+  const wy=w=>PLOT.y1-(clamp(w,PLOT.wMin,PLOT.wMax)-PLOT.wMin)/(PLOT.wMax-PLOT.wMin)*(PLOT.y1-PLOT.y0);
+  const trail=[];
+  function drawPlot(mBps,wBps,C){
+    const svg=$('plot'); let s='';
+    // tinted halves around w=0
+    s+='<rect x="'+PLOT.x0+'" y="'+PLOT.y0+'" width="'+(PLOT.x1-PLOT.x0)+'" height="'+(wy(0)-PLOT.y0)+'" fill="var(--credit-bg)" opacity="0.55"/>';
+    s+='<rect x="'+PLOT.x0+'" y="'+wy(0)+'" width="'+(PLOT.x1-PLOT.x0)+'" height="'+(PLOT.y1-wy(0))+'" fill="var(--debit-bg)" opacity="0.55"/>';
+    // axes
+    s+='<line class="axis" x1="'+PLOT.x0+'" y1="'+PLOT.y1+'" x2="'+PLOT.x1+'" y2="'+PLOT.y1+'"/>';
+    s+='<line class="axis" x1="'+PLOT.x0+'" y1="'+PLOT.y0+'" x2="'+PLOT.x0+'" y2="'+PLOT.y1+'"/>';
+    for(let m=40;m<=200;m+=40){
+      s+='<line class="axis" x1="'+mx(m)+'" y1="'+PLOT.y1+'" x2="'+mx(m)+'" y2="'+(PLOT.y1+5)+'"/>';
+      s+='<text class="axis-lab" x="'+mx(m)+'" y="'+(PLOT.y1+18)+'" text-anchor="middle">'+m+'</text>';
+    }
+    [[160,'+160'],[80,'+80'],[0,'par'],[-80,'−80'],[-160,'−160']].forEach(([v,l])=>{
+      s+='<text class="axis-lab" x="'+(PLOT.x0-10)+'" y="'+(wy(v)+3)+'" text-anchor="end">'+l+'</text>';
+    });
+    s+='<text class="axis-lab" x="'+PLOT.x1+'" y="'+(PLOT.y1+34)+'" text-anchor="end">MARGIN (BPS) →</text>';
+    s+='<text class="axis-lab" x="'+PLOT.x0+'" y="14">BORROWER SHARE (BPS) ↑</text>';
+    // par line
+    s+='<line class="zero" x1="'+PLOT.x0+'" y1="'+wy(0)+'" x2="'+PLOT.x1+'" y2="'+wy(0)+'"/>';
+    // relationship line  w = C − m
+    const p1m=Math.max(PLOT.mMin, C-PLOT.wMax), p2m=Math.min(PLOT.mMax, C-PLOT.wMin);
+    s+='<line class="corr-line" x1="'+mx(p1m)+'" y1="'+wy(C-p1m)+'" x2="'+mx(p2m)+'" y2="'+wy(C-p2m)+'"/>';
+    // reference marker (plan)
+    s+='<circle cx="'+mx(REF)+'" cy="'+wy(C-REF)+'" r="4" fill="none" stroke="var(--muted)" stroke-width="1.5"/>';
+    s+='<text class="axis-lab" x="'+mx(REF)+'" y="'+(wy(C-REF)-10)+'" text-anchor="middle">plan 115</text>';
+    // trail + dot
+    trail.forEach((pt,i)=>{ s+='<circle class="trail" cx="'+mx(pt[0])+'" cy="'+wy(pt[1])+'" r="2.5" opacity="'+(0.12+0.5*i/trail.length)+'"/>'; });
+    s+='<circle class="dot" cx="'+mx(mBps)+'" cy="'+wy(wBps)+'" r="7"/>';
+    svg.innerHTML=s;
+  }
+
+  /* ---- flow band ---- */
+  let flowTimer=null, lastW=null;
+  function flow(dir){
+    const f=$('flow');
+    f.classList.remove('give','take');
+    if(dir!==0){ void f.offsetWidth; f.classList.add(dir>0?'give':'take'); }
+    clearTimeout(flowTimer);
+    flowTimer=setTimeout(()=>f.classList.remove('give','take'),1200);
+  }
+
+  function render(){
+    ['m','g','h','b'].forEach(k=>{
+      setPiston(k);
+      $('r-'+k).innerHTML='<div class="pts" style="color:'+CFG[k].color+'">'+CFG[k].val.toFixed(3)+'</div>'+
+                          '<div class="usd">'+fmt$(CFG[k].val*4000)+'</div>';
+    });
+    const w=TOTAL-CFG.m.val-CFG.g.val-CFG.h.val-CFG.b.val;
+    const wBps=w*100, mBps=CFG.m.val*100;
+
+    // borrower tube
+    const liq=$('bliq');
+    const px=Math.min(Math.abs(w)*SCALE, B_HALF-2);
+    if(w>=0){ liq.style.background='var(--credit)'; liq.style.top=(B_HALF-px)+'px'; liq.style.height=px+'px'; }
+    else{ liq.style.background='var(--debit)'; liq.style.top=B_HALF+'px'; liq.style.height=px+'px'; }
+
+    $('b-read').innerHTML = w>=0
+      ? '<div class="pts" style="color:var(--credit)">+'+w.toFixed(3)+' pts</div><div class="usd">'+fmt$(w*4000)+' lender credit at 6.625%</div>'
+      : '<div class="pts" style="color:var(--debit)">−'+(-w).toFixed(3)+' pts</div><div class="usd">'+fmt$(-w*4000)+' in discount points due</div>';
+
+    const pr=parRate(w);
+    $('b-facts').innerHTML='par rate <b>'+pr.toFixed(3)+'%</b> · <b>'+fmt$(pmt(pr))+'</b>/mo P&I';
+
+    // headline vs plan
+    const d=Math.round(mBps-REF);
+    const hl=$('headline');
+    if(Math.abs(d)<3){ hl.className='headline flat'; $('h-word').textContent='ON PLAN';
+      $('h-delta').textContent='margin at the '+REF+' bps plan'; }
+    else if(d<0){ hl.className='headline tight'; $('h-word').textContent='SHEET TIGHTENS '+Math.abs(d)+' BPS';
+      $('h-delta').textContent='margin cut to '+Math.round(mBps)+' → borrower gains '+fmt$(Math.abs(d)*40)+' vs plan'; }
+    else{ hl.className='headline wide'; $('h-word').textContent='SHEET WIDENS '+d+' BPS';
+      $('h-delta').textContent='margin raised to '+Math.round(mBps)+' → borrower gives up '+fmt$(d*40)+' vs plan'; }
+
+    // flow direction
+    if(lastW!==null && Math.abs(w-lastW)>1e-9) flow(w>lastW?1:-1);
+    lastW=w;
+
+    // correlation:  w_bps = C − m_bps  with constants
+    const C=275-(CFG.g.val+CFG.h.val+CFG.b.val)*100;
+    trail.push([mBps,wBps]); if(trail.length>14) trail.shift();
+    drawPlot(mBps,wBps,C);
+  }
+
+  /* ---- interactions ---- */
+  Object.keys(CFG).forEach(k=>{
+    const p=$('p-'+k), tube=p.closest('.tube');
+    let dragging=false;
+    p.addEventListener('pointerdown',e=>{
+      if(CFG[k].locked) return;
+      dragging=true; p.classList.add('dragging'); $('t-'+k).classList.add('instant');
+      p.setPointerCapture(e.pointerId); e.preventDefault();
+    });
+    p.addEventListener('pointermove',e=>{
+      if(!dragging) return;
+      const rect=tube.getBoundingClientRect(), c=CFG[k];
+      let v=(rect.bottom - e.clientY)/TUBE_H*TOTAL;
+      v=Math.round(v/c.step)*c.step;
+      c.val=clamp(+v.toFixed(3),c.min,c.max);
+      render();
+    });
+    const stop=()=>{ if(!dragging) return; dragging=false; p.classList.remove('dragging'); $('t-'+k).classList.remove('instant'); };
+    p.addEventListener('pointerup',stop); p.addEventListener('pointercancel',stop);
+    p.addEventListener('keydown',e=>{
+      if(CFG[k].locked) return;
+      const c=CFG[k]; let hit=true;
+      if(e.key==='ArrowUp'||e.key==='ArrowRight') c.val=clamp(+(c.val+c.step).toFixed(3),c.min,c.max);
+      else if(e.key==='ArrowDown'||e.key==='ArrowLeft') c.val=clamp(+(c.val-c.step).toFixed(3),c.min,c.max);
+      else if(e.key==='Home') c.val=c.min;
+      else if(e.key==='End') c.val=c.max;
+      else hit=false;
+      if(hit){ e.preventDefault(); render(); }
+    });
+    // lock toggles
+    const lk=$('lk-'+k);
+    if(lk) lk.addEventListener('click',()=>{
+      CFG[k].locked=!CFG[k].locked;
+      lk.setAttribute('aria-pressed',String(CFG[k].locked));
+      lk.textContent=CFG[k].locked?'held constant':'unlocked';
+      $('st-'+k).classList.toggle('locked',CFG[k].locked);
+      $('who-'+k).textContent=CFG[k].locked?'constant':'sensitivity test';
+      render();
+    });
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
