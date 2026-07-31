@@ -1,0 +1,200 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="942" viewBox="0 0 1600 942" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="title desc" style="display:block;width:100%;height:auto;max-width:100vw">
+  <title id="title">Loan Officer Pricing Recommendation Framework</title>
+  <desc id="desc">A flowchart segmenting 50,000 loan officers into high-volume and low-volume groups and producing a recommended basis-point adjustment with leadership guardrails.</desc>
+
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F8FAFC"/>
+      <stop offset="1" stop-color="#F1F5F9"/>
+    </linearGradient>
+    <linearGradient id="greenPanel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F0FDF4"/>
+      <stop offset="1" stop-color="#ECFDF5"/>
+    </linearGradient>
+    <linearGradient id="orangePanel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFF7ED"/>
+      <stop offset="1" stop-color="#FFF1F2"/>
+    </linearGradient>
+    <linearGradient id="purple" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#4338CA"/>
+      <stop offset="1" stop-color="#6D28D9"/>
+    </linearGradient>
+    <linearGradient id="slate" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1E293B"/>
+      <stop offset="1" stop-color="#334155"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-30%" width="140%" height="180%">
+      <feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#0F172A" flood-opacity=".10"/>
+    </filter>
+    <filter id="smallShadow" x="-20%" y="-30%" width="140%" height="180%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#0F172A" flood-opacity=".07"/>
+    </filter>
+    <style>
+      text { font-family: Arial, Helvetica, sans-serif; text-rendering: geometricPrecision; }
+      .root         { font-size: 26px; font-weight: 700; fill: #0F172A; }
+      .segment      { font-size: 21px; font-weight: 700; fill: #FFFFFF; letter-spacing: .3px; }
+      .panel-title  { font-size: 26px; font-weight: 700; }
+      .panel-count  { font-size: 26px; font-weight: 700; }
+      .node         { font-size: 19px; font-weight: 700; fill: #1E293B; }
+      .node-small   { font-size: 18px; font-weight: 700; fill: #1E293B; }
+      .node-branch  { font-size: 17px; font-weight: 700; fill: #1E293B; }
+      .step         { font-size: 13px; font-weight: 700; }
+      .outcome      { font-size: 21px; font-weight: 700; fill: #FFFFFF; }
+      .recommend    { font-size: 24px; font-weight: 700; fill: #FFFFFF; letter-spacing: .2px; }
+      .lead         { font-size: 19px; font-weight: 700; fill: #FFFFFF; letter-spacing: .3px; }
+      .neutral-line { fill: none; stroke: #64748B; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+      .green-line   { fill: none; stroke: #15803D; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+      .orange-line  { fill: none; stroke: #C2410C; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="942" fill="url(#background)"/>
+  <circle cx="70" cy="922" r="150" fill="#DCFCE7" opacity=".38"/>
+  <circle cx="1530" cy="922" r="150" fill="#E0E7FF" opacity=".38"/>
+
+  <!-- ===================== POPULATION ===================== -->
+  <g filter="url(#shadow)">
+    <rect x="560" y="40" width="480" height="62" rx="16" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+    <circle cx="647" cy="71" r="22" fill="#EEF2FF"/>
+    <path d="M636 78c2.4-9 19.6-9 22 0M640.5 65a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Z" fill="none" stroke="#4F46E5" stroke-width="2.6" stroke-linecap="round"/>
+    <text x="691" y="80" class="root">50,000 Loan Officers</text>
+  </g>
+  <path d="M800 102 V110" class="neutral-line"/>
+  <path d="M791 110 H809 L800 120 Z" fill="#64748B"/>
+
+  <!-- ===================== SEGMENTATION ===================== -->
+  <g filter="url(#smallShadow)">
+    <rect x="590" y="120" width="420" height="54" rx="14" fill="#0F172A"/>
+    <text x="800" y="154" text-anchor="middle" class="segment">Segment LO Population</text>
+  </g>
+  <path d="M800 174 V190 Q800 200 790 200 H410 Q400 200 400 210 V216" class="neutral-line"/>
+  <path d="M391 216 H409 L400 226 Z" fill="#64748B"/>
+  <path d="M800 174 V190 Q800 200 810 200 H1190 Q1200 200 1200 210 V216" class="neutral-line"/>
+  <path d="M1191 216 H1209 L1200 226 Z" fill="#64748B"/>
+
+  <!-- ===================== HIGH VOLUME ===================== -->
+  <text x="400" y="256" text-anchor="middle" class="panel-title" fill="#14532D">High Volume LOs <tspan class="panel-count" fill="#15803D">— 20K</tspan></text>
+
+  <g filter="url(#shadow)">
+    <rect x="40" y="278" width="720" height="454" rx="24" fill="url(#greenPanel)" stroke="#86EFAC" stroke-width="2"/>
+  </g>
+
+  <g filter="url(#smallShadow)">
+    <rect x="110" y="298" width="580" height="64" rx="14" fill="#FFFFFF" stroke="#BBF7D0" stroke-width="2"/>
+    <circle cx="150" cy="330" r="16" fill="#DCFCE7"/>
+    <text x="150" y="335" text-anchor="middle" class="step" fill="#15803D">1</text>
+    <text x="400" y="337" text-anchor="middle" class="node">Define the LO Behavioral Traits</text>
+  </g>
+  <path d="M400 362 V368" class="green-line"/>
+  <path d="M391 368 H409 L400 378 Z" fill="#15803D"/>
+
+  <g filter="url(#smallShadow)">
+    <rect x="110" y="378" width="580" height="64" rx="14" fill="#FFFFFF" stroke="#BBF7D0" stroke-width="2"/>
+    <circle cx="150" cy="410" r="16" fill="#DCFCE7"/>
+    <text x="150" y="415" text-anchor="middle" class="step" fill="#15803D">2</text>
+    <text x="400" y="417" text-anchor="middle" class="node">Capture More Margin</text>
+  </g>
+  <path d="M400 442 V448" class="green-line"/>
+  <path d="M391 448 H409 L400 458 Z" fill="#15803D"/>
+
+  <g filter="url(#smallShadow)">
+    <rect x="110" y="458" width="580" height="76" rx="14" fill="#FFFFFF" stroke="#BBF7D0" stroke-width="2"/>
+    <circle cx="150" cy="496" r="16" fill="#DCFCE7"/>
+    <text x="150" y="501" text-anchor="middle" class="step" fill="#15803D">3</text>
+    <text x="400" y="489" text-anchor="middle" class="node-small">Estimate Probability of Closing</text>
+    <text x="400" y="516" text-anchor="middle" class="node-small">at Each Basis Point</text>
+  </g>
+  <path d="M400 534 V540" class="green-line"/>
+  <path d="M391 540 H409 L400 550 Z" fill="#15803D"/>
+
+  <g filter="url(#smallShadow)">
+    <rect x="110" y="550" width="580" height="76" rx="14" fill="#FFFFFF" stroke="#BBF7D0" stroke-width="2"/>
+    <circle cx="150" cy="588" r="16" fill="#DCFCE7"/>
+    <text x="150" y="593" text-anchor="middle" class="step" fill="#15803D">4</text>
+    <text x="400" y="581" text-anchor="middle" class="node-small">Estimate Churn Risk at Each Basis Point</text>
+    <text x="400" y="608" text-anchor="middle" class="node-small" fill="#15803D">Target: below 5%</text>
+  </g>
+  <path d="M400 626 V640" class="green-line"/>
+  <path d="M391 640 H409 L400 650 Z" fill="#15803D"/>
+
+  <g filter="url(#smallShadow)">
+    <rect x="210" y="650" width="380" height="62" rx="15" fill="#15803D"/>
+    <text x="400" y="688" text-anchor="middle" class="outcome">Maximum Safe Stretch</text>
+  </g>
+
+  <!-- ===================== LOW VOLUME ===================== -->
+  <text x="1200" y="256" text-anchor="middle" class="panel-title" fill="#7C2D12">Low Volume LOs <tspan class="panel-count" fill="#C2410C">— 30K</tspan></text>
+
+  <g filter="url(#shadow)">
+    <rect x="840" y="278" width="720" height="454" rx="24" fill="url(#orangePanel)" stroke="#FDBA74" stroke-width="2"/>
+  </g>
+
+  <g filter="url(#smallShadow)">
+    <rect x="910" y="298" width="580" height="64" rx="14" fill="#FFFFFF" stroke="#FED7AA" stroke-width="2"/>
+    <circle cx="950" cy="330" r="16" fill="#FFEDD5"/>
+    <text x="950" y="335" text-anchor="middle" class="step" fill="#C2410C">1</text>
+    <text x="1200" y="337" text-anchor="middle" class="node">Buy More Locks</text>
+  </g>
+  <path d="M1200 362 V380 Q1200 390 1190 390 H1060 Q1050 390 1050 400 V402" class="orange-line"/>
+  <path d="M1041 402 H1059 L1050 412 Z" fill="#C2410C"/>
+  <path d="M1200 362 V380 Q1200 390 1210 390 H1340 Q1350 390 1350 400 V402" class="orange-line"/>
+  <path d="M1341 402 H1359 L1350 412 Z" fill="#C2410C"/>
+
+  <g filter="url(#smallShadow)">
+    <rect x="910" y="412" width="280" height="84" rx="14" fill="#FFFFFF" stroke="#FED7AA" stroke-width="2"/>
+    <circle cx="946" cy="454" r="16" fill="#FFEDD5"/>
+    <text x="946" y="459" text-anchor="middle" class="step" fill="#C2410C">2A</text>
+    <text x="1050" y="447" text-anchor="middle" class="node-branch">Low Wallet Share</text>
+    <text x="1050" y="473" text-anchor="middle" class="node-branch">with UWM</text>
+  </g>
+  <g filter="url(#smallShadow)">
+    <rect x="1210" y="412" width="280" height="84" rx="14" fill="#FFFFFF" stroke="#FED7AA" stroke-width="2"/>
+    <circle cx="1246" cy="454" r="16" fill="#FFEDD5"/>
+    <text x="1246" y="459" text-anchor="middle" class="step" fill="#C2410C">2B</text>
+    <text x="1350" y="461" text-anchor="middle" class="node-branch">No Market Activity</text>
+  </g>
+
+  <path d="M1050 496 V514 Q1050 524 1060 524 H1190 Q1200 524 1200 534 V536" class="orange-line"/>
+  <path d="M1350 496 V514 Q1350 524 1340 524 H1210 Q1200 524 1200 534 V536" class="orange-line"/>
+  <path d="M1191 536 H1209 L1200 546 Z" fill="#C2410C"/>
+
+  <g filter="url(#smallShadow)">
+    <rect x="910" y="546" width="580" height="64" rx="14" fill="#FFFFFF" stroke="#FED7AA" stroke-width="2"/>
+    <circle cx="950" cy="578" r="16" fill="#FFEDD5"/>
+    <text x="950" y="583" text-anchor="middle" class="step" fill="#C2410C">3</text>
+    <text x="1200" y="584" text-anchor="middle" class="node-small">Minimum Discount Needed for a Potential Lock</text>
+  </g>
+  <path d="M1200 610 V640" class="orange-line"/>
+  <path d="M1191 640 H1209 L1200 650 Z" fill="#C2410C"/>
+
+  <g filter="url(#smallShadow)">
+    <rect x="1010" y="650" width="380" height="62" rx="15" fill="#C2410C"/>
+    <text x="1200" y="688" text-anchor="middle" class="outcome">Minimum Effective Discount</text>
+  </g>
+
+  <!-- ===================== COMBINED RECOMMENDATION ===================== -->
+  <path d="M400 712 V732 Q400 742 410 742 H690 Q700 742 700 750" class="green-line"/>
+  <path d="M691 750 H709 L700 760 Z" fill="#15803D"/>
+  <path d="M1200 712 V732 Q1200 742 1190 742 H910 Q900 742 900 750" class="orange-line"/>
+  <path d="M891 750 H909 L900 760 Z" fill="#C2410C"/>
+
+  <g filter="url(#shadow)">
+    <rect x="420" y="760" width="760" height="64" rx="16" fill="url(#purple)"/>
+    <circle cx="470" cy="792" r="22" fill="#FFFFFF" opacity=".18"/>
+    <path d="M459 792l8 8 15-18" fill="none" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="800" y="800" text-anchor="middle" class="recommend">Recommended BPS Adjustment for Each LO</text>
+  </g>
+  <path d="M800 824 V830" class="neutral-line"/>
+  <path d="M791 830 H809 L800 840 Z" fill="#64748B"/>
+
+  <!-- ===================== LEADERSHIP GUARDRAILS ===================== -->
+  <g filter="url(#shadow)">
+    <rect x="420" y="844" width="760" height="58" rx="15" fill="url(#slate)"/>
+    <rect x="420" y="844" width="760" height="58" rx="15" fill="none" stroke="#EF4444" stroke-width="3" stroke-dasharray="2 8" stroke-linecap="round"/>
+    <g transform="translate(-12,-91.5)">
+      <path d="M478 952l13-5.5 13 5.5v10c0 10-5.5 16.5-13 20.5-7.5-4-13-10.5-13-20.5Z" fill="none" stroke="#FCA5A5" stroke-width="2.4" stroke-linejoin="round"/>
+      <path d="m485 962 4.5 4.5 8.5-9.5" fill="none" stroke="#FCA5A5" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <text x="800" y="880" text-anchor="middle" class="lead">Leadership Override and Guardrails</text>
+  </g>
+</svg>
