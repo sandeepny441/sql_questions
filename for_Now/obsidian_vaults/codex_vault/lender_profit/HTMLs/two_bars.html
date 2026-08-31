@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>One Loan — Two Bars: Money In vs Money Out</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F5F7; --ink:#1A2433; --muted:#75818F; --line:#DFE4E9;
+    --green:#1E8A63; --green-d:#14684A; --red:#C23B4E; --red-d:#9C2C3D;
+    --mono:'IBM Plex Mono', ui-monospace, Menlo, monospace;
+    --sans:'IBM Plex Sans', system-ui, sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--ink); font-family:var(--sans); font-variant-numeric:tabular-nums;}
+  .wrap{max-width:1220px; margin:0 auto; padding:36px 20px 56px;}
+  header{text-align:center;}
+  h1{font-weight:700; font-size:clamp(22px,3.6vw,34px); letter-spacing:-.015em; color:#1F4E79;}
+  .sub{color:var(--muted); font-size:13.5px; margin-top:7px;}
+  .board{background:#fff; border:1px solid var(--line); border-radius:14px; padding:8px 4px; margin-top:16px;
+         box-shadow:0 1px 2px rgba(26,36,51,.05);}
+  svg{display:block; width:100%; height:auto;}
+  .h-big{font-family:var(--sans); font-weight:700; font-size:16px;}
+  .t-usd{font-family:var(--mono); font-weight:600; font-size:13px; fill:var(--ink);}
+  .t-bps-g{font-family:var(--mono); font-weight:600; font-size:12px; fill:var(--green);}
+  .t-bps-r{font-family:var(--mono); font-weight:600; font-size:12px; fill:var(--red);}
+  .in-name{font-family:var(--sans); font-weight:600; font-size:13px; fill:#fff;}
+  .in-usd{font-family:var(--mono); font-weight:600; font-size:12px; fill:#fff;}
+  .in-bps{font-family:var(--mono); font-weight:600; font-size:11px;}
+  .key{font-family:var(--sans); font-size:12.5px; fill:var(--ink);}
+  .key-usd{font-family:var(--mono); font-weight:600; font-size:12px; fill:var(--ink);}
+  .idx{font-family:var(--mono); font-weight:700; font-size:12px; fill:#fff;}
+  .t-sub{font-family:var(--sans); font-size:11.5px; fill:var(--muted);}
+  .arrow-lab{font-family:var(--sans); font-weight:700; font-size:15px; fill:var(--green);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>One Loan — Money In vs Money Out</h1>
+    <p class="sub">Lender view · $400,000 conventional 30-yr at 6.625% · two bars on one dollar scale — the profit is simply the part of the green bar the red bar never reaches</p>
+  </header>
+  <div class="board"><svg id="two" viewBox="0 0 1180 585" role="img" aria-label="Green revenue bar versus red loss bar with profit overhang arrow"></svg></div>
+</div>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const fmt=v=>'$'+Math.round(v).toLocaleString('en-US');
+  const bps=v=>Math.round(v/40);
+  const S=0.0752, X=60;
+  const GY=118, RY=306, BH=84;
+
+  const GREEN=[
+    {name:'Loan sale premium (TBA)', v:6400, inline:true},
+    {name:'Servicing value (MSR)', v:4600, inline:true},
+    {name:'Borrower-paid fees', v:1600, key:'A'},
+    {name:'LLPA collected via price', v:1500, key:'B'},
+  ];
+  const RED=[
+    {name:'LLPA remitted to GSE', v:1500, key:'1'},
+    {name:'Broker comp (LPC)', v:4000, inline:true},
+    {name:'Hedge & lock costs', v:800, key:'2'},
+    {name:'Buyback & EPO reserve', v:300, key:'3'},
+    {name:'Underwriting & ops', v:1800, inline:true},
+    {name:'AE & support', v:800, key:'4'},
+    {name:'Technology', v:700, key:'5'},
+    {name:'Corporate G&A', v:600, key:'6'},
+    {name:'Tax', v:850, key:'7'},
+  ];
+  const GT=14100, RT=11350, NET=2750;
+  const GW=GT*S, RW=RT*S;
+
+  let g='';
+  g+='<defs><marker id="ag" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">'+
+     '<path d="M0 0 L10 5 L0 10 Z" fill="var(--green)"/></marker></defs>';
+
+  const money=(x,y,anchor,v,neg)=>'<text text-anchor="'+anchor+'" x="'+x+'" y="'+y+'">'+
+      '<tspan class="t-usd">'+(neg?'('+fmt(v)+')':fmt(v))+'</tspan>'+
+      '<tspan class="'+(neg?'t-bps-r':'t-bps-g')+'" dx="8">'+(neg?'\u2212':'+')+bps(v)+' bps</tspan></text>';
+
+  function bar(list, y, base, dark, bpsTint){
+    let cx=X, out='';
+    list.forEach((s,i)=>{
+      const w=s.v*S;
+      out+='<rect x="'+cx+'" y="'+y+'" width="'+(w-1.5)+'" height="'+BH+'" fill="'+(i%2? dark: base)+'"/>';
+      const mid=cx+w/2;
+      if(s.inline){
+        out+='<text class="in-name" text-anchor="middle" x="'+mid+'" y="'+(y+BH/2-8)+'">'+s.name+'</text>';
+        out+='<text text-anchor="middle" x="'+mid+'" y="'+(y+BH/2+14)+'">'+
+             '<tspan class="in-usd">'+fmt(s.v)+'</tspan><tspan class="in-bps" dx="7" fill="'+bpsTint+'">'+(base==='var(--red)'?'\u2212':'+')+bps(s.v)+' bps</tspan></text>';
+      }else{
+        out+='<circle cx="'+mid+'" cy="'+(y+BH/2)+'" r="11" fill="rgba(255,255,255,0.22)"/>';
+        out+='<text class="idx" text-anchor="middle" x="'+mid+'" y="'+(y+BH/2+4.5)+'">'+s.key+'</text>';
+      }
+      cx+=w;
+    });
+    return out;
+  }
+
+  /* ---- green bar ---- */
+  g+='<text class="h-big" x="'+X+'" y="46" fill="var(--green)">MONEY IN \u2014 Total revenue</text>';
+  g+=money(X,68,'start',GT,false);
+  // key for narrow green segments (right side, above bar)
+  g+='<text class="key" x="690" y="46"><tspan class="idx" fill="var(--green)">A</tspan><tspan dx="8">Borrower-paid fees</tspan></text>';
+  g+='<text class="key-usd" x="905" y="46">$1,600</text><text class="t-bps-g" x="965" y="46">+40 bps</text>';
+  g+='<text class="key" x="690" y="68"><tspan class="idx" fill="var(--green)">B</tspan><tspan dx="8">LLPA collected via price</tspan></text>';
+  g+='<text class="key-usd" x="905" y="68">$1,500</text><text class="t-bps-g" x="965" y="68">+38 bps</text>';
+  g+=bar(GREEN, GY, 'var(--green)', 'var(--green-d)', '#CFEFD9');
+
+  /* ---- red bar ---- */
+  g+='<text class="h-big" x="'+X+'" y="266" fill="var(--red)">MONEY OUT \u2014 Total losses</text>';
+  g+=money(X,288,'start',RT,true);
+  g+=bar(RED, RY, 'var(--red)', 'var(--red-d)', '#F6C6CC');
+
+  /* ---- the overhang = profit ---- */
+  const rx=X+RW, gx=X+GW;
+  g+='<line x1="'+rx+'" y1="'+(GY+BH)+'" x2="'+rx+'" y2="'+(RY-8)+'" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="4 4"/>';
+  g+='<line x1="'+gx+'" y1="'+(GY+BH)+'" x2="'+gx+'" y2="'+(RY-8)+'" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="4 4"/>';
+  const ay=RY-34;
+  g+='<line x1="'+(rx+4)+'" y1="'+ay+'" x2="'+(gx-8)+'" y2="'+ay+'" stroke="var(--green)" stroke-width="3" marker-end="url(#ag)"/>';
+  g+='<text class="arrow-lab" text-anchor="middle" x="'+((rx+gx)/2)+'" y="'+(ay-32)+'">Net profit</text>';
+  g+=money((rx+gx)/2, ay-12, 'middle', NET, false);
+
+  /* ---- key for narrow red segments ---- */
+  const KEYS=[
+    ['1','LLPA remitted to GSE',1500],['2','Hedge & lock costs',800],['3','Buyback & EPO reserve',300],['4','AE & support',800],
+    ['5','Technology',700],['6','Corporate G&A',600],['7','Tax',850],
+  ];
+  let ky=432;
+  KEYS.forEach(([k,nm,v],i)=>{
+    const col=(i<4)?0:1, row=(i<4)?i:i-4;
+    const kx=X+col*560, yy=432+row*26;
+    g+='<circle cx="'+(kx+8)+'" cy="'+(yy-4)+'" r="10" fill="var(--red)"/>';
+    g+='<text class="idx" text-anchor="middle" x="'+(kx+8)+'" y="'+(yy)+'">'+k+'</text>';
+    g+='<text class="key" x="'+(kx+28)+'" y="'+yy+'">'+nm+'</text>';
+    g+='<text class="key-usd" text-anchor="end" x="'+(kx+400)+'" y="'+yy+'">('+fmt(v)+')</text>';
+    g+='<text class="t-bps-r" text-anchor="end" x="'+(kx+470)+'" y="'+yy+'">\u2212'+bps(v)+' bps</text>';
+  });
+  g+='<text class="t-sub" x="'+X+'" y="560">Both bars share one dollar scale. Green bar '+fmt(GT)+' \u2212 red bar '+fmt(RT)+' = the overhang: '+fmt(NET)+' kept (+69 bps). All figures illustrative.</text>';
+
+  $('two').innerHTML=g;
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Independent Function Graphs</title>
+  <style>
+    :root {
+      --page-bg: #f3ede3;
+      --panel-bg: #fbf8f2;
+      --card-bg: #fffdf9;
+      --card-border: rgba(118, 102, 82, 0.12);
+      --text: #2d2a25;
+      --muted: #827666;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 28px;
+      background:
+        radial-gradient(circle at top, rgba(166, 188, 209, 0.34), transparent 34%),
+        radial-gradient(circle at bottom right, rgba(213, 191, 160, 0.34), transparent 28%),
+        var(--page-bg);
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      color: var(--text);
+    }
+
+    .panel {
+      width: min(1120px, 100%);
+      margin: 0 auto;
+      padding: 28px;
+      border: 1px solid var(--card-border);
+      border-radius: 26px;
+      background: linear-gradient(180deg, rgba(255, 252, 246, 0.96), rgba(247, 241, 231, 0.98));
+      box-shadow: 0 22px 52px rgba(110, 92, 72, 0.12);
+    }
+
+    .title {
+      margin: 0;
+      font-size: clamp(28px, 3vw, 40px);
+      font-weight: 600;
+      letter-spacing: -0.04em;
+    }
+
+    .subtitle {
+      margin: 10px 0 0;
+      max-width: 760px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .graphs {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 22px;
+      margin-top: 28px;
+    }
+
+    .graph-card {
+      padding: 18px 18px 16px;
+      border: 1px solid rgba(118, 102, 82, 0.1);
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(255, 255, 253, 0.98), rgba(248, 242, 233, 0.98));
+      box-shadow: 0 14px 28px rgba(121, 103, 82, 0.08);
+    }
+
+    .graph-card.wide {
+      grid-column: 1 / -1;
+      width: calc(50% - 11px);
+      justify-self: center;
+    }
+
+    .graph-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .graph-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      box-shadow: 0 0 16px currentColor;
+      flex: 0 0 auto;
+    }
+
+    .graph-note {
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.02em;
+      text-align: right;
+    }
+
+    .canvas-shell {
+      overflow: hidden;
+      border: 1px solid rgba(118, 102, 82, 0.1);
+      border-radius: 18px;
+      background: #e7e4de;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .footnote {
+      margin: 16px 2px 0;
+      color: #847867;
+      font-size: 12px;
+      letter-spacing: 0.02em;
+    }
+
+    code {
+      color: #3b4f67;
+    }
+
+    @media (max-width: 840px) {
+      body {
+        padding: 18px;
+      }
+
+      .panel {
+        padding: 18px;
+      }
+
+      .graphs {
+        grid-template-columns: 1fr;
+      }
+
+      .graph-card.wide {
+        width: 100%;
+      }
+
+      .graph-head {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .graph-note {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <section class="panel">
+    <h1 class="title">Independent Function Graphs</h1>
+    <p class="subtitle">
+      Each requested function is plotted in its own graph with a separate x-axis, y-axis, grid, and scale.
+      The panels are arranged in a two-column layout on a light background for easier side-by-side comparison.
+    </p>
+
+    <div class="graphs" id="graphs"></div>
+
+    <p class="footnote">The logarithm graph is only defined for positive x values, so its curve begins to the right of the y-axis.</p>
+  </section>
+
+  <script>
+    const graphConfigs = [
+      {
+        label: "y = sin(x)",
+        color: "#58d7ff",
+        note: "Range: approximately -1 to 1",
+        xMin: -6,
+        xMax: 6,
+        yMin: -1.6,
+        yMax: 1.6,
+        xStep: 2,
+        yStep: 0.5,
+        fn: (x) => Math.sin(x)
+      },
+      {
+        label: "y = x",
+        color: "#ffc857",
+        note: "Straight line with slope 1",
+        xMin: -6,
+        xMax: 6,
+        yMin: -6,
+        yMax: 6,
+        xStep: 2,
+        yStep: 2,
+        fn: (x) => x
+      },
+      {
+        label: "y = log(x)",
+        color: "#ff7b72",
+        note: "Natural logarithm",
+        xMin: -1,
+        xMax: 10,
+        yMin: -3,
+        yMax: 3,
+        xStep: 1,
+        yStep: 1,
+        domain: (x) => x > 0,
+        fn: (x) => Math.log(x)
+      },
+      {
+        label: "y = e^x",
+        color: "#b388ff",
+        note: "Exponential growth",
+        xMin: -3,
+        xMax: 3,
+        yMin: -1,
+        yMax: 22,
+        xStep: 1,
+        yStep: 5,
+        fn: (x) => Math.exp(x)
+      },
+      {
+        label: "y = x^2 + 1",
+        color: "#72e0a1",
+        note: "Parabola shifted upward",
+        xMin: -4,
+        xMax: 4,
+        yMin: -1,
+        yMax: 18,
+        xStep: 1,
+        yStep: 3,
+        fn: (x) => (x * x) + 1
+      }
+    ];
+
+    const graphsRoot = document.getElementById("graphs");
+
+    function formatTick(value) {
+      if (Math.abs(value) < 0.000001) {
+        return "0";
+      }
+
+      if (Math.abs(value - Math.round(value)) < 0.000001) {
+        return String(Math.round(value));
+      }
+
+      return value.toFixed(1).replace(/\.0$/, "");
+    }
+
+    function createGraphCard(config, index) {
+      const card = document.createElement("section");
+      card.className = "graph-card";
+      if (graphConfigs.length % 2 === 1 && index === graphConfigs.length - 1) {
+        card.classList.add("wide");
+      }
+
+      const head = document.createElement("div");
+      head.className = "graph-head";
+
+      const title = document.createElement("div");
+      title.className = "graph-title";
+      title.innerHTML = `
+        <span class="swatch" style="background:${config.color}; color:${config.color};"></span>
+        <span>${config.label}</span>
+      `;
+
+      const note = document.createElement("div");
+      note.className = "graph-note";
+      note.textContent = config.note;
+
+      head.appendChild(title);
+      head.appendChild(note);
+
+      const shell = document.createElement("div");
+      shell.className = "canvas-shell";
+
+      const canvas = document.createElement("canvas");
+      canvas.width = 720;
+      canvas.height = 720;
+      canvas.setAttribute("aria-label", config.label);
+
+      shell.appendChild(canvas);
+      card.appendChild(head);
+      card.appendChild(shell);
+      graphsRoot.appendChild(card);
+
+      renderGraph(canvas, config);
+    }
+
+    function renderGraph(canvas, config) {
+      const ctx = canvas.getContext("2d");
+      const plot = {
+        width: canvas.width,
+        height: canvas.height,
+        margin: { top: 28, right: 30, bottom: 60, left: 72 },
+        xMin: config.xMin,
+        xMax: config.xMax,
+        yMin: config.yMin,
+        yMax: config.yMax
+      };
+
+      function mapX(x) {
+        const width = plot.width - plot.margin.left - plot.margin.right;
+        return plot.margin.left + ((x - plot.xMin) / (plot.xMax - plot.xMin)) * width;
+      }
+
+      function mapY(y) {
+        const height = plot.height - plot.margin.top - plot.margin.bottom;
+        return plot.margin.top + ((plot.yMax - y) / (plot.yMax - plot.yMin)) * height;
+      }
+
+      function drawBackground() {
+        const gradient = ctx.createLinearGradient(0, 0, 0, plot.height);
+        gradient.addColorStop(0, "#ece9e2");
+        gradient.addColorStop(1, "#e3dfd8");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, plot.width, plot.height);
+      }
+
+      function drawGrid() {
+        ctx.save();
+        ctx.strokeStyle = "rgba(99, 84, 66, 0.12)";
+        ctx.lineWidth = 1;
+
+        for (let x = config.xMin; x <= config.xMax + 0.000001; x += config.xStep) {
+          const px = mapX(x);
+          ctx.beginPath();
+          ctx.moveTo(px, plot.margin.top);
+          ctx.lineTo(px, plot.height - plot.margin.bottom);
+          ctx.stroke();
+        }
+
+        for (let y = config.yMin; y <= config.yMax + 0.000001; y += config.yStep) {
+          const py = mapY(y);
+          ctx.beginPath();
+          ctx.moveTo(plot.margin.left, py);
+          ctx.lineTo(plot.width - plot.margin.right, py);
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      }
+
+      function drawAxes() {
+        const xAxisY = plot.yMin <= 0 && plot.yMax >= 0 ? mapY(0) : mapY(plot.yMin);
+        const yAxisX = plot.xMin <= 0 && plot.xMax >= 0 ? mapX(0) : mapX(plot.xMin);
+
+        ctx.save();
+        ctx.strokeStyle = "rgba(74, 63, 49, 0.5)";
+        ctx.lineWidth = 1.35;
+
+        ctx.beginPath();
+        ctx.moveTo(plot.margin.left, xAxisY);
+        ctx.lineTo(plot.width - plot.margin.right, xAxisY);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(yAxisX, plot.margin.top);
+        ctx.lineTo(yAxisX, plot.height - plot.margin.bottom);
+        ctx.stroke();
+
+        ctx.fillStyle = "#7b6d5c";
+        ctx.font = "12px Helvetica Neue, Helvetica, Arial, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+
+        for (let x = config.xMin; x <= config.xMax + 0.000001; x += config.xStep) {
+          ctx.fillText(formatTick(x), mapX(x), xAxisY + 8);
+        }
+
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        for (let y = config.yMin; y <= config.yMax + 0.000001; y += config.yStep) {
+          ctx.fillText(formatTick(y), plot.margin.left - 10, mapY(y));
+        }
+
+        ctx.fillStyle = "#332c25";
+        ctx.font = "14px Helvetica Neue, Helvetica, Arial, sans-serif";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "bottom";
+        ctx.fillText("y", yAxisX + 6, plot.margin.top - 2);
+        ctx.fillText("x", plot.width - plot.margin.right + 8, xAxisY - 6);
+        ctx.restore();
+      }
+
+      function drawCurve() {
+        const samples = 1000;
+        const step = (plot.xMax - plot.xMin) / samples;
+        let started = false;
+
+        ctx.save();
+        ctx.strokeStyle = config.color;
+        ctx.lineWidth = 3;
+        ctx.shadowColor = config.color;
+        ctx.shadowBlur = 8;
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+        ctx.beginPath();
+
+        for (let i = 0; i <= samples; i += 1) {
+          const x = plot.xMin + i * step;
+          if (config.domain && !config.domain(x)) {
+            started = false;
+            continue;
+          }
+
+          const y = config.fn(x);
+          if (!Number.isFinite(y) || y < plot.yMin - 4 || y > plot.yMax + 4) {
+            started = false;
+            continue;
+          }
+
+          const px = mapX(x);
+          const py = mapY(y);
+
+          if (!started) {
+            ctx.moveTo(px, py);
+            started = true;
+          } else {
+            ctx.lineTo(px, py);
+          }
+        }
+
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      drawBackground();
+      drawGrid();
+      drawAxes();
+      drawCurve();
+    }
+
+    graphConfigs.forEach((config, index) => createGraphCard(config, index));
+  </script>
+</body>
+</html>

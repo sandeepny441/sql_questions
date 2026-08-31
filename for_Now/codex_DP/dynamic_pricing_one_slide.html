@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dynamic Pricing — One Model, Two LO Strategies</title>
+  <style>
+    :root {
+      --ink: #10233f;
+      --muted: #637288;
+      --line: #dce5ef;
+      --blue: #2563eb;
+      --blue-dark: #153f9f;
+      --blue-soft: #edf4ff;
+      --green: #15966a;
+      --green-dark: #087052;
+      --green-soft: #edf9f4;
+      --orange: #d97706;
+      --orange-soft: #fff5e8;
+      --slate-soft: #f3f6fa;
+      --paper: #ffffff;
+      --canvas: #eaf0f7;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      min-height: 100%;
+      margin: 0;
+      color: var(--ink);
+      background: var(--canvas);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      padding: 18px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 10% 8%, rgba(37, 99, 235, .09), transparent 31%),
+        radial-gradient(circle at 90% 92%, rgba(21, 150, 106, .08), transparent 30%),
+        var(--canvas);
+    }
+
+    .slide {
+      position: relative;
+      width: min(96vw, calc(92vh * 16 / 9), 1600px);
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      border-radius: 22px;
+      background:
+        linear-gradient(90deg, rgba(37,99,235,.025), transparent 38%, transparent 62%, rgba(21,150,106,.025)),
+        var(--paper);
+      box-shadow: 0 30px 82px rgba(20, 40, 72, .17), 0 2px 5px rgba(20, 40, 72, .08);
+    }
+
+    .slide::before {
+      position: absolute;
+      top: -20%;
+      left: 38%;
+      width: 24%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(69, 113, 220, .08), transparent 68%);
+      content: "";
+    }
+
+    header {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 4.2% 5.3% 0;
+    }
+
+    .eyebrow {
+      margin: 0 0 .65em;
+      color: var(--blue);
+      font-size: clamp(9px, .68vw, 13px);
+      font-weight: 800;
+      letter-spacing: .16em;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(30px, 3.15vw, 54px);
+      line-height: 1.04;
+      letter-spacing: -.045em;
+    }
+
+    .subtitle {
+      max-width: 820px;
+      margin: .75em 0 0;
+      color: var(--muted);
+      font-size: clamp(13px, 1.03vw, 18px);
+      line-height: 1.44;
+    }
+
+    .universe {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: .2%;
+      padding: 12px 16px;
+      border-left: 3px solid var(--blue);
+      background: #f4f7fc;
+    }
+
+    .universe strong {
+      font-size: clamp(21px, 1.75vw, 30px);
+      letter-spacing: -.04em;
+    }
+
+    .universe span {
+      max-width: 90px;
+      color: #6b7a8f;
+      font-size: clamp(8px, .58vw, 11px);
+      font-weight: 800;
+      letter-spacing: .09em;
+      line-height: 1.25;
+    }
+
+    .segmentation-line {
+      position: absolute;
+      top: 18.6%;
+      right: 5.3%;
+      left: 5.3%;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      z-index: 2;
+    }
+
+    .segmentation-line span {
+      height: 3px;
+    }
+
+    .segmentation-line span:first-child {
+      background: linear-gradient(90deg, var(--blue), #9bb8f8);
+    }
+
+    .segmentation-line span:last-child {
+      background: linear-gradient(90deg, #a9ddca, var(--green));
+    }
+
+    .segmentation-line strong {
+      padding: 0 14px;
+      color: #6c7a8e;
+      font-size: clamp(8px, .58vw, 11px);
+      letter-spacing: .13em;
+      white-space: nowrap;
+    }
+
+    .flow {
+      position: absolute;
+      inset: 22% 5.3% 10.5%;
+      display: grid;
+      grid-template-columns: 35.5% 25% 35.5%;
+      gap: 2%;
+      align-items: stretch;
+    }
+
+    .segment {
+      position: relative;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      padding: 5.2% 5.5% 4.8%;
+      border-top: 5px solid;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, .82);
+    }
+
+    .segment-high {
+      border-top-color: var(--blue);
+      border-left: 1px solid #d7e4fb;
+      background: linear-gradient(135deg, var(--blue-soft), #fff 57%);
+    }
+
+    .segment-low {
+      border-top-color: var(--green);
+      border-right: 1px solid #d4eadf;
+      background: linear-gradient(225deg, var(--green-soft), #fff 57%);
+    }
+
+    .segment-heading {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .segment-label {
+      margin: 0 0 .55em;
+      font-size: clamp(8px, .6vw, 11px);
+      font-weight: 800;
+      letter-spacing: .13em;
+    }
+
+    .segment-high .segment-label { color: var(--blue); }
+    .segment-low .segment-label { color: var(--green); }
+
+    .segment h2 {
+      margin: 0;
+      font-size: clamp(19px, 1.65vw, 29px);
+      line-height: 1.12;
+      letter-spacing: -.025em;
+    }
+
+    .volume-mark {
+      display: grid;
+      place-items: center;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      font-size: clamp(8px, .52vw, 10px);
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-align: center;
+    }
+
+    .segment-high .volume-mark {
+      color: #17459f;
+      background: #dbe8ff;
+    }
+
+    .segment-low .volume-mark {
+      color: #087052;
+      background: #d9f1e8;
+    }
+
+    .traits {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px 15px;
+      margin: 5% 0;
+      padding: 4% 0;
+      border-top: 1px solid rgba(145, 165, 192, .3);
+      border-bottom: 1px solid rgba(145, 165, 192, .3);
+    }
+
+    .traits span {
+      color: #59687c;
+      font-size: clamp(9px, .65vw, 12px);
+      line-height: 1.25;
+    }
+
+    .traits span::before {
+      display: inline-block;
+      width: 5px;
+      height: 5px;
+      margin-right: 7px;
+      border-radius: 50%;
+      vertical-align: .12em;
+      content: "";
+    }
+
+    .segment-high .traits span::before { background: #6f9cf4; }
+    .segment-low .traits span::before { background: #63bd9b; }
+
+    .subsegments {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 11px;
+      align-self: start;
+    }
+
+    .flag {
+      min-height: 102px;
+      padding: 12px 13px 11px;
+      border-left: 3px solid;
+      background: rgba(255, 255, 255, .78);
+    }
+
+    .flag b {
+      display: block;
+      margin-bottom: 6px;
+      font-size: clamp(9px, .63vw, 12px);
+      letter-spacing: .09em;
+    }
+
+    .flag p {
+      margin: 0;
+      color: #647287;
+      font-size: clamp(8px, .58vw, 11px);
+      line-height: 1.37;
+    }
+
+    .flag-blue { border-color: var(--blue); }
+    .flag-blue b { color: var(--blue-dark); }
+    .flag-green { border-color: var(--green); }
+    .flag-green b { color: var(--green-dark); }
+    .flag-orange { border-color: var(--orange); background: var(--orange-soft); }
+    .flag-orange b { color: #a45305; }
+    .flag-slate { border-color: #8b98aa; background: var(--slate-soft); }
+    .flag-slate b { color: #516074; }
+
+    .recommendation {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 12px;
+      margin-top: 5%;
+      padding: 12px 14px;
+      color: #fff;
+    }
+
+    .segment-high .recommendation {
+      background: linear-gradient(135deg, #245de0, var(--blue-dark));
+    }
+
+    .segment-low .recommendation {
+      background: linear-gradient(135deg, #1aa779, var(--green-dark));
+    }
+
+    .recommendation small {
+      display: block;
+      margin-bottom: 3px;
+      opacity: .78;
+      font-size: clamp(7px, .48vw, 9px);
+      font-weight: 800;
+      letter-spacing: .12em;
+    }
+
+    .recommendation strong {
+      font-size: clamp(13px, 1.04vw, 18px);
+      line-height: 1.16;
+    }
+
+    .recommendation em {
+      max-width: 105px;
+      font-size: clamp(7px, .5vw, 10px);
+      font-style: normal;
+      line-height: 1.3;
+      text-align: right;
+      opacity: .86;
+    }
+
+    .engine {
+      position: relative;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      align-items: center;
+      padding: 8% 7% 6%;
+      border: 1px solid #cfdbea;
+      background:
+        radial-gradient(circle at 50% 44%, rgba(37,99,235,.09), transparent 39%),
+        #fbfcfe;
+      box-shadow: 0 18px 44px rgba(22, 55, 94, .09);
+      text-align: center;
+      z-index: 3;
+    }
+
+    .engine::before,
+    .engine::after {
+      position: absolute;
+      top: 49%;
+      width: 9%;
+      height: 2px;
+      background: #aebdd0;
+      content: "";
+    }
+
+    .engine::before { right: 100%; }
+    .engine::after { left: 100%; }
+
+    .arrow-left,
+    .arrow-right {
+      position: absolute;
+      top: calc(49% - 5px);
+      width: 11px;
+      height: 11px;
+      border-top: 2px solid #aebdd0;
+      border-right: 2px solid #aebdd0;
+    }
+
+    .arrow-left {
+      left: -9%;
+      transform: rotate(45deg);
+    }
+
+    .arrow-right {
+      right: -9%;
+      transform: rotate(225deg);
+    }
+
+    .engine-top span {
+      display: block;
+      margin-bottom: 5px;
+      color: #7a889b;
+      font-size: clamp(7px, .5vw, 9px);
+      font-weight: 800;
+      letter-spacing: .14em;
+    }
+
+    .engine-top strong {
+      font-size: clamp(14px, 1.15vw, 20px);
+    }
+
+    .engine-core {
+      display: grid;
+      place-items: center;
+      align-self: center;
+    }
+
+    .model-ring {
+      display: grid;
+      place-items: center;
+      width: min(12.3vw, 200px);
+      aspect-ratio: 1;
+      padding: 15%;
+      border: 1px solid #b9cdf8;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 48%, #fff 0 48%, transparent 49%),
+        conic-gradient(from 210deg, #245de0, #8db1ff, #dfe9ff, #2e68ee);
+      box-shadow: 0 18px 45px rgba(37,99,235,.17);
+    }
+
+    .model-ring small {
+      color: var(--blue);
+      font-size: clamp(7px, .46vw, 9px);
+      font-weight: 800;
+      letter-spacing: .12em;
+    }
+
+    .model-ring strong {
+      margin: .38em 0;
+      font-size: clamp(15px, 1.3vw, 22px);
+      line-height: 1.03;
+    }
+
+    .model-ring span {
+      color: var(--muted);
+      font-size: clamp(7px, .54vw, 10px);
+      line-height: 1.25;
+    }
+
+    .engine-question {
+      margin: 5% 0 0;
+      color: #59687c;
+      font-size: clamp(8px, .62vw, 11px);
+      line-height: 1.4;
+    }
+
+    .engine-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+      margin-top: 6%;
+      color: #5f6e83;
+      font-size: clamp(7px, .48vw, 9px);
+      font-weight: 700;
+    }
+
+    .engine-inputs span {
+      padding: 5px 3px;
+      border-bottom: 1px solid #dfe6ef;
+    }
+
+    .guardrails {
+      align-self: end;
+      padding-top: 6%;
+      border-top: 1px solid #dbe4ef;
+    }
+
+    .guardrails > span {
+      display: block;
+      margin-bottom: 7px;
+      color: #8996a8;
+      font-size: clamp(7px, .45vw, 9px);
+      font-weight: 800;
+      letter-spacing: .11em;
+    }
+
+    .guardrail-list {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      color: #526176;
+      font-size: clamp(7px, .48vw, 9px);
+      font-weight: 700;
+    }
+
+    .guardrail-list i {
+      width: 4px;
+      height: 4px;
+      margin-top: 3px;
+      border-radius: 50%;
+      background: #9aabc0;
+    }
+
+    .bottom-line {
+      position: absolute;
+      right: 5.3%;
+      bottom: 3.4%;
+      left: 5.3%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: #59687d;
+      font-size: clamp(9px, .72vw, 13px);
+      text-align: center;
+    }
+
+    .bottom-line::before,
+    .bottom-line::after {
+      width: 11%;
+      height: 1px;
+      background: #d2dce8;
+      content: "";
+    }
+
+    .bottom-line strong { color: var(--ink); }
+
+    @media (max-width: 860px), (max-height: 560px) {
+      body {
+        display: block;
+        min-width: 1000px;
+        overflow: auto;
+      }
+
+      .slide {
+        width: 1000px;
+        margin: 16px auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="slide" aria-label="Dynamic pricing model overview">
+    <header>
+      <div>
+        <p class="eyebrow">DYNAMIC PRICING · SINGLE-SLIDE VIEW</p>
+        <h1>One pricing model. Two LO strategies.</h1>
+        <p class="subtitle">
+          Segment by activity and price response, then recommend the safest next
+          move for margin, volume, and relationship health.
+        </p>
+      </div>
+      <div class="universe">
+        <strong>50K</strong>
+        <span>LO POPULATION</span>
+      </div>
+    </header>
+
+    <div class="segmentation-line" aria-hidden="true">
+      <span></span>
+      <strong>SEGMENT BY ACTIVITY + PRICE RESPONSE</strong>
+      <span></span>
+    </div>
+
+    <section class="flow" aria-label="High-volume and low-volume LO decision flow">
+      <article class="segment segment-high">
+        <div class="segment-heading">
+          <div>
+            <p class="segment-label">HIGH-ACTIVE / HIGH-VOLUME LOs</p>
+            <h2>Protect volume.<br>Stretch margin carefully.</h2>
+          </div>
+          <div class="volume-mark">HIGH<br>VALUE</div>
+        </div>
+
+        <div class="traits" aria-label="High-volume LO traits">
+          <span>Monthly volume</span>
+          <span>Pull-through rate</span>
+          <span>Wallet share</span>
+          <span>Tenure &amp; referrals</span>
+        </div>
+
+        <div class="subsegments">
+          <div class="flag flag-blue">
+            <b>STRETCH</b>
+            <p>Stable close behavior and lower price sensitivity create margin opportunity.</p>
+          </div>
+          <div class="flag flag-orange">
+            <b>PROTECT</b>
+            <p>Rate shopping, concessions, or wallet-share decline signal relationship risk.</p>
+          </div>
+        </div>
+
+        <div class="recommendation">
+          <div>
+            <small>MODEL RECOMMENDS</small>
+            <strong>Maximum safe margin increase</strong>
+          </div>
+          <em>Stop before churn risk exceeds the approved limit</em>
+        </div>
+      </article>
+
+      <article class="engine">
+        <span class="arrow-left" aria-hidden="true"></span>
+        <span class="arrow-right" aria-hidden="true"></span>
+
+        <div class="engine-top">
+          <span>DYNAMIC PRICING ENGINE</span>
+          <strong>Test every approved BPS move</strong>
+        </div>
+
+        <div class="engine-core">
+          <div class="model-ring">
+            <small>MODEL OUTPUT</small>
+            <strong>Probability<br>of closing</strong>
+            <span>at each price point</span>
+          </div>
+          <p class="engine-question">
+            How does this LO respond when margin or incentive changes?
+          </p>
+          <div class="engine-inputs" aria-label="Model inputs">
+            <span>Pricing &amp; margin</span>
+            <span>LO profile</span>
+            <span>Loan traits</span>
+            <span>Market &amp; engagement</span>
+          </div>
+        </div>
+
+        <div class="guardrails">
+          <span>COMMON GUARDRAILS</span>
+          <div class="guardrail-list">
+            <b>Close probability</b><i></i>
+            <b>Relationship risk</b><i></i>
+            <b>Margin retained</b>
+          </div>
+        </div>
+      </article>
+
+      <article class="segment segment-low">
+        <div class="segment-heading">
+          <div>
+            <p class="segment-label">LOW-ACTIVE / DORMANT LOs</p>
+            <h2>Re-engage selectively.<br>Preserve margin.</h2>
+          </div>
+          <div class="volume-mark">LOW<br>ACTIVITY</div>
+        </div>
+
+        <div class="traits" aria-label="Low-volume LO traits">
+          <span>Recent activity</span>
+          <span>Prior peak volume</span>
+          <span>Concession response</span>
+          <span>Referral concentration</span>
+        </div>
+
+        <div class="subsegments">
+          <div class="flag flag-green">
+            <b>REACTIVATE</b>
+            <p>Past production and strong incentive response justify a targeted offer.</p>
+          </div>
+          <div class="flag flag-slate">
+            <b>HOLD BACK</b>
+            <p>Low opportunity or weak response means a deeper discount is unlikely to pay back.</p>
+          </div>
+        </div>
+
+        <div class="recommendation">
+          <div>
+            <small>MODEL RECOMMENDS</small>
+            <strong>Minimum effective discount</strong>
+          </div>
+          <em>Stop once the target re-engagement probability is reached</em>
+        </div>
+      </article>
+    </section>
+
+    <footer class="bottom-line">
+      <span><strong>Leadership decision:</strong> replace blanket pricing with bounded, LO-specific actions.</span>
+    </footer>
+  </main>
+</body>
+</html>

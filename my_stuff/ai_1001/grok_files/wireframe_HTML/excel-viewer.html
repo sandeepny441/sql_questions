@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistics Excel Viewer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --surface: #ffffff;
+            --border: #dfe4ee;
+            --text: #202735;
+            --muted: #5f6b80;
+            --faint: #8a95a8;
+            --accent: #00b7ff;
+            --accent-strong: #009fdb;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Lato", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text);
+            background: var(--bg);
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        button, input {
+            font: inherit;
+        }
+
+        .shell {
+            width: min(1420px, 100%);
+            min-height: 100vh;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 250px minmax(0, 1fr) 250px;
+            background: var(--surface);
+        }
+
+        .sidebar, .toc {
+            position: sticky;
+            top: 0;
+            align-self: start;
+            height: 100vh;
+            overflow: auto;
+            background: var(--surface);
+        }
+
+        .sidebar {
+            padding: 34px 22px 28px 28px;
+            border-right: 1px solid var(--border);
+        }
+
+        .toc {
+            padding: 22px 24px 28px;
+        }
+
+        .brand {
+            margin-bottom: 22px;
+            line-height: 1.08;
+        }
+
+        .brand strong {
+            display: block;
+            font-size: 1.02rem;
+            font-weight: 700;
+        }
+
+        .brand span {
+            display: block;
+            margin-top: 4px;
+            color: var(--accent-strong);
+            font-size: 0.98rem;
+            font-style: italic;
+        }
+
+        .file-upload {
+            margin-bottom: 20px;
+            padding: 12px;
+            border: 2px dashed var(--border);
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .file-upload input {
+            cursor: pointer;
+        }
+
+        .section-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .section-link {
+            display: block;
+            padding: 4px 0;
+            color: var(--muted);
+            line-height: 1.2;
+            cursor: pointer;
+        }
+
+        .section-link:hover {
+            color: var(--accent);
+        }
+
+        .section-link.active {
+            color: var(--accent-strong);
+            font-weight: 600;
+        }
+
+        .main {
+            padding: 28px 68px 56px;
+            min-width: 0;
+        }
+
+        .article {
+            max-width: 760px;
+        }
+
+        .eyebrow {
+            margin-bottom: 10px;
+            color: var(--faint);
+            font-size: 0.82rem;
+        }
+
+        .article h1 {
+            margin: 0;
+            font-size: clamp(2.5rem, 4vw, 3.5rem);
+            line-height: 1;
+            font-weight: 700;
+        }
+
+        .lede {
+            margin: 18px 0 26px;
+            color: var(--muted);
+            font-size: 1.02rem;
+            line-height: 1.7;
+        }
+
+        .content-section {
+            margin-top: 34px;
+        }
+
+        .content-section h2 {
+            margin: 0 0 12px;
+            font-size: 1.7rem;
+            line-height: 1.15;
+            font-weight: 700;
+        }
+
+        .content-section p {
+            margin: 0;
+            font-size: 1rem;
+            line-height: 1.75;
+            color: var(--text);
+        }
+
+        .toc h2 {
+            margin: 0 0 10px;
+            font-size: 1rem;
+            font-weight: 400;
+        }
+
+        .toc-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .toc-list li {
+            margin: 0;
+        }
+
+        .toc-link {
+            display: block;
+            padding: 4px 0 4px 10px;
+            border-left: 2px solid transparent;
+            color: var(--muted);
+            line-height: 1.2;
+            cursor: pointer;
+        }
+
+        .toc-link:hover {
+            color: var(--accent);
+        }
+
+        .toc-link.active {
+            border-left-color: var(--accent-strong);
+            color: #1c5fda;
+        }
+
+        .empty-note {
+            margin-top: 14px;
+            color: var(--faint);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .loading {
+            color: var(--muted);
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <aside class="sidebar">
+            <div class="brand">
+                <strong>Statistics</strong>
+                <span>Excel Viewer</span>
+            </div>
+
+            <div class="file-upload">
+                <input type="file" id="fileInput" accept=".xlsx,.xls" />
+                <small>📁 Upload Excel file</small>
+            </div>
+
+            <nav class="section-nav" id="sectionNav"></nav>
+        </aside>
+
+        <main class="main">
+            <article class="article">
+                <div class="eyebrow" id="articleEyebrow"></div>
+                <h1 id="articleTitle" class="loading">📂 Upload Excel file to begin...</h1>
+                <p class="lede" id="articleLede"></p>
+
+                <section class="content-section">
+                    <h2 id="sectionOneTitle"></h2>
+                    <p id="sectionOneBody"></p>
+                </section>
+
+                <section class="content-section">
+                    <h2 id="sectionTwoTitle"></h2>
+                    <p id="sectionTwoBody"></p>
+                </section>
+            </article>
+        </main>
+
+        <aside class="toc">
+            <h2>Topics</h2>
+            <ul class="toc-list" id="itemNav"></ul>
+            <p class="toc-caption">Select a chapter and topic to view content.</p>
+        </aside>
+    </div>
+
+    <script>
+        let content = {};
+        const state = {
+            chapter: null,
+            topic: null
+        };
+
+        const fileInput = document.getElementById('fileInput');
+        const sectionNav = document.getElementById('sectionNav');
+        const itemNav = document.getElementById('itemNav');
+        const articleEyebrow = document.getElementById('articleEyebrow');
+        const articleTitle = document.getElementById('articleTitle');
+        const articleLede = document.getElementById('articleLede');
+        const sectionOneTitle = document.getElementById('sectionOneTitle');
+        const sectionOneBody = document.getElementById('sectionOneBody');
+        const sectionTwoTitle = document.getElementById('sectionTwoTitle');
+        const sectionTwoBody = document.getElementById('sectionTwoBody');
+
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const data = new Uint8Array(event.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+
+                    // Skip Summary sheet, process chapter sheets
+                    const chapterSheets = workbook.SheetNames.filter(name => !name.includes('Summary'));
+
+                    content = {};
+                    chapterSheets.forEach((sheetName, index) => {
+                        const worksheet = workbook.Sheets[sheetName];
+                        const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                        // Parse chapter header (row 0)
+                        const chapterTitle = rows[0]?.[0] || sheetName;
+                        const chapterNum = String(index + 1);
+
+                        // Get data rows (skip header rows)
+                        const topicRows = rows.slice(3);
+
+                        const chapters = {
+                            number: chapterNum,
+                            label: chapterTitle.replace(/^Chapter \d+ - /, ''),
+                            items: topicRows.map(row => ({
+                                id: `ch${chapterNum}_topic${row[0]}`,
+                                number: row[0] || '',
+                                title: row[1] || '',
+                                lede: row[2] || '',
+                                sectionOneTitle: row[3] || 'Overview',
+                                sectionOneBody: row[4] || ''
+                            })).filter(item => item.number)
+                        };
+
+                        content[`chapter_${chapterNum}`] = chapters;
+                    });
+
+                    // Set initial state
+                    if (Object.keys(content).length > 0) {
+                        state.chapter = 'chapter_1';
+                        state.topic = content['chapter_1'].items[0].id;
+                        render();
+                    }
+                } catch (error) {
+                    alert('Error reading file: ' + error.message);
+                    console.error(error);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        function currentChapter() {
+            return content[state.chapter];
+        }
+
+        function currentTopic() {
+            const chapter = currentChapter();
+            return chapter.items.find(item => item.id === state.topic) || chapter.items[0];
+        }
+
+        function renderSectionNav() {
+            const chapters = Object.keys(content).sort((a, b) => {
+                const numA = parseInt(content[a].number);
+                const numB = parseInt(content[b].number);
+                return numA - numB;
+            });
+
+            sectionNav.innerHTML = chapters.map(key => {
+                const chapter = content[key];
+                const active = key === state.chapter ? ' active' : '';
+                return `<a class="section-link${active}" data-chapter="${key}">${chapter.number}. ${chapter.label}</a>`;
+            }).join('');
+
+            sectionNav.querySelectorAll('.section-link').forEach(link => {
+                link.addEventListener('click', () => {
+                    state.chapter = link.dataset.chapter;
+                    state.topic = currentChapter().items[0].id;
+                    render();
+                });
+            });
+        }
+
+        function renderItemNav() {
+            const chapter = currentChapter();
+            itemNav.innerHTML = chapter.items.map(item => {
+                const active = item.id === state.topic ? ' active' : '';
+                return `<li><a class="toc-link${active}" data-topic="${item.id}">${item.number}. ${item.title}</a></li>`;
+            }).join('');
+
+            itemNav.querySelectorAll('.toc-link').forEach(link => {
+                link.addEventListener('click', () => {
+                    state.topic = link.dataset.topic;
+                    render();
+                });
+            });
+        }
+
+        function renderArticle() {
+            const chapter = currentChapter();
+            const topic = currentTopic();
+
+            articleEyebrow.textContent = `${chapter.number}. ${chapter.label}`;
+            articleTitle.textContent = topic.title;
+            articleLede.textContent = topic.lede;
+
+            sectionOneTitle.textContent = topic.sectionOneTitle;
+            sectionOneBody.textContent = topic.sectionOneBody;
+
+            sectionTwoTitle.textContent = 'Additional Notes';
+            sectionTwoBody.textContent = '[Add your notes here]';
+        }
+
+        function render() {
+            if (Object.keys(content).length === 0) return;
+            renderSectionNav();
+            renderItemNav();
+            renderArticle();
+        }
+    </script>
+</body>
+</html>

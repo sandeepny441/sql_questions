@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Logistic Regression Churn Model</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #617089;
+      --line: #d7dee8;
+      --blue: #2f64b4;
+      --blue-bright: #2f80ed;
+      --blue-soft: #eaf2ff;
+      --green: #21855b;
+      --green-soft: #eaf8f1;
+      --red: #c84b47;
+      --red-soft: #fff0ef;
+      --surface: #ffffff;
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      color: var(--ink);
+      background: #dfe7f1;
+      font-family: Inter, Aptos, "Segoe UI", Arial, sans-serif;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+    }
+
+    .slide {
+      width: min(100vw, calc(100vh * 16 / 9));
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      padding: 3.2% 4.5% 2.6%;
+      background:
+        radial-gradient(circle at 18% -18%, #eef5ff 0, transparent 34%),
+        var(--surface);
+      box-shadow: 0 18px 60px rgb(41 58 82 / 18%);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 2%;
+    }
+
+    .eyebrow {
+      margin-bottom: .35em;
+      color: var(--blue);
+      font-size: clamp(9px, .72vw, 13px);
+      font-weight: 700;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(24px, 2.35vw, 40px);
+      line-height: 1.08;
+      letter-spacing: -.035em;
+      font-weight: 760;
+    }
+
+    .subtitle {
+      margin: .55em 0 0;
+      max-width: 78%;
+      color: var(--muted);
+      font-size: clamp(11px, .95vw, 16px);
+      line-height: 1.35;
+    }
+
+    .chart-wrap {
+      min-height: 0;
+      position: relative;
+    }
+
+    #churnChart {
+      width: 100%;
+      height: 100%;
+      display: block;
+      overflow: visible;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: .75em;
+    }
+
+    .current-state {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1em;
+      min-height: 2.5em;
+      padding: .7em 1em;
+      border-radius: .7em;
+      background: #f5f7fa;
+      border: 1px solid #dbe2eb;
+      font-size: clamp(10px, .9vw, 15px);
+    }
+
+    .current-state strong {
+      font-size: 1.18em;
+      color: #203a65;
+    }
+
+    .status {
+      padding: .38em .75em;
+      border-radius: 999px;
+      font-size: .88em;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .status.safe {
+      background: var(--green-soft);
+      color: #17603f;
+      border: 1px solid #78c8a3;
+    }
+
+    .status.risk {
+      background: var(--red-soft);
+      color: #9a302d;
+      border: 1px solid #e5a3a0;
+    }
+
+    .range-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 1.1em;
+    }
+
+    .range-row label,
+    .range-value {
+      font-size: clamp(10px, .86vw, 14px);
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .range-value {
+      min-width: 5.2em;
+      text-align: right;
+      color: var(--blue);
+      font-variant-numeric: tabular-nums;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 22px;
+      margin: 0;
+      accent-color: var(--blue-bright);
+      cursor: pointer;
+    }
+
+    input[type="range"]:focus-visible {
+      outline: 3px solid rgb(47 128 237 / 30%);
+      outline-offset: 3px;
+      border-radius: 999px;
+    }
+
+    .footnote {
+      color: var(--muted);
+      font-size: clamp(8px, .7vw, 12px);
+      line-height: 1.25;
+    }
+  </style>
+</head>
+<body>
+  <main class="slide" aria-labelledby="slide-title">
+    <header>
+      <div class="eyebrow">Active LO strategy · logistic regression</div>
+      <h1 id="slide-title">How margin stretch changes predicted churn risk</h1>
+      <p class="subtitle">
+        Historical coefficients translate each lender-margin increase into a churn probability while the loan officer’s other observed characteristics remain fixed.
+      </p>
+    </header>
+
+    <section class="chart-wrap">
+      <svg
+        id="churnChart"
+        viewBox="0 0 1200 500"
+        role="img"
+        aria-labelledby="chartTitle chartDescription"
+      >
+        <title id="chartTitle">Predicted churn probability by lender margin stretch</title>
+        <desc id="chartDescription">
+          An illustrative logistic regression curve. Churn probability rises as lender margin stretch increases. A horizontal line marks the five percent churn guardrail.
+        </desc>
+      </svg>
+    </section>
+
+    <section class="controls" aria-label="Margin stretch control">
+      <div class="current-state" aria-live="polite">
+        <span>
+          At <strong id="selectedBps">+10 BPS</strong>, predicted churn is
+          <strong id="selectedProbability">3.6%</strong>
+        </span>
+        <span class="status safe" id="statusBadge">Within 5% churn guardrail</span>
+      </div>
+
+      <div class="range-row">
+        <label for="marginSlider">Lender margin stretch</label>
+        <input
+          id="marginSlider"
+          type="range"
+          min="0"
+          max="40"
+          step="1"
+          value="10"
+          aria-describedby="modelNote"
+        >
+        <output class="range-value" id="sliderValue" for="marginSlider">+10 BPS</output>
+      </div>
+
+      <div class="footnote" id="modelNote">
+        Illustrative curve: the intercept and margin coefficient must be fitted and recalibrated using actual historical outcomes before pricing use.
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const svg = document.getElementById("churnChart");
+      const slider = document.getElementById("marginSlider");
+      const selectedBps = document.getElementById("selectedBps");
+      const selectedProbability = document.getElementById("selectedProbability");
+      const sliderValue = document.getElementById("sliderValue");
+      const statusBadge = document.getElementById("statusBadge");
+
+      const NS = "http://www.w3.org/2000/svg";
+      const width = 1200;
+      const height = 500;
+      const margin = { top: 38, right: 45, bottom: 72, left: 92 };
+      const plotWidth = width - margin.left - margin.right;
+      const plotHeight = height - margin.top - margin.bottom;
+      const xMax = 40;
+      const yMax = 0.25;
+      const churnGuardrail = 0.05;
+
+      // Illustrative logistic-regression coefficients.
+      // Other analyzed LO features are held fixed inside the intercept.
+      const intercept = -4.0;
+      const marginCoefficient = 0.07;
+
+      const probability = (bps) =>
+        1 / (1 + Math.exp(-(intercept + marginCoefficient * bps)));
+      const xScale = (bps) => margin.left + (bps / xMax) * plotWidth;
+      const yScale = (value) =>
+        margin.top + plotHeight - (value / yMax) * plotHeight;
+
+      const safeCrossover =
+        (Math.log(churnGuardrail / (1 - churnGuardrail)) - intercept) /
+        marginCoefficient;
+
+      const add = (tag, attributes = {}, text = "") => {
+        const element = document.createElementNS(NS, tag);
+        Object.entries(attributes).forEach(([key, value]) =>
+          element.setAttribute(key, value)
+        );
+        if (text) element.textContent = text;
+        svg.appendChild(element);
+        return element;
+      };
+
+      add("rect", {
+        x: margin.left,
+        y: margin.top,
+        width: Math.max(0, xScale(safeCrossover) - margin.left),
+        height: plotHeight,
+        fill: "#eaf8f1",
+        opacity: "0.72",
+      });
+
+      for (let value = 0; value <= 0.2501; value += 0.05) {
+        const y = yScale(value);
+        add("line", {
+          x1: margin.left,
+          x2: width - margin.right,
+          y1: y,
+          y2: y,
+          stroke: "#dbe2eb",
+          "stroke-width": "1",
+        });
+        add(
+          "text",
+          {
+            x: margin.left - 16,
+            y: y + 5,
+            "text-anchor": "end",
+            fill: "#6b7890",
+            "font-size": "15",
+            "font-family": "Inter, Aptos, Segoe UI, Arial, sans-serif",
+          },
+          `${Math.round(value * 100)}%`
+        );
+      }
+
+      for (let bps = 0; bps <= xMax; bps += 5) {
+        const x = xScale(bps);
+        add("line", {
+          x1: x,
+          x2: x,
+          y1: margin.top,
+          y2: height - margin.bottom,
+          stroke: "#eef1f5",
+          "stroke-width": "1",
+        });
+        add(
+          "text",
+          {
+            x,
+            y: height - margin.bottom + 30,
+            "text-anchor": "middle",
+            fill: "#6b7890",
+            "font-size": "15",
+            "font-family": "Inter, Aptos, Segoe UI, Arial, sans-serif",
+          },
+          `+${bps}`
+        );
+      }
+
+      add("line", {
+        x1: margin.left,
+        x2: width - margin.right,
+        y1: height - margin.bottom,
+        y2: height - margin.bottom,
+        stroke: "#77869a",
+        "stroke-width": "1.5",
+      });
+      add("line", {
+        x1: margin.left,
+        x2: margin.left,
+        y1: margin.top,
+        y2: height - margin.bottom,
+        stroke: "#77869a",
+        "stroke-width": "1.5",
+      });
+
+      const guardrailY = yScale(churnGuardrail);
+      add("line", {
+        x1: margin.left,
+        x2: width - margin.right,
+        y1: guardrailY,
+        y2: guardrailY,
+        stroke: "#c84b47",
+        "stroke-width": "2",
+        "stroke-dasharray": "8 7",
+      });
+      add(
+        "text",
+        {
+          x: width - margin.right - 8,
+          y: guardrailY - 11,
+          "text-anchor": "end",
+          fill: "#a63834",
+          "font-size": "15",
+          "font-weight": "700",
+          "font-family": "Inter, Aptos, Segoe UI, Arial, sans-serif",
+        },
+        "5% churn guardrail"
+      );
+
+      add(
+        "text",
+        {
+          x: (margin.left + width - margin.right) / 2,
+          y: height - 18,
+          "text-anchor": "middle",
+          fill: "#35445a",
+          "font-size": "17",
+          "font-weight": "700",
+          "font-family": "Inter, Aptos, Segoe UI, Arial, sans-serif",
+        },
+        "Lender Margin Stretch (Basis Points)"
+      );
+
+      add(
+        "text",
+        {
+          x: 23,
+          y: margin.top + plotHeight / 2,
+          transform: `rotate(-90 23 ${margin.top + plotHeight / 2})`,
+          "text-anchor": "middle",
+          fill: "#35445a",
+          "font-size": "17",
+          "font-weight": "700",
+          "font-family": "Inter, Aptos, Segoe UI, Arial, sans-serif",
+        },
+        "Predicted Probability of Churn"
+      );
+
+      let curvePath = "";
+      for (let bps = 0; bps <= xMax; bps += 0.25) {
+        const x = xScale(bps);
+        const y = yScale(probability(bps));
+        curvePath += `${bps === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)} `;
+      }
+      add("path", {
+        d: curvePath.trim(),
+        fill: "none",
+        stroke: "#2f64b4",
+        "stroke-width": "5",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round",
+      });
+
+      add(
+        "text",
+        {
+          x: margin.left + 16,
+          y: margin.top + 25,
+          fill: "#17603f",
+          "font-size": "14",
+          "font-weight": "700",
+          "font-family": "Inter, Aptos, Segoe UI, Arial, sans-serif",
+        },
+        `Illustrative safe corridor: 0 to +${Math.floor(safeCrossover)} BPS`
+      );
+
+      const guide = add("line", {
+        y1: margin.top,
+        y2: height - margin.bottom,
+        stroke: "#2f80ed",
+        "stroke-width": "2",
+        "stroke-dasharray": "5 6",
+        opacity: "0.75",
+      });
+      const dotHalo = add("circle", {
+        r: "12",
+        fill: "#ffffff",
+        stroke: "#2f80ed",
+        "stroke-width": "3",
+      });
+      const dot = add("circle", {
+        r: "5.5",
+        fill: "#2f80ed",
+      });
+
+      const tag = add("g");
+      const tagRect = document.createElementNS(NS, "rect");
+      tagRect.setAttribute("width", "198");
+      tagRect.setAttribute("height", "58");
+      tagRect.setAttribute("rx", "10");
+      tagRect.setAttribute("fill", "#203a65");
+      tag.appendChild(tagRect);
+
+      const tagMargin = document.createElementNS(NS, "text");
+      tagMargin.setAttribute("x", "14");
+      tagMargin.setAttribute("y", "22");
+      tagMargin.setAttribute("fill", "#cfe0ff");
+      tagMargin.setAttribute("font-size", "13");
+      tagMargin.setAttribute("font-weight", "700");
+      tagMargin.setAttribute(
+        "font-family",
+        "Inter, Aptos, Segoe UI, Arial, sans-serif"
+      );
+      tag.appendChild(tagMargin);
+
+      const tagRisk = document.createElementNS(NS, "text");
+      tagRisk.setAttribute("x", "14");
+      tagRisk.setAttribute("y", "45");
+      tagRisk.setAttribute("fill", "#ffffff");
+      tagRisk.setAttribute("font-size", "18");
+      tagRisk.setAttribute("font-weight", "800");
+      tagRisk.setAttribute(
+        "font-family",
+        "Inter, Aptos, Segoe UI, Arial, sans-serif"
+      );
+      tag.appendChild(tagRisk);
+
+      const update = () => {
+        const bps = Number(slider.value);
+        const risk = probability(bps);
+        const x = xScale(bps);
+        const y = yScale(risk);
+        const formattedRisk = `${(risk * 100).toFixed(1)}%`;
+        const formattedBps = `+${bps} BPS`;
+        const isSafe = risk <= churnGuardrail;
+
+        guide.setAttribute("x1", x);
+        guide.setAttribute("x2", x);
+        dotHalo.setAttribute("cx", x);
+        dotHalo.setAttribute("cy", y);
+        dot.setAttribute("cx", x);
+        dot.setAttribute("cy", y);
+
+        const tagX = Math.min(
+          width - margin.right - 198,
+          Math.max(margin.left + 6, x - 99)
+        );
+        const tagY = Math.max(margin.top + 8, y - 76);
+        tag.setAttribute("transform", `translate(${tagX} ${tagY})`);
+        tagMargin.textContent = `${formattedBps} margin stretch`;
+        tagRisk.textContent = `${formattedRisk} churn probability`;
+
+        selectedBps.textContent = formattedBps;
+        selectedProbability.textContent = formattedRisk;
+        sliderValue.textContent = formattedBps;
+        slider.setAttribute(
+          "aria-valuetext",
+          `${formattedBps}, ${formattedRisk} predicted churn`
+        );
+
+        statusBadge.textContent = isSafe
+          ? "Within 5% churn guardrail"
+          : "Above 5% churn guardrail";
+        statusBadge.className = `status ${isSafe ? "safe" : "risk"}`;
+      };
+
+      slider.addEventListener("input", update);
+      update();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1090 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LO Dynamic Pricing Strategy</title>
+  <style>
+    :root {
+      --ink: #10233f;
+      --muted: #65748a;
+      --line: #dce5f0;
+      --canvas: #edf2f8;
+      --blue: #2563eb;
+      --blue-dark: #163f9f;
+      --green: #15966a;
+      --green-dark: #087052;
+      --orange: #d97706;
+      --paper: #ffffff;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      min-height: 100%;
+      margin: 0;
+      color: var(--ink);
+      background: var(--canvas);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      padding: 18px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 8% 8%, rgba(37,99,235,.09), transparent 31%),
+        radial-gradient(circle at 92% 92%, rgba(21,150,106,.08), transparent 29%),
+        var(--canvas);
+    }
+
+    button { font: inherit; }
+
+    .deck {
+      width: min(96vw, calc(88vh * 16 / 9), 1600px);
+    }
+
+    .stage {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      border-radius: 22px;
+      background: var(--paper);
+      box-shadow: 0 28px 80px rgba(20,40,72,.17), 0 2px 5px rgba(20,40,72,.09);
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: none;
+      overflow: hidden;
+      background: var(--paper);
+      animation: enter .28s ease-out;
+    }
+
+    .slide.active { display: block; }
+
+    @keyframes enter {
+      from { opacity: .3; transform: translateY(7px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .eyebrow {
+      margin: 0 0 .75em;
+      color: var(--blue);
+      font-size: clamp(9px, .72vw, 14px);
+      font-weight: 800;
+      letter-spacing: .16em;
+    }
+
+    .eyebrow.green { color: var(--green); }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 3.2vw, 55px);
+      line-height: 1.04;
+      letter-spacing: -.045em;
+    }
+
+    .subtitle {
+      max-width: 880px;
+      margin: 1em 0 0;
+      color: var(--muted);
+      font-size: clamp(13px, 1.22vw, 21px);
+      line-height: 1.45;
+    }
+
+    .slide-number {
+      color: #cad4e1;
+      font-size: clamp(28px, 4vw, 64px);
+      font-weight: 800;
+      letter-spacing: -.06em;
+    }
+
+    /* Slide 1 */
+    .overview-header {
+      display: flex;
+      justify-content: space-between;
+      padding: 5.2% 5.8% 0;
+    }
+
+    .overview-flow {
+      position: absolute;
+      inset: 32% 5.8% 14%;
+      display: grid;
+      grid-template-columns: 25% 7% 21% 8% 39%;
+      align-items: center;
+    }
+
+    .inputs {
+      padding-left: 6%;
+      border-left: 5px solid #d6e3ff;
+    }
+
+    .flow-kicker {
+      margin: 0 0 .75em;
+      color: #8795a9;
+      font-size: clamp(8px, .62vw, 12px);
+      font-weight: 800;
+      letter-spacing: .15em;
+    }
+
+    .inputs h2 {
+      margin: 0 0 1em;
+      font-size: clamp(17px, 1.6vw, 28px);
+      line-height: 1.15;
+    }
+
+    .input-list {
+      display: grid;
+      gap: .65em;
+      color: #57667b;
+      font-size: clamp(11px, .92vw, 16px);
+    }
+
+    .input-list span::before {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      margin-right: 10px;
+      border-radius: 50%;
+      background: #7da2f6;
+      vertical-align: .12em;
+      content: "";
+    }
+
+    .arrow {
+      position: relative;
+      height: 2px;
+      background: #cbd8e8;
+    }
+
+    .arrow::after {
+      position: absolute;
+      top: -5px;
+      right: -1px;
+      width: 11px;
+      height: 11px;
+      border-top: 2px solid #cbd8e8;
+      border-right: 2px solid #cbd8e8;
+      transform: rotate(45deg);
+      content: "";
+    }
+
+    .engine {
+      display: grid;
+      place-items: center;
+    }
+
+    .engine-ring {
+      display: grid;
+      place-items: center;
+      width: min(14vw, 230px);
+      aspect-ratio: 1;
+      padding: 13%;
+      border: 1px solid #bcd0fb;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 48%, #fff 0 45%, transparent 46%),
+        conic-gradient(from 220deg, #2f6bf4, #8cb0ff, #dce8ff, #2f6bf4);
+      box-shadow: 0 18px 50px rgba(37,99,235,.18);
+      text-align: center;
+    }
+
+    .engine-ring span {
+      color: var(--blue);
+      font-size: clamp(7px, .54vw, 10px);
+      font-weight: 800;
+      letter-spacing: .13em;
+    }
+
+    .engine-ring strong {
+      margin: .4em 0;
+      font-size: clamp(14px, 1.32vw, 23px);
+      line-height: 1.05;
+    }
+
+    .engine-ring em {
+      color: var(--muted);
+      font-size: clamp(8px, .68vw, 12px);
+      font-style: normal;
+    }
+
+    .branches {
+      position: relative;
+      height: 68%;
+    }
+
+    .branches::before {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 52%;
+      height: 2px;
+      background: #cbd8e8;
+      content: "";
+    }
+
+    .branches::after {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 52%;
+      width: 2px;
+      background: #cbd8e8;
+      content: "";
+    }
+
+    .branch-top, .branch-bottom {
+      position: absolute;
+      left: 52%;
+      width: 48%;
+      height: 2px;
+      background: #cbd8e8;
+    }
+
+    .branch-top { top: 0; }
+    .branch-bottom { bottom: 0; }
+
+    .decisions {
+      display: grid;
+      gap: 16px;
+    }
+
+    .decision {
+      display: grid;
+      grid-template-columns: 1fr 1.08fr;
+      min-height: 112px;
+      overflow: hidden;
+      border: 1px solid #dde6f2;
+      border-radius: 15px;
+      box-shadow: 0 10px 28px rgba(26,50,82,.08);
+    }
+
+    .decision-label, .decision-output {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 7% 9%;
+    }
+
+    .decision-label span, .decision-output small {
+      margin-bottom: .5em;
+      font-size: clamp(7px, .56vw, 10px);
+      font-weight: 800;
+      letter-spacing: .12em;
+    }
+
+    .decision-label strong, .decision-output b {
+      font-size: clamp(14px, 1.16vw, 20px);
+      line-height: 1.2;
+    }
+
+    .active-decision .decision-label span { color: var(--blue); }
+    .dormant-decision .decision-label span { color: var(--green); }
+
+    .decision-output { color: #fff; }
+    .active-decision .decision-output { background: linear-gradient(135deg,#245de0,#163f9f); }
+    .dormant-decision .decision-output { background: linear-gradient(135deg,#1aa779,#087052); }
+
+    .guardrail {
+      position: absolute;
+      right: 5.8%;
+      bottom: 4.2%;
+      left: 5.8%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1.6%;
+      padding-top: 1.3%;
+      border-top: 1px solid #dfe7f1;
+      color: #516074;
+      font-size: clamp(9px, .82vw, 14px);
+    }
+
+    .guardrail > span {
+      color: #8795a9;
+      font-size: .72em;
+      font-weight: 800;
+      letter-spacing: .12em;
+    }
+
+    .guardrail i {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #a7b6ca;
+    }
+
+    /* Detail slides */
+    .detail-header {
+      height: 20%;
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      align-items: start;
+      gap: 2%;
+      padding: 3.1% 4.4% 0;
+    }
+
+    .detail-header h1 { font-size: clamp(24px, 2.35vw, 41px); }
+
+    .detail-header .subtitle {
+      max-width: 730px;
+      margin-top: .65em;
+      font-size: clamp(10px, .86vw, 15px);
+    }
+
+    .detail-header .slide-number { font-size: clamp(26px, 3vw, 47px); }
+
+    .callouts { display: flex; gap: 10px; }
+
+    .callout {
+      min-width: 150px;
+      padding: 11px 15px 10px;
+      border: 1px solid;
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 7px 18px rgba(18,41,70,.06);
+    }
+
+    .callout span {
+      display: block;
+      font-size: clamp(7px, .46vw, 9px);
+      font-weight: 800;
+      letter-spacing: .11em;
+    }
+
+    .callout strong {
+      display: block;
+      margin-top: 4px;
+      font-size: clamp(18px, 1.75vw, 30px);
+      letter-spacing: -.04em;
+    }
+
+    .callout small {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: clamp(7px, .48vw, 9px);
+    }
+
+    .blue-callout { color: var(--blue-dark); border-color: #b6cdfd; background: #f7faff; }
+    .green-callout { color: var(--green-dark); border-color: #b7e4d3; background: #f4fbf8; }
+    .orange-callout { color: #a45305; border-color: #f2c78f; background: #fffaf3; }
+
+    .detail-grid {
+      position: absolute;
+      inset: 21% 4.4% 5.5%;
+      display: grid;
+      grid-template-columns: 18% 60% 22%;
+      border-top: 1px solid #e2e9f2;
+    }
+
+    .profile, .lookup-panel { padding-top: 8%; }
+    .profile { padding-right: 14%; border-right: 1px solid #e2e9f2; }
+    .lookup-panel { padding-left: 14%; border-left: 1px solid #e2e9f2; }
+
+    .profile-title span {
+      display: block;
+      margin-bottom: 5px;
+      color: #8997aa;
+      font-size: clamp(7px, .48vw, 9px);
+      font-weight: 800;
+      letter-spacing: .12em;
+    }
+
+    .profile-title strong {
+      display: block;
+      font-size: clamp(17px, 1.42vw, 24px);
+    }
+
+    .profile-title small {
+      display: block;
+      margin-top: 3px;
+      color: #8190a3;
+      font-size: clamp(8px, .62vw, 11px);
+    }
+
+    .status {
+      display: inline-block;
+      margin: 13% 0 10%;
+      padding: 6px 10px;
+      border-radius: 5px;
+      font-size: clamp(7px, .54vw, 10px);
+      font-weight: 800;
+      letter-spacing: .08em;
+    }
+
+    .status.active-lo { color: #1e4fae; background: #eaf1ff; }
+    .status.dormant-lo { color: #9b4b04; background: #fff1df; }
+
+    .metric {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 11%;
+      padding-bottom: 7px;
+      border-bottom: 3px solid #b9cdf9;
+      font-size: clamp(8px, .65vw, 12px);
+    }
+
+    .metric.green { border-color: #bbe5d6; }
+    .metric span { color: #69778b; }
+    .metric strong { color: #214fb4; white-space: nowrap; }
+    .metric.green strong { color: var(--green-dark); }
+
+    .profile-note {
+      margin-top: 14%;
+      color: #66758a;
+      font-size: clamp(8px, .65vw, 12px);
+      line-height: 1.48;
+    }
+
+    .chart-panel { padding: 3% 4.5% 0; }
+
+    .chart-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 1%;
+      font-size: clamp(9px, .73vw, 13px);
+      font-weight: 800;
+    }
+
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .chart-svg {
+      display: block;
+      width: 100%;
+      height: 63%;
+      overflow: visible;
+    }
+
+    .chart-svg text {
+      font-family: Arial, Helvetica, sans-serif;
+      fill: #718097;
+      font-size: 12px;
+    }
+
+    .chart-svg .axis-title {
+      fill: #64748b;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+
+    .chart-svg .safe-text {
+      fill: #69819d;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+
+    .chart-svg .threshold-title {
+      fill: var(--ink);
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .chart-svg .threshold-copy { font-size: 11px; }
+
+    .insight {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      gap: 14px;
+      margin: 0 3% 0 8%;
+      padding: 2% 3%;
+      border-top: 1px solid #e0e8f2;
+    }
+
+    .insight strong {
+      color: var(--blue);
+      font-size: clamp(20px, 1.8vw, 31px);
+      letter-spacing: -.05em;
+    }
+
+    .insight.green strong { color: var(--green); }
+
+    .insight p {
+      margin: 0;
+      color: #66758a;
+      font-size: clamp(8px, .62vw, 11px);
+      line-height: 1.42;
+    }
+
+    .insight p strong {
+      color: var(--ink);
+      font-size: inherit;
+      letter-spacing: normal;
+    }
+
+    .lookup h3 {
+      margin: 0 0 10%;
+      font-size: clamp(12px, .98vw, 17px);
+    }
+
+    .lookup-head, .lookup-row {
+      display: grid;
+      grid-template-columns: .6fr 1fr;
+      align-items: center;
+    }
+
+    .lookup-head {
+      padding: 0 9% 7px;
+      color: #8a98aa;
+      font-size: clamp(7px, .44vw, 9px);
+      font-weight: 800;
+      letter-spacing: .1em;
+    }
+
+    .lookup-head span:last-child, .lookup-row span { text-align: right; }
+
+    .lookup-row {
+      min-height: 36px;
+      padding: 0 9%;
+      border-bottom: 1px solid #e8edf4;
+      font-size: clamp(9px, .66vw, 12px);
+    }
+
+    .lookup-row span { color: #5f6e82; }
+
+    .lookup-row.highlight {
+      border-radius: 6px;
+      color: var(--green-dark);
+      background: #dff5eb;
+      box-shadow: inset 3px 0 0 var(--green);
+    }
+
+    .lookup-row.highlight span { color: var(--green-dark); font-weight: 800; }
+
+    .takeaway {
+      margin-top: 14%;
+      padding: 12px 13px;
+      border-left: 3px solid var(--blue);
+      border-radius: 3px 8px 8px 3px;
+      background: #f2f6ff;
+    }
+
+    .takeaway.green { border-color: var(--green); background: #effaf6; }
+
+    .takeaway span {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--blue);
+      font-size: clamp(7px, .44vw, 9px);
+      font-weight: 800;
+      letter-spacing: .1em;
+    }
+
+    .takeaway.green span { color: var(--green); }
+
+    .takeaway p {
+      margin: 0;
+      color: #59687c;
+      font-size: clamp(8px, .6vw, 11px);
+      line-height: 1.43;
+    }
+
+    .illustrative {
+      position: absolute;
+      right: 4.4%;
+      bottom: 1.6%;
+      color: #98a4b4;
+      font-size: clamp(7px, .45vw, 9px);
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 13px;
+      height: 52px;
+    }
+
+    .controls > button {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      border: 1px solid #cad4e1;
+      border-radius: 50%;
+      color: #31445f;
+      background: rgba(255,255,255,.9);
+      cursor: pointer;
+    }
+
+    .dots { display: flex; gap: 7px; }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      padding: 0;
+      border: 0;
+      border-radius: 99px;
+      background: #afbdcd;
+      cursor: pointer;
+      transition: .16s ease;
+    }
+
+    .dot.current { width: 26px; background: var(--blue); }
+
+    .count {
+      min-width: 54px;
+      color: #66758a;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .08em;
+    }
+
+    .hint {
+      margin-top: -4px;
+      color: #8996a8;
+      font-size: 10px;
+      text-align: center;
+    }
+
+    @media (max-width: 820px), (max-height: 560px) {
+      body { display: block; min-width: 920px; overflow: auto; }
+      .deck { width: 920px; margin: 16px auto; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .slide { animation: none; }
+      .dot { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck" aria-label="LO dynamic pricing leadership presentation">
+    <div class="stage">
+      <!-- Slide 1: holistic model -->
+      <section class="slide active" aria-label="One model, two pricing decisions">
+        <header class="overview-header">
+          <div>
+            <p class="eyebrow">DYNAMIC PRICING · LEADERSHIP OVERVIEW</p>
+            <h1>One model. Two pricing decisions.</h1>
+            <p class="subtitle">
+              Match margin to each LO's likelihood to close—without giving away
+              volume or stretching the relationship too far.
+            </p>
+          </div>
+          <div class="slide-number">01</div>
+        </header>
+
+        <div class="overview-flow">
+          <div class="inputs">
+            <p class="flow-kicker">WHAT THE MODEL SEES</p>
+            <h2>LO + opportunity context</h2>
+            <div class="input-list">
+              <span>Activity &amp; production</span>
+              <span>Relationship strength</span>
+              <span>Pricing behavior</span>
+              <span>Loan &amp; market context</span>
+            </div>
+          </div>
+
+          <div class="arrow" aria-hidden="true"></div>
+
+          <div class="engine">
+            <div class="engine-ring">
+              <span>MODEL OUTPUT</span>
+              <strong>Probability<br>of closing</strong>
+              <em>at each pricing move</em>
+            </div>
+          </div>
+
+          <div class="branches" aria-hidden="true">
+            <span class="branch-top"></span>
+            <span class="branch-bottom"></span>
+          </div>
+
+          <div class="decisions">
+            <div class="decision active-decision">
+              <div class="decision-label">
+                <span>HIGH-ACTIVE LOs</span>
+                <strong>Protect &amp; stretch</strong>
+              </div>
+              <div class="decision-output">
+                <small>FIND THE</small>
+                <b>Maximum safe<br>margin increase</b>
+              </div>
+            </div>
+
+            <div class="decision dormant-decision">
+              <div class="decision-label">
+                <span>LOW-ACTIVE LOs</span>
+                <strong>Re-engage efficiently</strong>
+              </div>
+              <div class="decision-output">
+                <small>FIND THE</small>
+                <b>Minimum effective<br>discount</b>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <footer class="guardrail">
+          <span>THE COMMON GUARDRAIL</span>
+          <strong>Closing probability</strong>
+          <i></i>
+          <strong>Relationship risk</strong>
+          <i></i>
+          <strong>Margin protection</strong>
+        </footer>
+      </section>
+
+      <!-- Slide 2: high-active LO -->
+      <section class="slide" aria-label="High-active LO pricing curve">
+        <header class="detail-header">
+          <div>
+            <p class="eyebrow">HIGH-ACTIVE LO · PROTECT &amp; STRETCH</p>
+            <h1>Find the maximum safe margin increase</h1>
+            <p class="subtitle">
+              Stretch pricing only while close probability remains strong and
+              relationship risk stays inside the approved corridor.
+            </p>
+          </div>
+          <div class="callouts">
+            <div class="callout blue-callout">
+              <span>MAXIMUM SAFE STRETCH</span>
+              <strong>+16 bps</strong>
+            </div>
+            <div class="callout green-callout">
+              <span>RELATIONSHIP RISK</span>
+              <strong>&lt; 5%</strong>
+            </div>
+          </div>
+          <div class="slide-number">02</div>
+        </header>
+
+        <div class="detail-grid">
+          <aside class="profile">
+            <div class="profile-title">
+              <span>ILLUSTRATIVE LO</span>
+              <strong>Sarah Chen</strong>
+              <small>NMLS# 1284503</small>
+            </div>
+            <div class="status active-lo">HIGH ACTIVITY</div>
+            <div class="metric"><span>Monthly volume</span><strong>$3.2M</strong></div>
+            <div class="metric green"><span>Pull-through</span><strong>89%</strong></div>
+            <div class="metric"><span>Tenure</span><strong>11 yrs</strong></div>
+            <div class="metric green"><span>Wallet share</span><strong>24%</strong></div>
+            <div class="profile-note">
+              Strong closing behavior creates room to test modest margin increases.
+            </div>
+          </aside>
+
+          <div class="chart-panel">
+            <div class="chart-label" style="color:#2563eb">
+              <span class="legend-dot"></span>Probability of closing
+            </div>
+            <svg class="chart-svg" viewBox="0 0 840 430" role="img"
+                 aria-label="Probability of closing decreases as lender margin increases">
+              <defs>
+                <linearGradient id="activeArea" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#2563eb" stop-opacity=".20"/>
+                  <stop offset="100%" stop-color="#2563eb" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <rect x="70" y="30" width="284" height="330" fill="#2563eb" opacity=".055"/>
+              <text x="84" y="52" class="safe-text">SAFE TEST CORRIDOR</text>
+
+              <g stroke="#dfe6ef" stroke-width="1">
+                <line x1="70" y1="30" x2="780" y2="30"/>
+                <line x1="70" y1="140" x2="780" y2="140"/>
+                <line x1="70" y1="250" x2="780" y2="250"/>
+                <line x1="70" y1="360" x2="780" y2="360"/>
+                <line x1="70" y1="30" x2="70" y2="360"/>
+                <line x1="212" y1="30" x2="212" y2="360"/>
+                <line x1="354" y1="30" x2="354" y2="360"/>
+                <line x1="496" y1="30" x2="496" y2="360"/>
+                <line x1="638" y1="30" x2="638" y2="360"/>
+                <line x1="780" y1="30" x2="780" y2="360"/>
+              </g>
+
+              <g>
+                <text x="34" y="34">100%</text>
+                <text x="40" y="144">90%</text>
+                <text x="40" y="254">80%</text>
+                <text x="40" y="364">70%</text>
+                <text x="66" y="386">0</text>
+                <text x="202" y="386">8</text>
+                <text x="344" y="386">16</text>
+                <text x="486" y="386">24</text>
+                <text x="628" y="386">32</text>
+                <text x="770" y="386">40</text>
+                <text x="336" y="419" class="axis-title">LENDER MARGIN INCREASE (BPS)</text>
+              </g>
+
+              <path d="M70 96
+                       C160 98, 240 101, 283 105
+                       C310 108, 335 111, 354 114
+                       C410 126, 455 142, 496 158
+                       C548 180, 590 213, 638 239
+                       C690 268, 738 294, 780 304
+                       L780 360 L70 360 Z"
+                    fill="url(#activeArea)"/>
+              <path d="M70 96
+                       C160 98, 240 101, 283 105
+                       C310 108, 335 111, 354 114
+                       C410 126, 455 142, 496 158
+                       C548 180, 590 213, 638 239
+                       C690 268, 738 294, 780 304"
+                    fill="none" stroke="#2563eb" stroke-width="5" stroke-linecap="round"/>
+
+              <line x1="354" y1="30" x2="354" y2="360"
+                    stroke="#2563eb" stroke-width="2" stroke-dasharray="7 6"/>
+              <circle cx="354" cy="114" r="8" fill="#fff" stroke="#2563eb" stroke-width="4"/>
+              <rect x="376" y="59" width="160" height="55" rx="7" fill="#fff"
+                    stroke="#2563eb" stroke-width="1.5"/>
+              <text x="390" y="81" class="threshold-title">+16 bps</text>
+              <text x="390" y="100" class="threshold-copy">92.4% close probability</text>
+            </svg>
+
+            <div class="insight">
+              <strong>92.4%</strong>
+              <p>
+                At <strong>+16 bps</strong>, modeled close probability remains
+                high while relationship risk stays below the 5% guardrail.
+              </p>
+            </div>
+          </div>
+
+          <aside class="lookup-panel">
+            <div class="lookup">
+              <h3>Price sensitivity</h3>
+              <div class="lookup-head"><span>BPS</span><span>P(CLOSE)</span></div>
+              <div class="lookup-row"><strong>+0</strong><span>94.0%</span></div>
+              <div class="lookup-row"><strong>+8</strong><span>93.6%</span></div>
+              <div class="lookup-row highlight"><strong>+16</strong><span>92.4%</span></div>
+              <div class="lookup-row"><strong>+24</strong><span>88.4%</span></div>
+              <div class="lookup-row"><strong>+32</strong><span>81.0%</span></div>
+              <div class="lookup-row"><strong>+40</strong><span>75.1%</span></div>
+            </div>
+            <div class="takeaway">
+              <span>LEADERSHIP TAKEAWAY</span>
+              <p>Capture incremental margin, but stop before the relationship meaningfully weakens.</p>
+            </div>
+          </aside>
+        </div>
+        <div class="illustrative">Illustrative model output for concept discussion</div>
+      </section>
+
+      <!-- Slide 3: dormant LO -->
+      <section class="slide" aria-label="Dormant LO incentive curve">
+        <header class="detail-header">
+          <div>
+            <p class="eyebrow green">LOW-ACTIVE LO · RE-ENGAGE EFFICIENTLY</p>
+            <h1>Find the minimum discount that changes behavior</h1>
+            <p class="subtitle">
+              Increase the incentive gradually and stop once the model reaches
+              the target re-engagement probability.
+            </p>
+          </div>
+          <div class="callouts">
+            <div class="callout green-callout">
+              <span>MINIMUM EFFECTIVE DISCOUNT</span>
+              <strong>16 bps</strong>
+            </div>
+            <div class="callout orange-callout">
+              <span>MARGIN PRESERVED</span>
+              <strong>44 bps</strong>
+              <small>vs. a blanket 60 bps offer</small>
+            </div>
+          </div>
+          <div class="slide-number">03</div>
+        </header>
+
+        <div class="detail-grid">
+          <aside class="profile">
+            <div class="profile-title">
+              <span>ILLUSTRATIVE LO</span>
+              <strong>Tyler Brooks</strong>
+              <small>NMLS# 2084751</small>
+            </div>
+            <div class="status dormant-lo">INACTIVE · 3 MONTHS</div>
+            <div class="metric"><span>Peak monthly volume</span><strong>$2.1M</strong></div>
+            <div class="metric green"><span>Pull-through</span><strong>71%</strong></div>
+            <div class="metric"><span>Tenure</span><strong>6 yrs</strong></div>
+            <div class="metric green"><span>Referral concentration</span><strong>55%</strong></div>
+            <div class="profile-note">
+              Previous production suggests reactivation potential—but not at any cost.
+            </div>
+          </aside>
+
+          <div class="chart-panel">
+            <div class="chart-label" style="color:#15966a">
+              <span class="legend-dot"></span>Probability of re-engagement
+            </div>
+            <svg class="chart-svg" viewBox="0 0 840 430" role="img"
+                 aria-label="Probability of re-engagement increases and then plateaus as discount grows">
+              <defs>
+                <linearGradient id="dormantArea" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#15966a" stop-opacity=".22"/>
+                  <stop offset="100%" stop-color="#15966a" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <rect x="70" y="30" width="189" height="330" fill="#15966a" opacity=".06"/>
+              <text x="84" y="52" class="safe-text">INCENTIVE CORRIDOR</text>
+
+              <g stroke="#dfe6ef" stroke-width="1">
+                <line x1="70" y1="30" x2="780" y2="30"/>
+                <line x1="70" y1="140" x2="780" y2="140"/>
+                <line x1="70" y1="250" x2="780" y2="250"/>
+                <line x1="70" y1="360" x2="780" y2="360"/>
+                <line x1="70" y1="30" x2="70" y2="360"/>
+                <line x1="188" y1="30" x2="188" y2="360"/>
+                <line x1="307" y1="30" x2="307" y2="360"/>
+                <line x1="425" y1="30" x2="425" y2="360"/>
+                <line x1="543" y1="30" x2="543" y2="360"/>
+                <line x1="662" y1="30" x2="662" y2="360"/>
+                <line x1="780" y1="30" x2="780" y2="360"/>
+              </g>
+
+              <g>
+                <text x="40" y="34">80%</text>
+                <text x="40" y="144">60%</text>
+                <text x="40" y="254">40%</text>
+                <text x="40" y="364">20%</text>
+                <text x="66" y="386">0</text>
+                <text x="179" y="386">10</text>
+                <text x="297" y="386">20</text>
+                <text x="415" y="386">30</text>
+                <text x="533" y="386">40</text>
+                <text x="652" y="386">50</text>
+                <text x="770" y="386">60</text>
+                <text x="348" y="419" class="axis-title">DISCOUNT OFFERED (BPS)</text>
+              </g>
+
+              <line x1="70" y1="195" x2="780" y2="195"
+                    stroke="#d97706" stroke-width="2" stroke-dasharray="7 6"/>
+              <rect x="676" y="167" width="95" height="22" rx="4" fill="#fff8ef"/>
+              <text x="688" y="183" fill="#a45305" style="font-size:11px;font-weight:800">50% TARGET</text>
+
+              <path d="M70 348
+                       C116 334, 155 305, 188 270
+                       C220 235, 241 208, 259 195
+                       C283 170, 294 151, 307 141
+                       C350 105, 388 85, 425 80
+                       C510 67, 616 63, 780 63
+                       L780 360 L70 360 Z"
+                    fill="url(#dormantArea)"/>
+              <path d="M70 348
+                       C116 334, 155 305, 188 270
+                       C220 235, 241 208, 259 195
+                       C283 170, 294 151, 307 141
+                       C350 105, 388 85, 425 80
+                       C510 67, 616 63, 780 63"
+                    fill="none" stroke="#15966a" stroke-width="5" stroke-linecap="round"/>
+
+              <line x1="259" y1="30" x2="259" y2="360"
+                    stroke="#15966a" stroke-width="2" stroke-dasharray="7 6"/>
+              <circle cx="259" cy="195" r="8" fill="#fff" stroke="#15966a" stroke-width="4"/>
+              <rect x="280" y="202" width="155" height="55" rx="7" fill="#fff"
+                    stroke="#15966a" stroke-width="1.5"/>
+              <text x="294" y="224" class="threshold-title">16 bps</text>
+              <text x="294" y="243" class="threshold-copy">50.0% re-engagement</text>
+            </svg>
+
+            <div class="insight green">
+              <strong>16 bps</strong>
+              <p>
+                The target is reached with a <strong>16 bps discount</strong>.
+                Going deeper adds limited lift and unnecessarily gives away margin.
+              </p>
+            </div>
+          </div>
+
+          <aside class="lookup-panel">
+            <div class="lookup">
+              <h3>Discount sensitivity</h3>
+              <div class="lookup-head"><span>BPS</span><span>P(RE-ENGAGE)</span></div>
+              <div class="lookup-row"><strong>0</strong><span>22.2%</span></div>
+              <div class="lookup-row"><strong>10</strong><span>36.3%</span></div>
+              <div class="lookup-row highlight"><strong>16</strong><span>50.0%</span></div>
+              <div class="lookup-row"><strong>20</strong><span>59.8%</span></div>
+              <div class="lookup-row"><strong>30</strong><span>71.0%</span></div>
+              <div class="lookup-row"><strong>60</strong><span>74.0%</span></div>
+            </div>
+            <div class="takeaway green">
+              <span>LEADERSHIP TAKEAWAY</span>
+              <p>Replace the blanket offer with the smallest incentive expected to change LO behavior.</p>
+            </div>
+          </aside>
+        </div>
+        <div class="illustrative">Illustrative model output for concept discussion</div>
+      </section>
+    </div>
+
+    <nav class="controls" aria-label="Slide controls">
+      <button id="previous" aria-label="Previous slide">←</button>
+      <div class="dots" aria-label="Choose slide">
+        <button class="dot current" data-slide="0" aria-label="Slide 1"></button>
+        <button class="dot" data-slide="1" aria-label="Slide 2"></button>
+        <button class="dot" data-slide="2" aria-label="Slide 3"></button>
+      </div>
+      <span class="count" id="count">01 / 03</span>
+      <button id="next" aria-label="Next slide">→</button>
+    </nav>
+    <div class="hint">Use arrow keys or swipe to navigate</div>
+  </main>
+
+  <script>
+    (() => {
+      const slides = Array.from(document.querySelectorAll(".slide"));
+      const dots = Array.from(document.querySelectorAll(".dot"));
+      const count = document.getElementById("count");
+      let current = 0;
+      let touchStart = null;
+
+      function show(index) {
+        current = (index + slides.length) % slides.length;
+        slides.forEach((slide, i) => slide.classList.toggle("active", i === current));
+        dots.forEach((dot, i) => {
+          dot.classList.toggle("current", i === current);
+          dot.setAttribute("aria-current", i === current ? "page" : "false");
+        });
+        count.textContent =
+          String(current + 1).padStart(2, "0") +
+          " / " +
+          String(slides.length).padStart(2, "0");
+      }
+
+      document.getElementById("previous").addEventListener("click", () => show(current - 1));
+      document.getElementById("next").addEventListener("click", () => show(current + 1));
+      dots.forEach((dot) => dot.addEventListener("click", () => show(Number(dot.dataset.slide))));
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "ArrowLeft") show(current - 1);
+        if (event.key === "ArrowRight" || event.key === " ") show(current + 1);
+        if (event.key === "Home") show(0);
+        if (event.key === "End") show(slides.length - 1);
+      });
+
+      document.querySelector(".stage").addEventListener("touchstart", (event) => {
+        touchStart = event.touches[0].clientX;
+      }, { passive: true });
+
+      document.querySelector(".stage").addEventListener("touchend", (event) => {
+        if (touchStart === null) return;
+        const distance = event.changedTouches[0].clientX - touchStart;
+        if (distance > 55) show(current - 1);
+        if (distance < -55) show(current + 1);
+        touchStart = null;
+      }, { passive: true });
+    })();
+  </script>
+</body>
+</html>

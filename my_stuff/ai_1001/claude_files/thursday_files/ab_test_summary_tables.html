@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>A/B Test Summary Tables — Dynamic Pricing Pilot</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f4f6f9;
+      color: #222;
+      margin: 0;
+      padding: 32px 24px;
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: #1a1a2e;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 36px;
+    }
+    h2 {
+      font-size: 16px;
+      font-weight: 700;
+      margin: 36px 0 12px 0;
+      color: #1a1a2e;
+      border-left: 4px solid #2563eb;
+      padding-left: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      font-size: 13.5px;
+    }
+    thead tr {
+      background: #1a1a2e;
+      color: #fff;
+    }
+    thead th {
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      font-size: 12.5px;
+      text-transform: uppercase;
+    }
+    tbody tr:nth-child(even) {
+      background: #f8faff;
+    }
+    tbody tr:hover {
+      background: #eef2ff;
+    }
+    td {
+      padding: 10px 16px;
+      border-bottom: 1px solid #e8ecf4;
+      vertical-align: middle;
+    }
+    /* Metric grouping */
+    .metric-label {
+      font-weight: 600;
+      color: #1a1a2e;
+    }
+    /* Group badges */
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-control    { background: #dbeafe; color: #1d4ed8; }
+    .badge-treatment  { background: #fce7f3; color: #be185d; }
+    .badge-unassigned { background: #e5e7eb; color: #374151; }
+
+    /* Change cell coloring */
+    .pos { color: #16a34a; font-weight: 700; }
+    .neg { color: #dc2626; font-weight: 700; }
+    .neu { color: #d97706; font-weight: 700; }
+
+    /* Call table specifics */
+    .call-value {
+      font-size: 20px;
+      font-weight: 800;
+      min-width: 60px;
+      display: inline-block;
+    }
+    .call-desc {
+      font-size: 13px;
+      color: #444;
+      line-height: 1.5;
+    }
+    .section-divider td {
+      background: #f0f4ff;
+      font-weight: 700;
+      color: #2563eb;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      padding: 7px 16px;
+    }
+
+    /* Pipeline overview box */
+    .pipeline-box {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+    }
+    .pipeline-card {
+      flex: 1;
+      min-width: 160px;
+      background: #fff;
+      border-radius: 10px;
+      padding: 16px 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      border-top: 4px solid #2563eb;
+    }
+    .pipeline-card.warn { border-top-color: #dc2626; }
+    .pipeline-card-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #888;
+      margin-bottom: 4px;
+    }
+    .pipeline-card-value {
+      font-size: 22px;
+      font-weight: 800;
+      color: #1a1a2e;
+    }
+    .pipeline-card-sub {
+      font-size: 12px;
+      color: #888;
+      margin-top: 2px;
+    }
+    .pipeline-card-change {
+      font-size: 13px;
+      font-weight: 700;
+      margin-top: 6px;
+    }
+
+    footer {
+      margin-top: 40px;
+      font-size: 11.5px;
+      color: #aaa;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Dynamic Pricing Pilot — A/B Test Summary</h1>
+<p class="subtitle">Pilot period: Apr 20, 2026 – Present &nbsp;|&nbsp; Before-pilot baseline: Mar 27 – Apr 19, 2026 (24 days) &nbsp;|&nbsp; During-pilot window: Apr 20 – May 13, 2026 (24 days)</p>
+
+<!-- Pipeline snapshot cards -->
+<div class="pipeline-box">
+  <div class="pipeline-card">
+    <div class="pipeline-card-label">2025 Baseline — Full Year</div>
+    <div class="pipeline-card-value">14,582</div>
+    <div class="pipeline-card-sub">Imports</div>
+    <div class="pipeline-card-change" style="color:#2563eb">48.2% Submit/Import</div>
+  </div>
+  <div class="pipeline-card">
+    <div class="pipeline-card-label">Pre-Pilot — Jan 1 – Apr 19</div>
+    <div class="pipeline-card-value">5,112</div>
+    <div class="pipeline-card-sub">Imports &nbsp;|&nbsp; 2,306 Submissions &nbsp;|&nbsp; 2,090 Locks</div>
+    <div class="pipeline-card-change" style="color:#d97706">45.1% Submit/Import</div>
+  </div>
+  <div class="pipeline-card warn">
+    <div class="pipeline-card-label">Pilot — Apr 20 – Present</div>
+    <div class="pipeline-card-value">904</div>
+    <div class="pipeline-card-sub">Imports &nbsp;|&nbsp; 281 Submissions &nbsp;|&nbsp; 206 Locks</div>
+    <div class="pipeline-card-change" style="color:#dc2626">31.1% Submit/Import &nbsp;▼17.1pp vs 2025</div>
+  </div>
+</div>
+
+<!-- TABLE 1: Funnel Metrics -->
+<h2>Table 1 — Funnel Metrics by Group (Before vs. During Pilot)</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Metric</th>
+      <th>Group</th>
+      <th>Before Pilot</th>
+      <th>During Pilot</th>
+      <th>Change</th>
+      <th>Key Takeaway</th>
+    </tr>
+  </thead>
+  <tbody>
+
+    <!-- IMPORTS -->
+    <tr class="section-divider"><td colspan="6">Imports</td></tr>
+    <tr>
+      <td class="metric-label">Imports</td>
+      <td><span class="badge badge-control">Control</span></td>
+      <td>409</td><td>423</td>
+      <td class="pos">+3%</td>
+      <td>Steady, aligned with market trend</td>
+    </tr>
+    <tr>
+      <td class="metric-label">Imports</td>
+      <td><span class="badge badge-treatment">Treatment</span></td>
+      <td>179</td><td>161</td>
+      <td class="neg">−10%</td>
+      <td>LOs selectively importing loans expected to price well</td>
+    </tr>
+    <tr>
+      <td class="metric-label">Imports</td>
+      <td><span class="badge badge-unassigned">Unassigned</span></td>
+      <td>288</td><td>321</td>
+      <td class="pos">+11%</td>
+      <td>Market baseline — reinforces Treatment decline is behavioral</td>
+    </tr>
+
+    <!-- SUBMISSIONS -->
+    <tr class="section-divider"><td colspan="6">Submissions</td></tr>
+    <tr>
+      <td class="metric-label">Submissions</td>
+      <td><span class="badge badge-control">Control</span></td>
+      <td>185</td><td>199</td>
+      <td class="pos">+8%</td>
+      <td>Normal market momentum, no pilot effect</td>
+    </tr>
+    <tr>
+      <td class="metric-label">Submissions</td>
+      <td><span class="badge badge-treatment">Treatment</span></td>
+      <td>96</td><td>72</td>
+      <td class="neg">−25%</td>
+      <td>102-submission gap vs. Control; steepest decline in funnel</td>
+    </tr>
+    <tr>
+      <td class="metric-label">Submissions</td>
+      <td><span class="badge badge-unassigned">Unassigned</span></td>
+      <td>124</td><td>138</td>
+      <td class="pos">+11%</td>
+      <td>Broader market growing; Treatment's drop more significant by contrast</td>
+    </tr>
+
+    <!-- LOCKS -->
+    <tr class="section-divider"><td colspan="6">Locks</td></tr>
+    <tr>
+      <td class="metric-label">Locks</td>
+      <td><span class="badge badge-control">Control</span></td>
+      <td>209</td><td>256</td>
+      <td class="pos">+22%</td>
+      <td>Strong growth matching market baseline</td>
+    </tr>
+    <tr>
+      <td class="metric-label">Locks</td>
+      <td><span class="badge badge-treatment">Treatment</span></td>
+      <td>89</td><td>100</td>
+      <td class="neu">+12%</td>
+      <td>Positive but nearly half Control's rate; underperforms market by ~10 pts</td>
+    </tr>
+    <tr>
+      <td class="metric-label">Locks</td>
+      <td><span class="badge badge-unassigned">Unassigned</span></td>
+      <td>174</td><td>211</td>
+      <td class="pos">+21%</td>
+      <td>Robust market-wide growth makes Treatment's +12% notable underperformance</td>
+    </tr>
+
+    <!-- WIRES -->
+    <tr class="section-divider"><td colspan="6">Wires</td></tr>
+    <tr>
+      <td class="metric-label">Wires</td>
+      <td><span class="badge badge-control">Control</span></td>
+      <td>171</td><td>174</td>
+      <td class="pos">+2%</td>
+      <td>Essentially flat — loans locked pre-pilot are closing on schedule</td>
+    </tr>
+    <tr>
+      <td class="metric-label">Wires</td>
+      <td><span class="badge badge-treatment">Treatment</span></td>
+      <td>77</td><td>69</td>
+      <td class="neg">−10%</td>
+      <td>Fewer closings; reduced upstream activity showing through</td>
+    </tr>
+    <tr>
+      <td class="metric-label">Wires</td>
+      <td><span class="badge badge-unassigned">Unassigned</span></td>
+      <td>108</td><td>120</td>
+      <td class="pos">+11%</td>
+      <td>Market-wide wire growth underscores Treatment divergence</td>
+    </tr>
+
+    <!-- EQ VISITS -->
+    <tr class="section-divider"><td colspan="6">EQ Visits (Rate Checks)</td></tr>
+    <tr>
+      <td class="metric-label">EQ Visits</td>
+      <td><span class="badge badge-control">Control</span></td>
+      <td>149,746</td><td>197,504</td>
+      <td class="pos">+32%</td>
+      <td>Doing more manual rate exploration — not relying on dynamic pricing</td>
+    </tr>
+    <tr>
+      <td class="metric-label">EQ Visits</td>
+      <td><span class="badge badge-treatment">Treatment</span></td>
+      <td>66,958</td><td>60,357</td>
+      <td class="neg">−10%</td>
+      <td>Visiting EQ less — relying on dynamic pricing system instead</td>
+    </tr>
+    <tr>
+      <td class="metric-label">EQ Visits</td>
+      <td><span class="badge badge-unassigned">Unassigned</span></td>
+      <td>736</td><td>861</td>
+      <td class="pos">+17%</td>
+      <td>Small sample; most unassigned LOs not active EQ users</td>
+    </tr>
+
+    <!-- PRO SCORE -->
+    <tr class="section-divider"><td colspan="6">PRO Score</td></tr>
+    <tr>
+      <td class="metric-label">PRO Score</td>
+      <td><span class="badge badge-control">Control</span></td>
+      <td>53.3</td><td>40.5</td>
+      <td class="neg">−24%</td>
+      <td>Broad score decline may reflect overall market difficulty</td>
+    </tr>
+    <tr>
+      <td class="metric-label">PRO Score</td>
+      <td><span class="badge badge-treatment">Treatment</span></td>
+      <td>51.4</td><td>36.7</td>
+      <td class="neg">−29%</td>
+      <td>5-pt wider decline than Control — pricing adjustments reducing competitiveness</td>
+    </tr>
+    <tr>
+      <td class="metric-label">PRO Score</td>
+      <td><span class="badge badge-unassigned">Unassigned</span></td>
+      <td>20.0</td><td>27.8</td>
+      <td class="pos">+39%</td>
+      <td>Lower-scoring LOs improved — contrasts with pilot-group declines</td>
+    </tr>
+
+  </tbody>
+</table>
+
+
+<!-- TABLE 2: Call Data -->
+<h2>Table 2 — Call Data &amp; Qualitative Signals</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Category</th>
+      <th>Stat</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+
+    <tr class="section-divider"><td colspan="3">Overall Call Themes</td></tr>
+    <tr>
+      <td class="metric-label">Active Lean Price-Out</td>
+      <td><span class="call-value pos">51%</span></td>
+      <td class="call-desc">of all calls contained an active lean price-out — pricing is the dominant topic across all shops</td>
+    </tr>
+    <tr>
+      <td class="metric-label">AE Offered Solution / Alternative</td>
+      <td><span class="call-value pos">63%</span></td>
+      <td class="call-desc">of price-out calls had an AE offer a solution or alternative — team is actively working around competitive pricing gaps</td>
+    </tr>
+    <tr>
+      <td class="metric-label">Client Complaints / Frustration</td>
+      <td><span class="call-value neu">15%</span></td>
+      <td class="call-desc">of all calls contained client complaints or frustration — roughly 1 in 7 calls is contentious</td>
+    </tr>
+    <tr>
+      <td class="metric-label">Complaint Calls = Active Pricing Calls</td>
+      <td><span class="call-value neg">83%</span></td>
+      <td class="call-desc">of complaint calls were also active pricing calls — pricing friction is the overwhelmingly dominant complaint driver</td>
+    </tr>
+
+    <tr class="section-divider"><td colspan="3">Complaint Breakdown (of complaint calls)</td></tr>
+    <tr>
+      <td class="metric-label">Pricing &amp; Rate Competitiveness</td>
+      <td><span class="call-value neg">−40%</span></td>
+      <td class="call-desc">of complaints were about pricing &amp; rate competitiveness — rates called "terrible," 25–50+ bps worse than WF, Chase, PennyMac</td>
+    </tr>
+    <tr>
+      <td class="metric-label">Fees &amp; Closing Costs</td>
+      <td><span class="call-value neg">−20%</span></td>
+      <td class="call-desc">of complaints about fees &amp; closing costs — credit report ($132), underwriting ($1,250), and lock extension fees often undisclosed upfront</td>
+    </tr>
+    <tr>
+      <td class="metric-label">Buy Down Pricing &amp; Structure</td>
+      <td><span class="call-value neg">−15%</span></td>
+      <td class="call-desc">of complaints about buy down pricing &amp; structure — confusion on costs, only 1% option available, DTI and refi availability concerns</td>
+    </tr>
+    <tr>
+      <td class="metric-label">Pricing System Issues</td>
+      <td><span class="call-value neg">−15%</span></td>
+      <td class="call-desc">of complaints about pricing system issues — glitches, inability to price certain loan amounts, double-counted comp in QM calculations</td>
+    </tr>
+
+    <tr class="section-divider"><td colspan="3">Key Topics Mentioned Across All Calls</td></tr>
+    <tr>
+      <td class="metric-label">PRO Rankings</td>
+      <td><span class="call-value neu">22%</span></td>
+      <td class="call-desc">of all calls mentioned PRO Rankings (149 calls) — the #3 most discussed UWM differentiator; directly linked to the PRO Score pilot metric</td>
+    </tr>
+    <tr>
+      <td class="metric-label">Temporary Rate Buydowns</td>
+      <td><span class="call-value pos">35%</span></td>
+      <td class="call-desc">of all calls mentioned Temporary Rate Buydowns (232 calls) — the #1 differentiator discussed; reflects strong LO demand for pricing flexibility tools</td>
+    </tr>
+
+  </tbody>
+</table>
+
+<footer>Generated May 14, 2026 &nbsp;|&nbsp; Dynamic Pricing Pilot — 4-Week A/B Test Analysis</footer>
+
+</body>
+</html>

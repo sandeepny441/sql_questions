@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Excel Content Wireframe</title>
+    <style>
+      :root {
+        --bg: #ffffff;
+        --surface: #ffffff;
+        --line: #dfe4ec;
+        --text: #1f2736;
+        --muted: #667389;
+        --faint: #8c97aa;
+        --accent: #c43dff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Lato", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        color: var(--text);
+        background: var(--bg);
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      .mobile-bar {
+        display: none;
+      }
+
+      .shell {
+        width: min(1420px, 100%);
+        min-height: 100vh;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 250px minmax(0, 1fr) 280px;
+        background: var(--surface);
+      }
+
+      .sidebar,
+      .toc {
+        position: sticky;
+        top: 0;
+        align-self: start;
+        height: 100vh;
+        overflow: auto;
+        background: var(--surface);
+      }
+
+      .sidebar {
+        padding: 30px 22px 28px 28px;
+        border-right: 1px solid var(--line);
+      }
+
+      .toc {
+        padding: 18px 24px 28px;
+      }
+
+      .brand {
+        margin-bottom: 28px;
+      }
+
+      .brand-title {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        line-height: 0.92;
+      }
+
+      .brand-word {
+        display: block;
+        font-size: 1.58rem;
+        font-weight: 700;
+        letter-spacing: -0.05em;
+        text-transform: capitalize;
+      }
+
+      .brand-word.accent {
+        color: var(--accent);
+        font-style: italic;
+      }
+
+      .sidebar h2,
+      .toc h2 {
+        margin: 0 0 10px;
+        font-size: 1rem;
+        font-weight: 400;
+      }
+
+      .section-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .section-link {
+        display: block;
+        padding: 4px 0;
+        color: var(--muted);
+        line-height: 1.2;
+      }
+
+      .section-link.active {
+        color: var(--accent);
+      }
+
+      .section-link .number {
+        display: inline-block;
+        width: 18px;
+      }
+
+      .main {
+        padding: 28px 68px 56px;
+        min-width: 0;
+      }
+
+      .article {
+        max-width: 760px;
+      }
+
+      .eyebrow {
+        margin-bottom: 12px;
+        color: var(--faint);
+        font-size: 0.9rem;
+      }
+
+      .article h1 {
+        margin: 0;
+        font-size: clamp(1.75rem, 2.8vw, 2.4rem);
+        line-height: 1.08;
+        font-weight: 700;
+      }
+
+      .lede,
+      .content-block p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 1rem;
+        line-height: 1.76;
+      }
+
+      .lede {
+        margin-top: 18px;
+      }
+
+      .content-block {
+        margin-top: 18px;
+      }
+
+      .content-block p + p {
+        margin-top: 16px;
+      }
+
+      .content-line {
+        white-space: normal;
+      }
+
+      .line-label {
+        display: inline-block;
+        margin-right: 10px;
+        padding: 2px 8px 3px;
+        border-radius: 999px;
+        color: #24404f;
+        font-size: 0.74rem;
+        font-weight: 700;
+        line-height: 1.2;
+        letter-spacing: 0.04em;
+        text-transform: lowercase;
+        vertical-align: baseline;
+      }
+
+      .line-label.def {
+        background: #ffd9e8;
+      }
+
+      .line-label.example {
+        background: #dff6d8;
+      }
+
+      .line-copy {
+        white-space: pre-line;
+      }
+
+      .content-block.hidden {
+        display: none;
+      }
+
+      .upload-tools {
+        display: flex;
+        justify-content: flex-start;
+        margin-bottom: 18px;
+      }
+
+      .upload-label {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 32px;
+        padding: 0 12px;
+        border: 1px solid #cfd7e4;
+        border-radius: 6px;
+        background: #fff;
+        color: var(--text);
+        cursor: pointer;
+      }
+
+      .upload-label:hover {
+        border-color: #aeb8c9;
+      }
+
+      .upload-label input {
+        display: none;
+      }
+
+      .toc-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .toc-link {
+        display: block;
+        padding: 4px 0 4px 10px;
+        border-left: 2px solid transparent;
+        color: var(--muted);
+        line-height: 1.2;
+      }
+
+      .toc-link + .toc-link {
+        margin-top: 4px;
+      }
+
+      .toc-link.active {
+        border-left-color: var(--accent);
+        color: var(--accent);
+      }
+
+      .toc-link .toc-number {
+        display: inline-block;
+        min-width: 34px;
+      }
+
+      .backdrop {
+        display: none;
+      }
+
+      @media (max-width: 1040px) {
+        .mobile-bar {
+          position: sticky;
+          top: 0;
+          z-index: 20;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          height: 52px;
+          padding: 0 14px;
+          border-bottom: 1px solid var(--line);
+          background: rgba(255, 255, 255, 0.94);
+          backdrop-filter: blur(12px);
+        }
+
+        .mobile-toggle {
+          width: 34px;
+          height: 34px;
+          border: 0;
+          border-radius: 8px;
+          background: transparent;
+          color: var(--muted);
+          cursor: pointer;
+        }
+
+        .mobile-toggle svg {
+          width: 18px;
+          height: 18px;
+        }
+
+        .mobile-title strong {
+          display: block;
+          font-size: 0.95rem;
+        }
+
+        .shell {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          position: fixed;
+          top: 52px;
+          left: 0;
+          bottom: 0;
+          width: min(84vw, 290px);
+          z-index: 25;
+          transform: translateX(-102%);
+          transition: transform 0.22s ease;
+        }
+
+        body.nav-open .sidebar {
+          transform: translateX(0);
+        }
+
+        .toc {
+          display: none;
+        }
+
+        .main {
+          padding: 24px 20px 40px;
+        }
+
+        .article {
+          max-width: none;
+        }
+
+        .backdrop {
+          position: fixed;
+          inset: 52px 0 0;
+          z-index: 15;
+          display: block;
+          opacity: 0;
+          pointer-events: none;
+          background: rgba(12, 19, 31, 0.22);
+          transition: opacity 0.22s ease;
+        }
+
+        body.nav-open .backdrop {
+          opacity: 1;
+          pointer-events: auto;
+        }
+      }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  </head>
+  <body>
+    <header class="mobile-bar">
+      <button class="mobile-toggle" id="menuToggle" aria-label="Toggle sidebar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"></path>
+        </svg>
+      </button>
+      <div class="mobile-title">
+        <strong id="mobileContextTitle">Solar System</strong>
+      </div>
+    </header>
+
+    <div class="backdrop" id="backdrop"></div>
+
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand" id="brandTitle"></div>
+
+        <h2>Chapters</h2>
+        <nav class="section-nav" id="sectionNav"></nav>
+      </aside>
+
+      <main class="main">
+        <article class="article">
+          <div class="eyebrow" id="articleEyebrow"></div>
+          <h1 id="articleTitle"></h1>
+          <p class="lede" id="articleLede"></p>
+
+          <section class="content-block hidden" id="exampleBlock"></section>
+        </article>
+      </main>
+
+      <aside class="toc">
+        <div class="upload-tools">
+          <label class="upload-label">
+            Upload Excel
+            <input id="excelUpload" type="file" accept=".xlsx,.xls" />
+          </label>
+        </div>
+
+        <h2>Topics</h2>
+        <ul class="toc-list" id="itemNav"></ul>
+      </aside>
+    </div>
+
+    <script>
+      const demoRows = [
+        {
+          chapter: "Planets",
+          subtopic: "Mercury",
+          content: "Mercury is the closest planet to the Sun and the smallest of the eight major planets.\n\nMercury is a rocky world with a heavily cratered surface. Because it sits so close to the Sun and has almost no atmosphere to hold heat, temperatures change dramatically between its bright daytime side and its dark nighttime side.",
+          example: "Mercury completes an orbit around the Sun very quickly and has one of the most extreme environments in the solar system. Its landscape tells the story of constant exposure to space weather, impacts, and intense sunlight."
+        },
+        {
+          chapter: "Planets",
+          subtopic: "Venus",
+          content: "Venus is a rocky planet wrapped in thick clouds and known for its intense heat.\n\nVenus is similar to Earth in size, but its atmosphere is much denser and made largely of carbon dioxide. Thick clouds trap heat so effectively that the planet's surface becomes hotter than Mercury's even though Venus is farther from the Sun.",
+          example: "Venus is often described as Earth's sister planet because of its size, but its actual conditions are far more hostile. It is a strong example of how atmospheric composition can completely shape a planet's climate."
+        },
+        {
+          chapter: "Planets",
+          subtopic: "Earth",
+          content: "Earth is the only known planet with life and stable liquid water on its surface.\n\nEarth has oceans, a breathable atmosphere, and a climate system that supports a wide range of ecosystems. Its balance of water, land, air, and temperature makes it uniquely suitable for the life we know.",
+          example: "Earth is important not just because it is home, but because it offers a reference point for studying all other planets. Comparing Earth with nearby worlds helps explain how different planetary systems evolve over time."
+        },
+        {
+          chapter: "Planets",
+          subtopic: "Mars",
+          content: "Mars is a cold desert planet with dusty red terrain and signs of an active past.\n\nMars has giant volcanoes, deep canyons, polar ice caps, and a thin atmosphere. Scientists have found strong evidence that liquid water once moved across its surface, making Mars a major target in the search for past habitability.",
+          example: "Mars feels familiar enough to imagine exploration, yet different enough to reveal how a planet can lose warmth and atmospheric density. Its surface preserves clues about ancient geology and climate change."
+        },
+        {
+          chapter: "Planets",
+          subtopic: "Jupiter",
+          content: "Jupiter is the largest planet in the solar system and a classic gas giant.\n\nJupiter is made mostly of hydrogen and helium and does not have a solid surface like Earth or Mars. It is famous for its colorful cloud bands, powerful storms, and enormous scale, which dominates the outer solar system.",
+          example: "Jupiter helps shape the solar system through its strong gravity and large family of moons. It is a central world for understanding giant planets, atmospheric motion, and planetary formation."
+        },
+        {
+          chapter: "Satellites",
+          subtopic: "Moon",
+          content: "The Moon is Earth's natural satellite and the brightest object in our night sky after the Sun.\n\nThe Moon orbits Earth and plays an important role in ocean tides and long-term stability. Its surface is covered with craters, plains, and highlands formed through billions of years of impacts and volcanic history.",
+          example: "The Moon is the most accessible natural satellite for human study and exploration. It also provides a direct record of early solar system history that has been preserved with little weathering or erosion."
+        },
+        {
+          chapter: "Satellites",
+          subtopic: "Europa",
+          content: "Europa is one of Jupiter's major moons and is known for its icy shell.\n\nEuropa has a bright, fractured surface made of ice. Beneath that outer layer, scientists suspect a deep subsurface ocean may exist, which makes Europa one of the most compelling places to study possible habitable environments beyond Earth.",
+          example: "Europa is important because it combines a frozen exterior with the possibility of hidden liquid water. That mix makes it a major focus for planetary science and future space missions."
+        }
+      ];
+
+      const state = {
+        data: null,
+        section: "",
+        item: "",
+        title: "Solar System"
+      };
+
+      const sectionNav = document.getElementById("sectionNav");
+      const itemNav = document.getElementById("itemNav");
+      const articleEyebrow = document.getElementById("articleEyebrow");
+      const articleTitle = document.getElementById("articleTitle");
+      const articleLede = document.getElementById("articleLede");
+      const exampleBlock = document.getElementById("exampleBlock");
+      const excelUpload = document.getElementById("excelUpload");
+      const brandTitle = document.getElementById("brandTitle");
+      const mobileContextTitle = document.getElementById("mobileContextTitle");
+      const menuToggle = document.getElementById("menuToggle");
+      const backdrop = document.getElementById("backdrop");
+
+      function normalizeHeader(value) {
+        return String(value || "")
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "_")
+          .replace(/^_+|_+$/g, "");
+      }
+
+      function slugify(value) {
+        return String(value || "")
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "") || "item";
+      }
+
+      function titleCaseWord(word) {
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      }
+
+      function formatWorkbookTitle(raw) {
+        const cleaned = String(raw || "Solar System")
+          .replace(/\.[^.]+$/, "")
+          .replace(/[_-]+/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+        const words = cleaned.split(" ").filter(Boolean).map(titleCaseWord);
+        return words.length ? words : ["Solar", "System"];
+      }
+
+      function renderBrandTitle() {
+        const words = formatWorkbookTitle(state.title);
+        brandTitle.innerHTML = '<div class="brand-title">' + words.map((word, index) => {
+          const accent = words.length > 1 && index === 1 ? ' accent' : '';
+          return '<span class="brand-word' + accent + '">' + word + '</span>';
+        }).join('') + '</div>';
+        mobileContextTitle.textContent = words.join(' ');
+      }
+
+      function splitContent(text) {
+        const value = String(text || "").trim();
+        if (!value) {
+          return { lead: "", body: "" };
+        }
+
+        const doubleBreak = value.split(/\n\s*\n/);
+        if (doubleBreak.length > 1) {
+          return {
+            lead: doubleBreak[0].trim(),
+            body: doubleBreak.slice(1).join("\n\n").trim()
+          };
+        }
+
+        const sentenceMatch = value.match(/(.+?[.!?])\s+(.*)/);
+        if (sentenceMatch) {
+          return {
+            lead: sentenceMatch[1].trim(),
+            body: sentenceMatch[2].trim()
+          };
+        }
+
+        return { lead: value, body: "" };
+      }
+
+      function escapeHtml(text) {
+        return String(text || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/\"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function stripPrefix(text, prefixes) {
+        const value = String(text || "").trim();
+        if (!value) {
+          return "";
+        }
+
+        const pattern = new RegExp("^(" + prefixes.join("|") + ")\\s*", "i");
+        return value.replace(pattern, "").trim();
+      }
+
+      function buildLineMarkup(text, labelClass, labelText) {
+        const value = String(text || "").trim();
+        if (!value) {
+          return "";
+        }
+
+        const safeText = escapeHtml(value).replace(/\n/g, "<br>");
+        if (!labelText) {
+          return '<span class="line-copy">' + safeText + '</span>';
+        }
+
+        return '<span class="line-label ' + labelClass + '">' + escapeHtml(labelText) + '</span><span class="line-copy">' + safeText + '</span>';
+      }
+
+      function buildData(rows) {
+        const sections = [];
+        const sectionMap = new Map();
+
+        rows.forEach((rawRow) => {
+          const row = {};
+          Object.entries(rawRow).forEach(([key, value]) => {
+            row[normalizeHeader(key)] = value == null ? "" : String(value).trim();
+          });
+
+          const chapter = row.chapter || row.section || row.topic || row.group;
+          const subtopic = row.subtopic || row.item || row.title || row.entry;
+          const content = row.content || row.body || row.description || "";
+          const example = row.example || row.notes || row.detail || row.details || row.more || "";
+
+          if (!chapter || !subtopic) {
+            return;
+          }
+
+          const sectionKey = slugify(chapter);
+          if (!sectionMap.has(sectionKey)) {
+            const sectionObject = {
+              key: sectionKey,
+              number: String(sections.length + 1),
+              label: chapter,
+              items: []
+            };
+            sectionMap.set(sectionKey, sectionObject);
+            sections.push(sectionObject);
+          }
+
+          const section = sectionMap.get(sectionKey);
+          section.items.push({
+            id: slugify(subtopic),
+            number: section.number + "." + (section.items.length + 1),
+            title: subtopic,
+            content,
+            example
+          });
+        });
+
+        if (!sections.length) {
+          throw new Error("No usable rows found. Use at least chapter and subtopic columns.");
+        }
+
+        return { sections };
+      }
+
+      function setData(rows, titleLabel) {
+        state.data = buildData(rows);
+        state.title = titleLabel || "Solar System";
+        state.section = state.data.sections[0].key;
+        state.item = state.data.sections[0].items[0].id;
+        renderBrandTitle();
+        render();
+      }
+
+      function currentSection() {
+        return state.data.sections.find((section) => section.key === state.section) || state.data.sections[0];
+      }
+
+      function currentItem() {
+        return currentSection().items.find((item) => item.id === state.item) || currentSection().items[0];
+      }
+
+      function renderSectionNav() {
+        sectionNav.innerHTML = state.data.sections
+          .map((section) => {
+            const active = section.key === state.section ? " active" : "";
+            return '<a class="section-link' + active + '" href="#' + section.key + '" data-section="' + section.key + '"><span class="number">' + section.number + '</span>' + section.label + '</a>';
+          })
+          .join("");
+
+        sectionNav.querySelectorAll("[data-section]").forEach((link) => {
+          link.addEventListener("click", (event) => {
+            event.preventDefault();
+            state.section = event.currentTarget.dataset.section;
+            state.item = currentSection().items[0].id;
+            render();
+          });
+        });
+      }
+
+      function renderItemNav() {
+        const items = currentSection().items;
+        itemNav.innerHTML = items
+          .map((item) => {
+            const active = item.id === state.item ? " active" : "";
+            return '<li><a class="toc-link' + active + '" href="#' + currentSection().key + '/' + item.id + '" data-item="' + item.id + '"><span class="toc-number">' + item.number + '</span>' + item.title + '</a></li>';
+          })
+          .join("");
+
+        itemNav.querySelectorAll("[data-item]").forEach((link) => {
+          link.addEventListener("click", (event) => {
+            event.preventDefault();
+            state.item = event.currentTarget.dataset.item;
+            renderArticle();
+            renderItemNav();
+            syncHash();
+            document.body.classList.remove("nav-open");
+          });
+        });
+      }
+
+      function renderArticle() {
+        const item = currentItem();
+        const parsed = splitContent(item.content);
+        const leadText = parsed.lead || item.content || "No content provided.";
+        const defText = stripPrefix(leadText, [
+          "technical definition:",
+          "definition:",
+          "def:"
+        ]);
+        const extraContent = parsed.body.trim();
+        const exampleText = stripPrefix(item.example, [
+          "layman example:",
+          "example:"
+        ]);
+
+        articleEyebrow.textContent = item.number;
+        articleTitle.textContent = item.title;
+        articleLede.className = "lede content-line";
+        articleLede.innerHTML = buildLineMarkup(defText, "def", "def:");
+
+        if (extraContent || exampleText) {
+          exampleBlock.classList.remove("hidden");
+          const parts = [];
+          if (extraContent) {
+            parts.push('<p class="content-line">' + buildLineMarkup(extraContent) + '</p>');
+          }
+          if (exampleText) {
+            parts.push('<p class="content-line">' + buildLineMarkup(exampleText, "example", "example:") + '</p>');
+          }
+          exampleBlock.innerHTML = parts.join("");
+        } else {
+          exampleBlock.classList.add("hidden");
+          exampleBlock.innerHTML = "";
+        }
+      }
+
+      function syncHash() {
+        window.location.hash = currentSection().key + '/' + state.item;
+      }
+
+      function render() {
+        renderSectionNav();
+        renderItemNav();
+        renderArticle();
+        syncHash();
+        document.body.classList.remove("nav-open");
+      }
+
+      function hydrateFromHash() {
+        const raw = window.location.hash.replace(/^#/, "");
+        if (!raw || !state.data) {
+          return;
+        }
+        const [sectionKey, itemId] = raw.split('/');
+        const section = state.data.sections.find((entry) => entry.key === sectionKey);
+        if (!section) {
+          return;
+        }
+        state.section = section.key;
+        if (itemId && section.items.some((item) => item.id === itemId)) {
+          state.item = itemId;
+        } else {
+          state.item = section.items[0].id;
+        }
+      }
+
+      function preferredSheet(workbook) {
+        return workbook.SheetNames.find((name) => normalizeHeader(name) === 'content') || workbook.SheetNames[0];
+      }
+
+      excelUpload.addEventListener('change', async (event) => {
+        const file = event.target.files && event.target.files[0];
+        if (!file || !window.XLSX) {
+          return;
+        }
+
+        try {
+          const buffer = await file.arrayBuffer();
+          const workbook = XLSX.read(buffer, { type: 'array' });
+          const sheetName = preferredSheet(workbook);
+          const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
+          setData(rows, file.name);
+        } catch (error) {
+          console.error(error);
+        }
+      });
+
+      if (menuToggle) {
+        menuToggle.addEventListener('click', () => {
+          document.body.classList.toggle('nav-open');
+        });
+      }
+
+      backdrop.addEventListener('click', () => {
+        document.body.classList.remove('nav-open');
+      });
+
+      setData(demoRows, 'Solar System');
+      hydrateFromHash();
+      render();
+
+      window.addEventListener('hashchange', () => {
+        hydrateFromHash();
+        render();
+      });
+    </script>
+  </body>
+</html>

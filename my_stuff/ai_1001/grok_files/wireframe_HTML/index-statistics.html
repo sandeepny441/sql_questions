@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Statistics Reference</title>
+    <style>
+      :root {
+        --bg: #ffffff;
+        --surface: #ffffff;
+        --border: #dfe4ee;
+        --text: #202735;
+        --muted: #5f6b80;
+        --faint: #8a95a8;
+        --accent: #00b7ff;
+        --accent-strong: #009fdb;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Lato", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        color: var(--text);
+        background: var(--bg);
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      .mobile-bar {
+        display: none;
+      }
+
+      .shell {
+        width: min(1420px, 100%);
+        min-height: 100vh;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 250px minmax(0, 1fr) 250px;
+        background: var(--surface);
+      }
+
+      .sidebar,
+      .toc {
+        position: sticky;
+        top: 0;
+        align-self: start;
+        height: 100vh;
+        overflow: auto;
+        background: var(--surface);
+      }
+
+      .sidebar {
+        padding: 34px 22px 28px 28px;
+        border-right: 1px solid var(--border);
+      }
+
+      .toc {
+        padding: 22px 24px 28px;
+      }
+
+      .brand {
+        margin-bottom: 22px;
+        line-height: 1.08;
+      }
+
+      .brand strong {
+        display: block;
+        font-size: 1.02rem;
+        font-weight: 700;
+      }
+
+      .brand span {
+        display: block;
+        margin-top: 4px;
+        color: var(--accent-strong);
+        font-size: 0.98rem;
+        font-style: italic;
+      }
+
+      .search-wrap {
+        margin-bottom: 22px;
+      }
+
+      .search-wrap input {
+        width: 100%;
+        height: 30px;
+        padding: 0 12px;
+        border: 1px solid #d7dde8;
+        border-radius: 4px;
+        color: var(--text);
+        background: #ffffff;
+        outline: none;
+      }
+
+      .search-wrap input:focus {
+        border-color: rgba(0, 183, 255, 0.75);
+        box-shadow: 0 0 0 3px rgba(0, 183, 255, 0.12);
+      }
+
+      .section-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .section-link {
+        display: block;
+        padding: 4px 0;
+        color: var(--muted);
+        line-height: 1.2;
+      }
+
+      .section-link.active {
+        color: var(--accent-strong);
+      }
+
+      .section-link .number {
+        display: inline-block;
+        width: 18px;
+      }
+
+      .main {
+        padding: 28px 68px 56px;
+        min-width: 0;
+      }
+
+      .article {
+        max-width: 760px;
+      }
+
+      .eyebrow {
+        margin-bottom: 10px;
+        color: var(--faint);
+        font-size: 0.82rem;
+      }
+
+      .article h1 {
+        margin: 0;
+        font-size: clamp(2.5rem, 4vw, 3.5rem);
+        line-height: 1;
+        font-weight: 700;
+      }
+
+      .lede {
+        margin: 18px 0 26px;
+        color: var(--muted);
+        font-size: 1.02rem;
+        line-height: 1.7;
+      }
+
+      .content-section + .content-section {
+        margin-top: 34px;
+      }
+
+      .content-section h2 {
+        margin: 0 0 12px;
+        font-size: 1.7rem;
+        line-height: 1.15;
+        font-weight: 700;
+      }
+
+      .content-section p {
+        margin: 0;
+        font-size: 1rem;
+        line-height: 1.75;
+        color: var(--text);
+      }
+
+      .image-gallery {
+        margin: 20px 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .image-gallery img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 4px;
+        border: 1px solid var(--border);
+        max-height: 300px;
+      }
+
+      .toc h2 {
+        margin: 0 0 10px;
+        font-size: 1rem;
+        font-weight: 400;
+      }
+
+      .toc-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .toc-list li {
+        margin: 0;
+      }
+
+      .toc-link {
+        display: block;
+        padding: 4px 0 4px 10px;
+        border-left: 2px solid transparent;
+        color: var(--muted);
+        line-height: 1.2;
+      }
+
+      .toc-link + .toc-link {
+        margin-top: 4px;
+      }
+
+      .toc-link.active {
+        border-left-color: var(--accent-strong);
+        color: #1c5fda;
+      }
+
+      .toc-link .toc-number {
+        display: inline-block;
+        min-width: 34px;
+      }
+
+      .toc-caption {
+        margin-top: 18px;
+        color: var(--faint);
+        font-size: 0.86rem;
+        line-height: 1.5;
+      }
+
+      .empty-note {
+        margin-top: 14px;
+        color: var(--faint);
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+
+      .backdrop {
+        display: none;
+      }
+
+      @media (max-width: 980px) {
+        .mobile-bar {
+          position: sticky;
+          top: 0;
+          z-index: 20;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          height: 52px;
+          padding: 0 14px;
+          border-bottom: 1px solid var(--border);
+          background: rgba(255, 255, 255, 0.94);
+          backdrop-filter: blur(12px);
+        }
+
+        .mobile-toggle {
+          width: 34px;
+          height: 34px;
+          border: 0;
+          border-radius: 8px;
+          background: transparent;
+          color: var(--muted);
+          cursor: pointer;
+        }
+
+        .mobile-toggle svg {
+          width: 18px;
+          height: 18px;
+        }
+
+        .mobile-title small {
+          display: block;
+          color: var(--faint);
+          font-size: 0.68rem;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+        }
+
+        .mobile-title strong {
+          display: block;
+          font-size: 0.95rem;
+        }
+
+        .shell {
+          grid-template-columns: 1fr;
+          min-height: auto;
+        }
+
+        .sidebar {
+          position: fixed;
+          top: 52px;
+          left: 0;
+          bottom: 0;
+          width: min(84vw, 290px);
+          z-index: 25;
+          transform: translateX(-102%);
+          transition: transform 0.22s ease;
+          border-right: 1px solid var(--border);
+        }
+
+        body.nav-open .sidebar {
+          transform: translateX(0);
+        }
+
+        .toc {
+          display: none;
+        }
+
+        .main {
+          padding: 24px 20px 40px;
+        }
+
+        .article {
+          max-width: none;
+        }
+
+        .backdrop {
+          position: fixed;
+          inset: 52px 0 0;
+          z-index: 15;
+          display: block;
+          opacity: 0;
+          pointer-events: none;
+          background: rgba(12, 19, 31, 0.22);
+          transition: opacity 0.22s ease;
+        }
+
+        body.nav-open .backdrop {
+          opacity: 1;
+          pointer-events: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="mobile-bar">
+      <button class="mobile-toggle" id="menuToggle" aria-label="Toggle sidebar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"></path>
+        </svg>
+      </button>
+      <div class="mobile-title">
+        <small>Reference Guide</small>
+        <strong>Statistics</strong>
+      </div>
+    </header>
+
+    <div class="backdrop" id="backdrop"></div>
+
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <strong>Statistics Guide</strong>
+          <span>100 Topics</span>
+        </div>
+
+        <div class="search-wrap">
+          <input id="tocSearch" type="text" placeholder="Search entries" />
+        </div>
+
+        <nav class="section-nav" id="sectionNav"></nav>
+      </aside>
+
+      <main class="main">
+        <article class="article">
+          <div class="eyebrow" id="articleEyebrow"></div>
+          <h1 id="articleTitle"></h1>
+          <p class="lede" id="articleLede"></p>
+
+          <section class="content-section">
+            <h2 id="sectionOneTitle"></h2>
+            <p id="sectionOneBody"></p>
+          </section>
+
+          <section class="content-section">
+            <h2 id="sectionTwoTitle"></h2>
+            <p id="sectionTwoBody"></p>
+          </section>
+
+          <section class="content-section" id="imagesSection" style="display: none;">
+            <h2>Related Images</h2>
+            <div class="image-gallery" id="imageGallery"></div>
+          </section>
+        </article>
+      </main>
+
+      <aside class="toc">
+        <h2>Table of contents</h2>
+        <ul class="toc-list" id="itemNav"></ul>
+        <p class="toc-caption">The right rail changes with the selected left section, and the center shows only the currently selected item.</p>
+      </aside>
+    </div>
+
+    <script>
+      let content = {};
+
+      const state = {
+        section: null,
+        item: null,
+        query: ""
+      };
+
+      const sectionNav = document.getElementById("sectionNav");
+      const itemNav = document.getElementById("itemNav");
+      const tocSearch = document.getElementById("tocSearch");
+      const articleEyebrow = document.getElementById("articleEyebrow");
+      const articleTitle = document.getElementById("articleTitle");
+      const articleLede = document.getElementById("articleLede");
+      const sectionOneTitle = document.getElementById("sectionOneTitle");
+      const sectionOneBody = document.getElementById("sectionOneBody");
+      const sectionTwoTitle = document.getElementById("sectionTwoTitle");
+      const sectionTwoBody = document.getElementById("sectionTwoBody");
+      const imagesSection = document.getElementById("imagesSection");
+      const imageGallery = document.getElementById("imageGallery");
+      const menuToggle = document.getElementById("menuToggle");
+      const backdrop = document.getElementById("backdrop");
+
+      async function loadData() {
+        try {
+          const response = await fetch('statistics_data.json');
+          content = await response.json();
+
+          // Set initial section
+          const firstChapter = Object.keys(content).sort()[0];
+          state.section = firstChapter;
+          state.item = content[firstChapter].items[0].id;
+
+          render();
+        } catch (error) {
+          console.error('Error loading statistics_data.json:', error);
+          articleTitle.textContent = 'Error loading data';
+          articleLede.textContent = 'Could not load statistics_data.json. Make sure the file exists in the same directory as this HTML file.';
+        }
+      }
+
+      function currentSection() {
+        return content[state.section];
+      }
+
+      function filteredItems() {
+        const query = state.query.trim().toLowerCase();
+        const items = currentSection().items;
+        if (!query) {
+          return items;
+        }
+        return items.filter((item) => item.title.toLowerCase().includes(query));
+      }
+
+      function currentItem() {
+        const visibleItems = filteredItems();
+        const match = visibleItems.find((item) => item.id === state.item);
+        return match || visibleItems[0] || currentSection().items[0];
+      }
+
+      function syncHash() {
+        window.location.hash = state.section + "/" + state.item;
+      }
+
+      function renderSectionNav() {
+        sectionNav.innerHTML = Object.entries(content)
+          .sort((a, b) => parseInt(a[1].number) - parseInt(b[1].number))
+          .map(([key, section]) => {
+            const active = key === state.section ? " active" : "";
+            return '<a class="section-link' + active + '" href="#' + key + '" data-section="' + key + '"><span class="number">' + section.number + '</span>' + section.label + '</a>';
+          })
+          .join("");
+
+        sectionNav.querySelectorAll("[data-section]").forEach((link) => {
+          link.addEventListener("click", (event) => {
+            event.preventDefault();
+            const nextSection = event.currentTarget.dataset.section;
+            state.section = nextSection;
+            state.query = "";
+            tocSearch.value = "";
+            state.item = content[nextSection].items[0].id;
+            render();
+          });
+        });
+      }
+
+      function renderItemNav() {
+        const items = filteredItems();
+
+        if (!items.length) {
+          itemNav.innerHTML = '<li class="empty-note">No matches in this section.</li>';
+          return;
+        }
+
+        itemNav.innerHTML = items
+          .map((item) => {
+            const active = item.id === state.item ? " active" : "";
+            return '<li><a class="toc-link' + active + '" href="#' + state.section + '/' + item.id + '" data-item="' + item.id + '"><span class="toc-number">' + item.number + '</span>' + item.title + '</a></li>';
+          })
+          .join("");
+
+        itemNav.querySelectorAll("[data-item]").forEach((link) => {
+          link.addEventListener("click", (event) => {
+            event.preventDefault();
+            state.item = event.currentTarget.dataset.item;
+            render();
+          });
+        });
+      }
+
+      function renderArticle() {
+        const section = currentSection();
+        const item = currentItem();
+        state.item = item.id;
+
+        articleEyebrow.textContent = section.number + '. ' + section.label;
+        articleTitle.textContent = item.title;
+        articleLede.textContent = item.lede;
+
+        sectionOneTitle.textContent = item.sectionOneTitle;
+        sectionOneBody.textContent = item.sectionOneBody;
+        sectionTwoTitle.textContent = item.sectionTwoTitle;
+        sectionTwoBody.textContent = item.sectionTwoBody;
+
+        // Handle images
+        if (item.images && item.images.length > 0) {
+          imageGallery.innerHTML = item.images
+            .map((imgPath) => {
+              return '<img src="' + imgPath + '" alt="' + item.title + '" />';
+            })
+            .join("");
+          imagesSection.style.display = "block";
+        } else {
+          imagesSection.style.display = "none";
+        }
+      }
+
+      function render() {
+        renderSectionNav();
+        renderItemNav();
+        renderArticle();
+        syncHash();
+        document.body.classList.remove("nav-open");
+      }
+
+      function hydrateFromHash() {
+        const raw = window.location.hash.replace(/^#/, "");
+        if (!raw) {
+          return;
+        }
+
+        const [section, item] = raw.split("/");
+        if (content[section]) {
+          state.section = section;
+          if (item && content[section].items.some((entry) => entry.id === item)) {
+            state.item = item;
+          } else {
+            state.item = content[section].items[0].id;
+          }
+        }
+      }
+
+      tocSearch.addEventListener("input", (event) => {
+        state.query = event.target.value;
+        const visible = filteredItems();
+        if (visible.length && !visible.some((item) => item.id === state.item)) {
+          state.item = visible[0].id;
+        }
+        renderItemNav();
+        renderArticle();
+      });
+
+      if (menuToggle) {
+        menuToggle.addEventListener("click", () => {
+          document.body.classList.toggle("nav-open");
+        });
+      }
+
+      backdrop.addEventListener("click", () => {
+        document.body.classList.remove("nav-open");
+      });
+
+      window.addEventListener("hashchange", () => {
+        hydrateFromHash();
+        render();
+      });
+
+      // Load data on page load
+      loadData();
+    </script>
+  </body>
+</html>

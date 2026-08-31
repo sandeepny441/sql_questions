@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AE-LO Matching Engine Demo</title>
+  <style>
+    :root {
+      --bg: #f6f7f4;
+      --panel: #ffffff;
+      --ink: #1d2528;
+      --muted: #68747a;
+      --line: #dce3df;
+      --accent: #117c7a;
+      --accent-2: #eab308;
+      --accent-soft: #dff2ef;
+      --fill-lo: #117c7a;
+      --fill-ae: #395aa8;
+      --warn: #b45309;
+      --shadow: 0 18px 50px rgba(20, 35, 39, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        linear-gradient(180deg, rgba(17, 124, 122, 0.08), transparent 360px),
+        var(--bg);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button,
+    select {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1220px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 32px 0 48px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 22px;
+    }
+
+    .title-block h1 {
+      margin: 0 0 8px;
+      font-size: clamp(30px, 5vw, 52px);
+      line-height: 0.95;
+      letter-spacing: 0;
+    }
+
+    .title-block p {
+      max-width: 750px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.55;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
+    .control {
+      display: grid;
+      gap: 6px;
+    }
+
+    .control label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    select,
+    .segmented {
+      height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 8px 24px rgba(23, 37, 40, 0.05);
+    }
+
+    select {
+      min-width: 230px;
+      padding: 0 36px 0 12px;
+      color: var(--ink);
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      overflow: hidden;
+      min-width: 250px;
+    }
+
+    .segmented button {
+      border: 0;
+      border-right: 1px solid var(--line);
+      padding: 0 14px;
+      color: var(--muted);
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .segmented button:last-child {
+      border-right: 0;
+    }
+
+    .segmented button.active {
+      color: white;
+      background: var(--accent);
+      font-weight: 750;
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 330px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .stack {
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel {
+      border: 1px solid rgba(220, 227, 223, 0.9);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: var(--shadow);
+    }
+
+    .panel-inner {
+      padding: 18px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      color: var(--accent);
+      background: var(--accent-soft);
+      font-size: 12px;
+      font-weight: 760;
+      white-space: nowrap;
+    }
+
+    .profile-summary {
+      display: grid;
+      grid-template-columns: 190px minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .identity {
+      display: grid;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .name-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .avatar {
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      color: white;
+      background: var(--accent);
+      font-weight: 850;
+    }
+
+    .identity h3 {
+      overflow: hidden;
+      margin: 0;
+      font-size: 18px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .identity p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .meta {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .meta b {
+      color: var(--ink);
+    }
+
+    .vector-wrap {
+      min-width: 0;
+    }
+
+    .vector-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .vector-bar {
+      display: grid;
+      grid-template-columns: repeat(var(--feature-count), minmax(44px, 1fr));
+      gap: 4px;
+      width: 100%;
+      min-height: 72px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #edf2ef;
+    }
+
+    .feature-box {
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      display: flex;
+      align-items: end;
+      min-width: 0;
+      min-height: 62px;
+      border: 1px solid rgba(17, 37, 40, 0.08);
+      border-radius: 6px;
+      background: #f9fbfa;
+      cursor: help;
+    }
+
+    .feature-box::before {
+      content: "";
+      position: absolute;
+      inset: auto 0 0;
+      z-index: -1;
+      height: calc(var(--value) * 100%);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--fill) 72%, white), var(--fill));
+    }
+
+    .feature-code {
+      width: 100%;
+      padding: 5px 3px;
+      color: color-mix(in srgb, var(--fill) 26%, var(--ink));
+      font-size: 10px;
+      font-weight: 850;
+      line-height: 1;
+      text-align: center;
+      word-break: break-word;
+    }
+
+    .feature-box.high .feature-code {
+      color: white;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
+    }
+
+    .feature-box:focus-visible {
+      outline: 3px solid rgba(17, 124, 122, 0.22);
+      outline-offset: 2px;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      background: var(--fill);
+    }
+
+    .ae-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .ae-card {
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 10px 28px rgba(23, 37, 40, 0.05);
+    }
+
+    .ae-card.best {
+      border-color: rgba(234, 179, 8, 0.85);
+      box-shadow: 0 16px 42px rgba(180, 83, 9, 0.13);
+    }
+
+    .ae-card.best::before {
+      content: "Best match";
+      position: absolute;
+      top: -1px;
+      right: 14px;
+      padding: 6px 10px;
+      border-radius: 0 0 8px 8px;
+      color: #3a2a02;
+      background: var(--accent-2);
+      font-size: 11px;
+      font-weight: 850;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .ae-row {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr) 98px;
+      gap: 16px;
+      align-items: center;
+      padding: 14px;
+    }
+
+    .rank {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .score {
+      display: grid;
+      justify-items: end;
+      gap: 4px;
+    }
+
+    .score strong {
+      font-size: 26px;
+      line-height: 1;
+    }
+
+    .score span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .explanation {
+      position: sticky;
+      top: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .explanation h2,
+    .explanation h3 {
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    .explanation h2 {
+      font-size: 18px;
+    }
+
+    .explanation h3 {
+      font-size: 15px;
+    }
+
+    .explanation p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .match-callout {
+      display: grid;
+      gap: 8px;
+      padding: 14px;
+      border: 1px solid rgba(17, 124, 122, 0.24);
+      border-radius: 8px;
+      background: linear-gradient(180deg, #effaf7, #ffffff);
+    }
+
+    .match-callout strong {
+      font-size: 24px;
+    }
+
+    .reason-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .reason-list li {
+      display: grid;
+      gap: 4px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfb;
+    }
+
+    .reason-list b {
+      font-size: 13px;
+    }
+
+    .meter {
+      overflow: hidden;
+      height: 8px;
+      border-radius: 999px;
+      background: #e6ece8;
+    }
+
+    .meter span {
+      display: block;
+      width: calc(var(--meter) * 100%);
+      height: 100%;
+      border-radius: inherit;
+      background: var(--accent);
+    }
+
+    .formula {
+      padding: 12px;
+      border-radius: 8px;
+      color: #364044;
+      background: #f2f5f3;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .dim-grid {
+      display: grid;
+      gap: 8px;
+    }
+
+    .dim-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    .dim-row span {
+      color: var(--muted);
+    }
+
+    .dim-row b {
+      font-variant-numeric: tabular-nums;
+    }
+
+    .matrix-section {
+      margin-bottom: 18px;
+    }
+
+    .matrix-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .matrix-card {
+      min-width: 0;
+    }
+
+    .matrix-scroll {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f9fbfa;
+    }
+
+    .profile-matrix {
+      width: 100%;
+      min-width: 520px;
+      border-collapse: collapse;
+      font-size: 12px;
+      table-layout: fixed;
+    }
+
+    .profile-matrix th,
+    .profile-matrix td {
+      border-bottom: 1px solid var(--line);
+      border-right: 1px solid var(--line);
+      padding: 9px 8px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .profile-matrix tr:last-child td,
+    .profile-matrix tr:last-child th {
+      border-bottom: 0;
+    }
+
+    .profile-matrix th:last-child,
+    .profile-matrix td:last-child {
+      border-right: 0;
+    }
+
+    .profile-matrix thead th {
+      color: var(--muted);
+      background: #eef3f0;
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .profile-matrix tbody th {
+      width: 118px;
+      color: var(--ink);
+      background: white;
+      text-align: left;
+      font-weight: 800;
+    }
+
+    .matrix-cell {
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      color: var(--ink);
+      background: white;
+      font-weight: 800;
+    }
+
+    .matrix-cell::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      opacity: 0.78;
+      background:
+        linear-gradient(90deg, var(--matrix-fill) calc(var(--value) * 100%), transparent calc(var(--value) * 100%)),
+        white;
+    }
+
+    @media (max-width: 980px) {
+      .topbar,
+      .dashboard,
+      .profile-summary,
+      .ae-row,
+      .matrix-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        display: grid;
+        align-items: start;
+      }
+
+      .controls {
+        justify-content: start;
+      }
+
+      .ae-row {
+        gap: 12px;
+      }
+
+      .score {
+        justify-items: start;
+      }
+
+      .explanation {
+        position: static;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .app {
+        width: min(100vw - 20px, 1220px);
+        padding-top: 18px;
+      }
+
+      .panel-inner,
+      .ae-row {
+        padding: 12px;
+      }
+
+      .controls,
+      .control,
+      select,
+      .segmented {
+        width: 100%;
+      }
+
+      .vector-bar {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="title-block">
+        <h1>AE-LO Matching Engine</h1>
+        <p>
+          Demo dashboard using profile vectors, feature values, and similarity scoring to rank Account Executives for a selected Loan Officer.
+        </p>
+      </div>
+
+      <div class="controls" aria-label="Matching controls">
+        <div class="control">
+          <label for="loSelect">Selected LO</label>
+          <select id="loSelect"></select>
+        </div>
+
+        <div class="control">
+          <label>Scoring model</label>
+          <div class="segmented" role="group" aria-label="Scoring model">
+            <button id="cosineButton" class="active" type="button" data-method="cosine">Cosine</button>
+            <button id="dotButton" type="button" data-method="dot">Dot product</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <section class="panel matrix-section" aria-labelledby="matrixHeading">
+      <div class="panel-inner">
+        <div class="section-head">
+          <h2 id="matrixHeading">Profile matrices</h2>
+          <span class="pill">5 x 5 each</span>
+        </div>
+        <div class="matrix-grid">
+          <div class="matrix-card">
+            <div class="vector-title">
+              <span>LO matrix</span>
+              <span>5 LOs x 5 dimensions</span>
+            </div>
+            <div id="loMatrix" class="matrix-scroll"></div>
+          </div>
+          <div class="matrix-card">
+            <div class="vector-title">
+              <span>AE matrix</span>
+              <span>5 AEs x 5 dimensions</span>
+            </div>
+            <div id="aeMatrix" class="matrix-scroll"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="dashboard">
+      <div class="stack">
+        <section class="panel" aria-labelledby="loHeading">
+          <div class="panel-inner">
+            <div class="section-head">
+              <h2 id="loHeading">Selected LO profile vector</h2>
+              <span class="pill">12 source features</span>
+            </div>
+            <div id="loProfile"></div>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="aeHeading">
+          <div class="panel-inner">
+            <div class="section-head">
+              <h2 id="aeHeading">Ranked AE recommendations</h2>
+              <span class="pill" id="rankCount"></span>
+            </div>
+            <div id="aeList" class="ae-list"></div>
+          </div>
+        </section>
+      </div>
+
+      <aside class="panel explanation" aria-labelledby="explanationHeading">
+        <div class="panel-inner explanation">
+          <h2 id="explanationHeading">Why the top match won</h2>
+          <div id="topMatch"></div>
+          <div>
+            <h3>Shared matching dimensions</h3>
+            <p>
+              LO and AE source features are projected into the same six-dimensional space before scoring.
+            </p>
+          </div>
+          <div id="dimensionSummary" class="dim-grid"></div>
+          <div class="formula" id="formulaText"></div>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const loFeatures = [
+      { key: "monthlyFundedVolume", code: "VOL", label: "Monthly funded volume", category: "Production" },
+      { key: "pullThroughRate", code: "PTR", label: "Pull-through rate", category: "Production" },
+      { key: "rateShoppingFrequency", code: "RSF", label: "Rate shopping frequency", category: "Pricing sensitivity" },
+      { key: "exceptionRequestFrequency", code: "ERF", label: "Exception request frequency", category: "Pricing sensitivity" },
+      { key: "averageResponseSpeed", code: "RSP", label: "Average response speed", category: "Behavior" },
+      { key: "communicationAlignment", code: "COM", label: "Preferred communication alignment", category: "Behavior" },
+      { key: "shareOfWallet", code: "SOW", label: "Share of wallet", category: "Relationship" },
+      { key: "aeSwitchingFrequency", code: "SWI", label: "AE switching frequency", category: "Relationship" },
+      { key: "fhaShare", code: "FHA", label: "FHA share", category: "Product preference" },
+      { key: "jumboShare", code: "JBO", label: "Jumbo share", category: "Product preference" },
+      { key: "averageDaysToClose", code: "DTC", label: "Average days to close", category: "Operational quality" },
+      { key: "fileQualityScore", code: "FQS", label: "File quality score", category: "Operational quality" }
+    ];
+
+    const aeFeatures = [
+      { key: "responseSpeed", code: "RSP", label: "Response speed", category: "Communication" },
+      { key: "communicationFrequency", code: "FRQ", label: "Communication frequency", category: "Communication" },
+      { key: "lockConversionRate", code: "LCR", label: "Lock conversion rate", category: "Pricing strategy" },
+      { key: "competitiveSaveRate", code: "CSV", label: "Competitive save rate", category: "Pricing strategy" },
+      { key: "fhaExpertise", code: "FHA", label: "FHA expertise", category: "Product expertise" },
+      { key: "jumboExpertise", code: "JBO", label: "Jumbo expertise", category: "Product expertise" },
+      { key: "loRetentionRate", code: "RET", label: "LO retention rate", category: "Relationship management" },
+      { key: "shareOfWalletGrowth", code: "SOG", label: "Share-of-wallet growth", category: "Relationship management" },
+      { key: "sentimentScore", code: "SNT", label: "Sentiment score", category: "Behavioral style" },
+      { key: "consultativeCallStyle", code: "CST", label: "Consultative call style", category: "Behavioral style" }
+    ];
+
+    const dimensions = [
+      "communicationNeed",
+      "pricingFit",
+      "fhaFit",
+      "jumboFit",
+      "relationshipFit",
+      "operationalFit"
+    ];
+
+    const dimensionLabels = {
+      communicationNeed: "Communication need",
+      pricingFit: "Pricing fit",
+      fhaFit: "FHA fit",
+      jumboFit: "Jumbo fit",
+      relationshipFit: "Relationship fit",
+      operationalFit: "Operational fit"
+    };
+
+    const matrixDimensions = [
+      "communicationNeed",
+      "pricingFit",
+      "fhaFit",
+      "jumboFit",
+      "relationshipFit"
+    ];
+
+    const loanOfficers = [
+      {
+        id: "maya",
+        name: "Maya Chen",
+        market: "Phoenix, AZ",
+        segment: "High-volume purchase specialist",
+        note: "Needs quick responses, sharp pricing saves, and strong FHA coverage.",
+        values: {
+          monthlyFundedVolume: 0.86,
+          pullThroughRate: 0.78,
+          rateShoppingFrequency: 0.82,
+          exceptionRequestFrequency: 0.74,
+          averageResponseSpeed: 0.90,
+          communicationAlignment: 0.88,
+          shareOfWallet: 0.62,
+          aeSwitchingFrequency: 0.58,
+          fhaShare: 0.79,
+          jumboShare: 0.24,
+          averageDaysToClose: 0.70,
+          fileQualityScore: 0.81
+        }
+      },
+      {
+        id: "grant",
+        name: "Grant Ellis",
+        market: "Charlotte, NC",
+        segment: "Jumbo refinance producer",
+        note: "Values specialty product depth, clean execution, and consultative support.",
+        values: {
+          monthlyFundedVolume: 0.72,
+          pullThroughRate: 0.84,
+          rateShoppingFrequency: 0.50,
+          exceptionRequestFrequency: 0.42,
+          averageResponseSpeed: 0.62,
+          communicationAlignment: 0.70,
+          shareOfWallet: 0.76,
+          aeSwitchingFrequency: 0.28,
+          fhaShare: 0.18,
+          jumboShare: 0.88,
+          averageDaysToClose: 0.64,
+          fileQualityScore: 0.89
+        }
+      },
+      {
+        id: "sofia",
+        name: "Sofia Ramirez",
+        market: "Denver, CO",
+        segment: "Balanced growth LO",
+        note: "Looks for a steady partner who can grow wallet share without operational noise.",
+        values: {
+          monthlyFundedVolume: 0.58,
+          pullThroughRate: 0.69,
+          rateShoppingFrequency: 0.48,
+          exceptionRequestFrequency: 0.36,
+          averageResponseSpeed: 0.68,
+          communicationAlignment: 0.74,
+          shareOfWallet: 0.44,
+          aeSwitchingFrequency: 0.46,
+          fhaShare: 0.47,
+          jumboShare: 0.50,
+          averageDaysToClose: 0.76,
+          fileQualityScore: 0.72
+        }
+      },
+      {
+        id: "jamal",
+        name: "Jamal Wright",
+        market: "Atlanta, GA",
+        segment: "First-time buyer FHA builder",
+        note: "Needs education-oriented support, FHA confidence, and consistent follow-up.",
+        values: {
+          monthlyFundedVolume: 0.49,
+          pullThroughRate: 0.66,
+          rateShoppingFrequency: 0.60,
+          exceptionRequestFrequency: 0.52,
+          averageResponseSpeed: 0.77,
+          communicationAlignment: 0.82,
+          shareOfWallet: 0.36,
+          aeSwitchingFrequency: 0.64,
+          fhaShare: 0.91,
+          jumboShare: 0.12,
+          averageDaysToClose: 0.62,
+          fileQualityScore: 0.68
+        }
+      },
+      {
+        id: "taylor",
+        name: "Taylor Morgan",
+        market: "Seattle, WA",
+        segment: "Affluent borrower advisor",
+        note: "Prefers concise expert guidance, jumbo depth, and stable relationships.",
+        values: {
+          monthlyFundedVolume: 0.80,
+          pullThroughRate: 0.74,
+          rateShoppingFrequency: 0.40,
+          exceptionRequestFrequency: 0.30,
+          averageResponseSpeed: 0.56,
+          communicationAlignment: 0.63,
+          shareOfWallet: 0.82,
+          aeSwitchingFrequency: 0.20,
+          fhaShare: 0.10,
+          jumboShare: 0.96,
+          averageDaysToClose: 0.71,
+          fileQualityScore: 0.86
+        }
+      }
+    ];
+
+    const accountExecutives = [
+      {
+        id: "nina",
+        name: "Nina Patel",
+        territory: "Southwest",
+        style: "Fast responder, pricing defender",
+        values: {
+          responseSpeed: 0.93,
+          communicationFrequency: 0.87,
+          lockConversionRate: 0.78,
+          competitiveSaveRate: 0.90,
+          fhaExpertise: 0.84,
+          jumboExpertise: 0.38,
+          loRetentionRate: 0.76,
+          shareOfWalletGrowth: 0.70,
+          sentimentScore: 0.82,
+          consultativeCallStyle: 0.68
+        }
+      },
+      {
+        id: "marcus",
+        name: "Marcus Reed",
+        territory: "Southeast",
+        style: "Consultative jumbo specialist",
+        values: {
+          responseSpeed: 0.70,
+          communicationFrequency: 0.66,
+          lockConversionRate: 0.74,
+          competitiveSaveRate: 0.62,
+          fhaExpertise: 0.34,
+          jumboExpertise: 0.94,
+          loRetentionRate: 0.89,
+          shareOfWalletGrowth: 0.77,
+          sentimentScore: 0.86,
+          consultativeCallStyle: 0.92
+        }
+      },
+      {
+        id: "elena",
+        name: "Elena Brooks",
+        territory: "Mountain West",
+        style: "Relationship builder, clean files",
+        values: {
+          responseSpeed: 0.76,
+          communicationFrequency: 0.72,
+          lockConversionRate: 0.69,
+          competitiveSaveRate: 0.57,
+          fhaExpertise: 0.62,
+          jumboExpertise: 0.63,
+          loRetentionRate: 0.91,
+          shareOfWalletGrowth: 0.86,
+          sentimentScore: 0.88,
+          consultativeCallStyle: 0.83
+        }
+      },
+      {
+        id: "owen",
+        name: "Owen Kim",
+        territory: "West Coast",
+        style: "Technical operator",
+        values: {
+          responseSpeed: 0.58,
+          communicationFrequency: 0.52,
+          lockConversionRate: 0.82,
+          competitiveSaveRate: 0.48,
+          fhaExpertise: 0.45,
+          jumboExpertise: 0.76,
+          loRetentionRate: 0.71,
+          shareOfWalletGrowth: 0.55,
+          sentimentScore: 0.61,
+          consultativeCallStyle: 0.74
+        }
+      },
+      {
+        id: "pri",
+        name: "Priya Shah",
+        territory: "National accounts",
+        style: "High-touch growth coach",
+        values: {
+          responseSpeed: 0.84,
+          communicationFrequency: 0.91,
+          lockConversionRate: 0.64,
+          competitiveSaveRate: 0.66,
+          fhaExpertise: 0.72,
+          jumboExpertise: 0.58,
+          loRetentionRate: 0.86,
+          shareOfWalletGrowth: 0.92,
+          sentimentScore: 0.91,
+          consultativeCallStyle: 0.88
+        }
+      }
+    ];
+
+    let selectedLoId = loanOfficers[0].id;
+    let scoreMethod = "cosine";
+
+    const loSelect = document.querySelector("#loSelect");
+    const loMatrix = document.querySelector("#loMatrix");
+    const aeMatrix = document.querySelector("#aeMatrix");
+    const loProfile = document.querySelector("#loProfile");
+    const aeList = document.querySelector("#aeList");
+    const rankCount = document.querySelector("#rankCount");
+    const topMatch = document.querySelector("#topMatch");
+    const dimensionSummary = document.querySelector("#dimensionSummary");
+    const formulaText = document.querySelector("#formulaText");
+    const methodButtons = document.querySelectorAll("[data-method]");
+
+    function clamp(value) {
+      return Math.max(0, Math.min(1, value));
+    }
+
+    function average(values) {
+      return values.reduce((sum, value) => sum + value, 0) / values.length;
+    }
+
+    function initials(name) {
+      return name.split(" ").map(part => part[0]).join("").slice(0, 2).toUpperCase();
+    }
+
+    function formatPercent(value) {
+      return `${Math.round(value * 100)}%`;
+    }
+
+    function getLoVector(lo) {
+      const v = lo.values;
+      return {
+        communicationNeed: average([v.averageResponseSpeed, v.communicationAlignment]),
+        pricingFit: average([v.rateShoppingFrequency, v.exceptionRequestFrequency]),
+        fhaFit: v.fhaShare,
+        jumboFit: v.jumboShare,
+        relationshipFit: average([1 - v.shareOfWallet, v.aeSwitchingFrequency]),
+        operationalFit: average([v.pullThroughRate, v.fileQualityScore, v.averageDaysToClose])
+      };
+    }
+
+    function getAeVector(ae) {
+      const v = ae.values;
+      return {
+        communicationNeed: average([v.responseSpeed, v.communicationFrequency]),
+        pricingFit: average([v.lockConversionRate, v.competitiveSaveRate]),
+        fhaFit: v.fhaExpertise,
+        jumboFit: v.jumboExpertise,
+        relationshipFit: average([v.loRetentionRate, v.shareOfWalletGrowth, v.sentimentScore]),
+        operationalFit: average([v.lockConversionRate, v.loRetentionRate, v.consultativeCallStyle])
+      };
+    }
+
+    function dotProduct(a, b) {
+      return dimensions.reduce((sum, key) => sum + a[key] * b[key], 0);
+    }
+
+    function vectorMagnitude(vector) {
+      return Math.sqrt(dimensions.reduce((sum, key) => sum + vector[key] ** 2, 0));
+    }
+
+    function cosineSimilarity(a, b) {
+      const denominator = vectorMagnitude(a) * vectorMagnitude(b);
+      return denominator === 0 ? 0 : dotProduct(a, b) / denominator;
+    }
+
+    function scoreAe(lo, ae) {
+      const loVector = getLoVector(lo);
+      const aeVector = getAeVector(ae);
+      const rawScore = scoreMethod === "dot" ? dotProduct(loVector, aeVector) : cosineSimilarity(loVector, aeVector);
+      const displayScore = scoreMethod === "dot" ? rawScore / dimensions.length : rawScore;
+      return {
+        ae,
+        loVector,
+        aeVector,
+        rawScore,
+        displayScore: clamp(displayScore)
+      };
+    }
+
+    function explainScore(scoredAe) {
+      return dimensions
+        .map(key => ({
+          key,
+          label: dimensionLabels[key],
+          contribution: scoredAe.loVector[key] * scoredAe.aeVector[key],
+          loValue: scoredAe.loVector[key],
+          aeValue: scoredAe.aeVector[key]
+        }))
+        .sort((a, b) => b.contribution - a.contribution);
+    }
+
+    function renderVector(features, values, fillColor) {
+      const boxes = features.map(feature => {
+        const value = clamp(values[feature.key]);
+        const highClass = value >= 0.58 ? " high" : "";
+        const title = `${feature.category}: ${feature.label} = ${formatPercent(value)}`;
+
+        return `
+          <div class="feature-box${highClass}" tabindex="0" title="${title}" style="--value: ${value}; --fill: ${fillColor};">
+            <span class="feature-code">${feature.code}</span>
+          </div>
+        `;
+      }).join("");
+
+      return `
+        <div class="vector-wrap">
+          <div class="vector-title">
+            <span>Feature vector</span>
+            <span>${features.length} boxes</span>
+          </div>
+          <div class="vector-bar" style="--feature-count: ${features.length};">
+            ${boxes}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderProfile(profile, features, fillColor, type) {
+      const secondary = type === "lo" ? profile.segment : profile.style;
+      const tertiary = type === "lo" ? `${profile.market} - ${profile.note}` : `${profile.territory} - ${profile.style}`;
+
+      return `
+        <div class="profile-summary">
+          <div class="identity">
+            <div class="name-row">
+              <div class="avatar" style="background: ${fillColor};">${initials(profile.name)}</div>
+              <div>
+                <h3>${profile.name}</h3>
+                <p>${secondary}</p>
+              </div>
+            </div>
+            <div class="meta">
+              <span><b>${type === "lo" ? "Market" : "Territory"}:</b> ${type === "lo" ? profile.market : profile.territory}</span>
+              <span>${tertiary}</span>
+            </div>
+          </div>
+          ${renderVector(features, profile.values, fillColor)}
+        </div>
+      `;
+    }
+
+    function renderMatrix(items, getVector, fillColor) {
+      const headerCells = matrixDimensions
+        .map(key => `<th title="${dimensionLabels[key]}">${dimensionLabels[key].replace(" ", "<br>")}</th>`)
+        .join("");
+
+      const rows = items.map(item => {
+        const vector = getVector(item);
+        const cells = matrixDimensions.map(key => {
+          const value = clamp(vector[key]);
+          return `
+            <td class="matrix-cell" title="${item.name}: ${dimensionLabels[key]} = ${formatPercent(value)}" style="--value: ${value}; --matrix-fill: ${fillColor};">
+              ${value.toFixed(2)}
+            </td>
+          `;
+        }).join("");
+
+        return `
+          <tr>
+            <th scope="row">${item.name}</th>
+            ${cells}
+          </tr>
+        `;
+      }).join("");
+
+      return `
+        <table class="profile-matrix">
+          <thead>
+            <tr>
+              <th scope="col">Profile</th>
+              ${headerCells}
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function renderAeCard(scoredAe, index) {
+      const { ae, displayScore } = scoredAe;
+      const bestClass = index === 0 ? " best" : "";
+
+      return `
+        <article class="ae-card${bestClass}">
+          <div class="ae-row">
+            <div class="identity">
+              <span class="rank">Rank ${index + 1}</span>
+              <div class="name-row">
+                <div class="avatar" style="background: var(--fill-ae);">${initials(ae.name)}</div>
+                <div>
+                  <h3>${ae.name}</h3>
+                  <p>${ae.territory}</p>
+                </div>
+              </div>
+            </div>
+            ${renderVector(aeFeatures, ae.values, "var(--fill-ae)")}
+            <div class="score" aria-label="Match score">
+              <strong>${formatPercent(displayScore)}</strong>
+              <span>match</span>
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function renderTopMatch(scoredAe) {
+      const reasons = explainScore(scoredAe).slice(0, 3);
+
+      topMatch.innerHTML = `
+        <div class="match-callout">
+          <span class="pill">${scoredAe.ae.name}</span>
+          <strong>${formatPercent(scoredAe.displayScore)} match</strong>
+          <p>${scoredAe.ae.style} aligns best with this LO's strongest needs across the shared matching dimensions.</p>
+        </div>
+        <ul class="reason-list">
+          ${reasons.map(reason => `
+            <li>
+              <b>${reason.label}</b>
+              <div class="meter" aria-hidden="true" style="--meter: ${clamp(reason.contribution)};">
+                <span></span>
+              </div>
+              <p>LO ${formatPercent(reason.loValue)} x AE ${formatPercent(reason.aeValue)} contribution.</p>
+            </li>
+          `).join("")}
+        </ul>
+      `;
+    }
+
+    function renderDimensionSummary(lo, topScoredAe) {
+      const rows = dimensions.map(key => {
+        const loValue = topScoredAe.loVector[key];
+        const aeValue = topScoredAe.aeVector[key];
+        const gap = Math.abs(loValue - aeValue);
+
+        return `
+          <div class="dim-row">
+            <span>${dimensionLabels[key]}</span>
+            <b>${formatPercent(1 - gap)} aligned</b>
+          </div>
+        `;
+      }).join("");
+
+      dimensionSummary.innerHTML = rows;
+    }
+
+    function renderFormula() {
+      if (scoreMethod === "cosine") {
+        formulaText.textContent = "cosine(AE, LO) = dot(AE, LO) / (||AE|| x ||LO||)";
+      } else {
+        formulaText.textContent = "dot(AE, LO) = sum(AE_dimension x LO_dimension)";
+      }
+    }
+
+    function render() {
+      const lo = loanOfficers.find(item => item.id === selectedLoId);
+      const ranked = accountExecutives
+        .map(ae => scoreAe(lo, ae))
+        .sort((a, b) => b.displayScore - a.displayScore);
+
+      loMatrix.innerHTML = renderMatrix(loanOfficers, getLoVector, "rgba(17, 124, 122, 0.34)");
+      aeMatrix.innerHTML = renderMatrix(accountExecutives, getAeVector, "rgba(57, 90, 168, 0.30)");
+      loProfile.innerHTML = renderProfile(lo, loFeatures, "var(--fill-lo)", "lo");
+      aeList.innerHTML = ranked.map(renderAeCard).join("");
+      rankCount.textContent = `${ranked.length} AEs ranked`;
+      renderTopMatch(ranked[0]);
+      renderDimensionSummary(lo, ranked[0]);
+      renderFormula();
+    }
+
+    function setupControls() {
+      loSelect.innerHTML = loanOfficers
+        .map(lo => `<option value="${lo.id}">${lo.name} - ${lo.segment}</option>`)
+        .join("");
+
+      loSelect.value = selectedLoId;
+      loSelect.addEventListener("change", event => {
+        selectedLoId = event.target.value;
+        render();
+      });
+
+      methodButtons.forEach(button => {
+        button.addEventListener("click", () => {
+          scoreMethod = button.dataset.method;
+          methodButtons.forEach(item => {
+            item.classList.toggle("active", item.dataset.method === scoreMethod);
+          });
+          render();
+        });
+      });
+    }
+
+    setupControls();
+    render();
+  </script>
+</body>
+</html>

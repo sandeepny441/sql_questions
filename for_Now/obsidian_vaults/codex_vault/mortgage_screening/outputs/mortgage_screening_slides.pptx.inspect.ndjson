@@ -1,0 +1,243 @@
+{"kind":"deck","id":"pr/nltda7","name":"Deck"}
+{"kind":"layout","layoutId":"697782f3-009b-4981-8b82-4dfb5e0accff","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"66a8d1af-abba-4a84-b303-c2a3e3287370","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/tb8bwf","slide":1,"title":"Mortgage Screening","textShapes":8}
+{"kind":"shape","id":"sh/94fu18jq","slide":1,"name":"lower-band","bbox":[0,390,1280,330]}
+{"kind":"textbox","id":"sh/2hwfyxob","slide":1,"name":"cover-title","text":"Mortgage Screening\nIs a Control System","textPreview":"Mortgage Screening | Is a Control System","textChars":38,"textLines":2,"bbox":[41,42,960,230]}
+{"kind":"textbox","id":"sh/r2p8nqxs","slide":1,"name":"cover-sub","text":"Not one list. A coordinated set of legal, eligibility, fraud-risk, licensing, and post-close controls.","textPreview":"Not one list. A coordinated set of legal, eligibility, fraud-risk, licensing, and post-close controls.","textChars":102,"textLines":1,"bbox":[43,285,880,70]}
+{"kind":"shape","id":"sh/gvy90je9","slide":1,"name":"evidence-marker","bbox":[453,455,24,24]}
+{"kind":"textbox","id":"sh/9gr2p8nq","slide":1,"name":"cover-bottom-a","text":"Core question","textPreview":"Core question","textChars":13,"textLines":1,"bbox":[453,505,320,32]}
+{"kind":"textbox","id":"sh/2p8nqxs7","slide":1,"name":"cover-bottom-b","text":"Are we allowed to keep moving with this loan and these parties?","textPreview":"Are we allowed to keep moving with this loan and these parties?","textChars":63,"textLines":1,"bbox":[453,548,330,70]}
+{"kind":"shape","id":"sh/ra5gbq1o","slide":1,"name":"takeaway-marker","bbox":[865,455,24,24]}
+{"kind":"textbox","id":"sh/kzupwb2h","slide":1,"name":"cover-bottom-c","text":"Operating habit","textPreview":"Operating habit","textChars":15,"textLines":1,"bbox":[865,505,320,32]}
+{"kind":"textbox","id":"sh/9knih4by","slide":1,"name":"cover-bottom-d","text":"Classify each hit before deciding what to do with it.","textPreview":"Classify each hit before deciding what to do with it.","textChars":53,"textLines":1,"bbox":[865,548,330,70]}
+{"kind":"textbox","id":"sh/p8nqxs72","slide":1,"name":"footer-left","text":"Mortgage screening controls","textPreview":"Mortgage screening controls","textChars":27,"textLines":1,"bbox":[41,660,520,22]}
+{"kind":"textbox","id":"sh/0nuxc3yl","slide":1,"name":"footer-right","text":"01 / 13","textPreview":"01 / 13","textChars":7,"textLines":1,"bbox":[1130,660,108,22]}
+{"kind":"notes","id":"nt/tb8bwf","slide":1,"text":""}
+{"kind":"slide","id":"sl/tjjr9e","slide":2,"title":"Four Questions Drive the Screening Landscape","textShapes":17}
+{"kind":"textbox","id":"sh/ylc7u54z","slide":2,"name":"slide-title","text":"Four Questions Drive the Screening Landscape","textPreview":"Four Questions Drive the Screening Landscape","textChars":44,"textLines":1,"bbox":[41,36,1198,104]}
+{"kind":"textbox","id":"sh/9cvixcze","slide":2,"name":"footer-left","text":"Mortgage screening controls","textPreview":"Mortgage screening controls","textChars":27,"textLines":1,"bbox":[41,660,520,22]}
+{"kind":"textbox","id":"sh/gr2p8nqx","slide":2,"name":"footer-right","text":"02 / 13","textPreview":"02 / 13","textChars":7,"textLines":1,"bbox":[1130,660,108,22]}
+{"kind":"textbox","id":"sh/nih4byhg","slide":2,"name":"slide-subtitle","text":"The file stays clean only when each control question has an answer.","textPreview":"The file stays clean only when each control question has an answer.","textChars":67,"textLines":1,"bbox":[43,146,960,38]}
+{"kind":"shape","id":"sh/yxobm58z","slide":2,"name":"panel","bbox":[41,196,1198,396]}
+{"kind":"textbox","id":"sh/5o7qpg3e","slide":2,"name":"q-num-0","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[73,230,74,44]}
+{"kind":"shape","id":"sh/g3ex0nux","slide":2,"name":"q-rule-0","bbox":[73,292,214,2]}
+{"kind":"textbox","id":"sh/rmhk3q5o","slide":2,"name":"q-title-0","text":"Allowed to transact?","textPreview":"Allowed to transact?","textChars":20,"textLines":1,"bbox":[73,320,230,78]}
+{"kind":"textbox","id":"sh/y1kre1w7","slide":2,"name":"q-body-0","text":"Sanctions and legal restrictions","textPreview":"Sanctions and legal restrictions","textChars":32,"textLines":1,"bbox":[73,430,230,96]}
+{"kind":"textbox","id":"sh/kjm1cfa9","slide":2,"name":"q-num-1","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[365,230,74,44]}
+{"kind":"shape","id":"sh/94fu18jq","slide":2,"name":"q-rule-1","bbox":[365,292,214,2]}
+{"kind":"textbox","id":"sh/2hwfyxob","slide":2,"name":"q-title-1","text":"Eligible for the program?","textPreview":"Eligible for the program?","textChars":25,"textLines":1,"bbox":[365,320,230,78]}
+{"kind":"textbox","id":"sh/r2p8nqxs","slide":2,"name":"q-body-1","text":"Agency, investor, and federal credit controls","textPreview":"Agency, investor, and federal credit controls","textChars":45,"textLines":1,"bbox":[365,430,230,96]}
+{"kind":"textbox","id":"sh/gvy90je9","slide":2,"name":"q-num-2","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[657,230,74,44]}
+{"kind":"shape","id":"sh/9gr2p8nq","slide":2,"name":"q-rule-2","bbox":[657,292,214,2]}
+{"kind":"textbox","id":"sh/2p8nqxs7","slide":2,"name":"q-title-2","text":"Does the file show fraud risk?","textPreview":"Does the file show fraud risk?","textChars":30,"textLines":1,"bbox":[657,320,230,78]}
+{"kind":"textbox","id":"sh/ra5gbq1o","slide":2,"name":"q-body-2","text":"Identity, income, occupancy, property, and party relationships","textPreview":"Identity, income, occupancy, property, and party relationships","textChars":62,"textLines":1,"bbox":[657,430,230,96]}
+{"kind":"textbox","id":"sh/kzupwb2h","slide":2,"name":"q-num-3","text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[949,230,74,44]}
+{"kind":"shape","id":"sh/9knih4by","slide":2,"name":"q-rule-3","bbox":[949,292,214,2]}
+{"kind":"textbox","id":"sh/d8v6psfi","slide":2,"name":"q-title-3","text":"Did anything change after closing?","textPreview":"Did anything change after closing?","textChars":34,"textLines":1,"bbox":[949,320,230,78]}
+{"kind":"textbox","id":"sh/onyd0z61","slide":2,"name":"q-body-3","text":"Delivery, servicing, reporting, blocking, curing, or monitoring","textPreview":"Delivery, servicing, reporting, blocking, curing, or monitoring","textChars":63,"textLines":1,"bbox":[949,430,230,96]}
+{"kind":"textbox","id":"sh/z25kb6xk","slide":2,"name":"bottom","text":"A clean screen at application does not guarantee a clean file at funding, delivery, or servicing.","textPreview":"A clean screen at application does not guarantee a clean file at funding, delivery, or servicing.","textChars":97,"textLines":1,"bbox":[43,608,1010,40]}
+{"kind":"notes","id":"nt/tjjr9e","slide":2,"text":""}
+{"kind":"slide","id":"sl/g4m8oo","slide":3,"title":"Each Screening Bucket Answers a Different Question","textShapes":4}
+{"kind":"textbox","id":"sh/e1w7mp0b","slide":3,"name":"slide-title","text":"Each Screening Bucket Answers a Different Question","textPreview":"Each Screening Bucket Answers a Different Question","textChars":50,"textLines":1,"bbox":[41,36,1198,104]}
+{"kind":"textbox","id":"sh/psfil0rq","slide":3,"name":"footer-left","text":"Mortgage screening controls","textPreview":"Mortgage screening controls","textChars":27,"textLines":1,"bbox":[41,660,520,22]}
+{"kind":"textbox","id":"sh/w7mp0bi9","slide":3,"name":"footer-right","text":"03 / 13","textPreview":"03 / 13","textChars":7,"textLines":1,"bbox":[1130,660,108,22]}
+{"kind":"textbox","id":"sh/7adsji5s","slide":3,"name":"slide-subtitle","text":"The first classification decision shapes the next action.","textPreview":"The first classification decision shapes the next action.","textChars":57,"textLines":1,"bbox":[43,146,960,38]}
+{"kind":"shape","id":"sh/epkzupwb","slide":3,"name":"table-bg","bbox":[41,192,1198,410]}
+{"kind":"table","id":"tb/w7mp0bi9","slide":3,"name":"","rows":6,"cols":3,"preview":"Bucket | Question it answers | Typical consequence","bbox":[41,198,1198,372]}
+{"kind":"notes","id":"nt/g4m8oo","slide":3,"text":""}
+{"kind":"slide","id":"sl/xxgt0o","slide":4,"title":"Screening Extends Beyond the Borrower","textShapes":13}
+{"kind":"textbox","id":"sh/k3q5o7qp","slide":4,"name":"slide-title","text":"Screening Extends Beyond the Borrower","textPreview":"Screening Extends Beyond the Borrower","textChars":37,"textLines":1,"bbox":[41,36,1198,104]}
+{"kind":"textbox","id":"sh/vixczed8","slide":4,"name":"footer-left","text":"Mortgage screening controls","textPreview":"Mortgage screening controls","textChars":27,"textLines":1,"bbox":[41,660,520,22]}
+{"kind":"textbox","id":"sh/2x4nap4r","slide":4,"name":"footer-right","text":"04 / 13","textPreview":"04 / 13","textChars":7,"textLines":1,"bbox":[1130,660,108,22]}
+{"kind":"textbox","id":"sh/dcbulwva","slide":4,"name":"slide-subtitle","text":"Risk can attach to the parties, companies, agents, vendors, and counterparties around the loan.","textPreview":"Risk can attach to the parties, companies, agents, vendors, and counterparties around the loan.","textChars":95,"textLines":1,"bbox":[43,146,960,38]}
+{"kind":"shape","id":"sh/kre1w7mp","slide":4,"name":"party-panel-0","bbox":[41,206,262,350]}
+{"kind":"textbox","id":"sh/val87ed8","slide":4,"name":"party-head-0","text":"Borrower side","textPreview":"Borrower side","textChars":13,"textLines":1,"bbox":[69,238,205,40]}
+{"kind":"textbox","id":"sh/6psfil0r","slide":4,"name":"party-body-0","text":"Borrower\nCo-borrower\nGuarantor\nEntity borrower\nBeneficial owners","textPreview":"Borrower | Co-borrower | Guarantor | Entity borrower | Beneficial owners","textChars":64,"textLines":5,"bbox":[69,304,205,190]}
+{"kind":"shape","id":"sh/d8bat47y","slide":4,"name":"party-panel-1","bbox":[340,206,262,350]}
+{"kind":"textbox","id":"sh/knih4byh","slide":4,"name":"party-head-1","text":"Transaction side","textPreview":"Transaction side","textChars":16,"textLines":1,"bbox":[368,238,205,40]}
+{"kind":"textbox","id":"sh/uxc3ylc7","slide":4,"name":"party-body-1","text":"Seller\nPOA signer\nTrustee\nBuilder\nSettlement agent","textPreview":"Seller | POA signer | Trustee | Builder | Settlement agent","textChars":50,"textLines":5,"bbox":[368,304,205,190]}
+{"kind":"shape","id":"sh/ji5snelo","slide":4,"name":"party-panel-2","bbox":[639,206,262,350]}
+{"kind":"textbox","id":"sh/c3ylc7u5","slide":4,"name":"party-head-2","text":"Production side","textPreview":"Production side","textChars":15,"textLines":1,"bbox":[667,238,205,40]}
+{"kind":"textbox","id":"sh/1kre1w7m","slide":4,"name":"party-body-2","text":"Broker\nMLO\nProcessor\nAppraiser\nTitle company","textPreview":"Broker | MLO | Processor | Appraiser | Title company","textChars":44,"textLines":5,"bbox":[667,304,205,190]}
+{"kind":"shape","id":"sh/ulwval87","slide":4,"name":"party-panel-3","bbox":[938,206,262,350]}
+{"kind":"textbox","id":"sh/j6tovaho","slide":4,"name":"party-head-3","text":"Post-close side","textPreview":"Post-close side","textChars":15,"textLines":1,"bbox":[966,238,205,40]}
+{"kind":"textbox","id":"sh/crmhk3q5","slide":4,"name":"party-body-3","text":"Investor delivery party\nServicer\nVendor\nTransfer counterparty\nPayment recipient","textPreview":"Investor delivery party | Servicer | Vendor | Transfer counterparty | Payment recipient","textChars":79,"textLines":5,"bbox":[966,304,205,190]}
+{"kind":"textbox","id":"sh/1cfa9w3m","slide":4,"name":"scope-note","text":"Exact scope depends on list, rule, investor, product, and internal policy.","textPreview":"Exact scope depends on list, rule, investor, product, and internal policy.","textChars":74,"textLines":1,"bbox":[43,608,970,38]}
+{"kind":"notes","id":"nt/xxgt0o","slide":4,"text":""}
+{"kind":"slide","id":"sl/bwxwy0","slide":5,"title":"OFAC Is a Legal Permission Screen","textShapes":11}
+{"kind":"textbox","id":"sh/judg7ads","slide":5,"name":"slide-title","text":"OFAC Is a Legal Permission Screen","textPreview":"OFAC Is a Legal Permission Screen","textChars":33,"textLines":1,"bbox":[41,36,1198,104]}
+{"kind":"textbox","id":"sh/cfa9w3m9","slide":5,"name":"footer-left","text":"Mortgage screening controls","textPreview":"Mortgage screening controls","textChars":27,"textLines":1,"bbox":[41,660,520,22]}
+{"kind":"textbox","id":"sh/1032lszq","slide":5,"name":"footer-right","text":"05 / 13","textPreview":"05 / 13","textChars":7,"textLines":1,"bbox":[1130,660,108,22]}
+{"kind":"textbox","id":"sh/u18jqh0f","slide":5,"name":"slide-subtitle","text":"It is not normal credit underwriting, and a true match can stop the process.","textPreview":"It is not normal credit underwriting, and a true match can stop the process.","textChars":76,"textLines":1,"bbox":[43,146,960,38]}
+{"kind":"shape","id":"sh/jm1cfa9w","slide":5,"name":"left-panel","bbox":[41,202,375,290]}
+{"kind":"textbox","id":"sh/c7u54zid","slide":5,"name":"left-head","text":"Credit underwriting asks","textPreview":"Credit underwriting asks","textChars":24,"textLines":1,"bbox":[73,244,300,34]}
+{"kind":"textbox","id":"sh/1orytsvu","slide":5,"name":"left-body","text":"Can the borrower repay?","textPreview":"Can the borrower repay?","textChars":23,"textLines":1,"bbox":[73,318,300,80]}
+{"kind":"shape","id":"sh/upwb2hwf","slide":5,"name":"right-panel","bbox":[452,202,375,290]}
+{"kind":"textbox","id":"sh/nap4r65w","slide":5,"name":"right-head","text":"OFAC asks","textPreview":"OFAC asks","textChars":9,"textLines":1,"bbox":[484,244,300,34]}
+{"kind":"textbox","id":"sh/7u54zido","slide":5,"name":"right-body","text":"Are we legally allowed to transact?","textPreview":"Are we legally allowed to transact?","textChars":35,"textLines":1,"bbox":[484,318,310,118]}
+{"kind":"textbox","id":"sh/ed8bat47","slide":5,"name":"stop","text":"TRUE MATCH","textPreview":"TRUE MATCH","textChars":10,"textLines":1,"bbox":[875,218,280,42]}
+{"kind":"textbox","id":"sh/l0rqd4vm","slide":5,"name":"stop2","text":"Stop normal clearance.\nEscalate to sanctions compliance.\nBlock, reject, report, or preserve records when required.","textPreview":"Stop normal clearance. | Escalate to sanctions compliance. | Block, reject, report, or preserve records when required.","textChars":114,"textLines":3,"bbox":[875,295,320,180]}
+{"kind":"shape","id":"sh/wfyxobm5","slide":5,"name":"bottom-rule","bbox":[41,562,1198,2]}
+{"kind":"textbox","id":"sh/36hcrmhk","slide":5,"name":"bottom","text":"A name match alone is not final. A possible match still needs identifier review and documentation.","textPreview":"A name match alone is not final. A possible match still needs identifier review and documentation.","textChars":98,"textLines":1,"bbox":[43,594,1040,45]}
+{"kind":"notes","id":"nt/bwxwy0","slide":5,"text":""}
+{"kind":"slide","id":"sl/4aygy5","slide":6,"title":"Fraud Tools Raise Questions the File Must Answer","textShapes":16}
+{"kind":"textbox","id":"sh/lszqtcj6","slide":6,"name":"slide-title","text":"Fraud Tools Raise Questions the File Must Answer","textPreview":"Fraud Tools Raise Questions the File Must Answer","textChars":48,"textLines":1,"bbox":[41,36,1198,104]}
+{"kind":"textbox","id":"sh/a5gbq1or","slide":6,"name":"footer-left","text":"Mortgage screening controls","textPreview":"Mortgage screening controls","textChars":27,"textLines":1,"bbox":[41,660,520,22]}
+{"kind":"textbox","id":"sh/3m94fu18","slide":6,"name":"footer-right","text":"06 / 13","textPreview":"06 / 13","textChars":7,"textLines":1,"bbox":[1130,660,108,22]}
+{"kind":"textbox","id":"sh/sji5snel","slide":6,"name":"slide-subtitle","text":"A fraud alert is usually a risk signal, not an automatic denial.","textPreview":"A fraud alert is usually a risk signal, not an automatic denial.","textChars":64,"textLines":1,"bbox":[43,146,960,38]}
+{"kind":"textbox","id":"sh/h4byhgn2","slide":6,"name":"big","text":"Question mark,\nnot final verdict","textPreview":"Question mark, | not final verdict","textChars":32,"textLines":2,"bbox":[41,210,370,180]}
+{"kind":"textbox","id":"sh/adsji5sn","slide":6,"name":"explain","text":"Resolve the facts before the loan moves forward. Do not let a black-box fraud score silently decide the file.","textPreview":"Resolve the facts before the loan moves forward. Do not let a black-box fraud score silently decide the file.","textChars":109,"textLines":1,"bbox":[43,430,350,104]}
+{"kind":"shape","id":"sh/3ylc7u54","slide":6,"name":"fraud-row-0","bbox":[452,198,787,54]}
+{"kind":"textbox","id":"sh/svu9knih","slide":6,"name":"fraud-label-0","text":"Identity","textPreview":"Identity","textChars":8,"textLines":1,"bbox":[480,210,190,26]}
+{"kind":"textbox","id":"sh/hgn29gr2","slide":6,"name":"fraud-body-0","text":"Name, SSN, DOB, address, deceased-person indicators","textPreview":"Name, SSN, DOB, address, deceased-person indicators","textChars":51,"textLines":1,"bbox":[686,209,510,30]}
+{"kind":"shape","id":"sh/tgfmlkjm","slide":6,"name":"fraud-row-1","bbox":[452,276,787,54]}
+{"kind":"textbox","id":"sh/4vmtwra5","slide":6,"name":"fraud-label-1","text":"Occupancy","textPreview":"Occupancy","textChars":9,"textLines":1,"bbox":[480,288,190,26]}
+{"kind":"textbox","id":"sh/bat47y1k","slide":6,"name":"fraud-body-1","text":"Primary residence story, mailing address, move rationale","textPreview":"Primary residence story, mailing address, move rationale","textChars":56,"textLines":1,"bbox":[686,287,510,30]}
+{"kind":"shape","id":"sh/mp0bi9s3","slide":6,"name":"fraud-row-2","bbox":[452,354,787,54]}
+{"kind":"textbox","id":"sh/tsvu9kni","slide":6,"name":"fraud-label-2","text":"Property","textPreview":"Property","textChars":8,"textLines":1,"bbox":[480,366,190,26]}
+{"kind":"textbox","id":"sh/47y1kre1","slide":6,"name":"fraud-body-2","text":"Flip, value change, title chain, related parties","textPreview":"Flip, value change, title chain, related parties","textChars":48,"textLines":1,"bbox":[686,365,510,30]}
+{"kind":"shape","id":"sh/bm58z25k","slide":6,"name":"fraud-row-3","bbox":[452,432,787,54]}
+{"kind":"textbox","id":"sh/m1cfa9w3","slide":6,"name":"fraud-label-3","text":"Employment","textPreview":"Employment","textChars":10,"textLines":1,"bbox":[480,444,190,26]}
+{"kind":"textbox","id":"sh/twra5gbq","slide":6,"name":"fraud-body-3","text":"Employer reality, income fit, related-party work","textPreview":"Employer reality, income fit, related-party work","textChars":48,"textLines":1,"bbox":[686,443,510,30]}
+{"kind":"shape","id":"sh/4byhgn29","slide":6,"name":"fraud-row-4","bbox":[452,510,787,54]}
+{"kind":"textbox","id":"sh/0je9cvix","slide":6,"name":"fraud-label-4","text":"Relationships","textPreview":"Relationships","textChars":13,"textLines":1,"bbox":[480,522,190,26]}
+{"kind":"textbox","id":"sh/t47y1kre","slide":6,"name":"fraud-body-4","text":"Undisclosed links among borrower, seller, appraiser, broker","textPreview":"Undisclosed links among borrower, seller, appraiser, broker","textChars":59,"textLines":1,"bbox":[686,521,510,30]}
+{"kind":"notes","id":"nt/4aygy5","slide":6,"text":""}
+{"kind":"slide","id":"sl/alcgce","slide":7,"title":"Eligibility Controls Decide Participation","textShapes":4}
+{"kind":"textbox","id":"sh/j2t83itg","slide":7,"name":"slide-title","text":"Eligibility Controls Decide Participation","textPreview":"Eligibility Controls Decide Participation","textChars":41,"textLines":1,"bbox":[41,36,1198,104]}
+{"kind":"textbox","id":"sh/8nqxs72x","slide":7,"name":"footer-left","text":"Mortgage screening controls","textPreview":"Mortgage screening controls","textChars":27,"textLines":1,"bbox":[41,660,520,22]}
+{"kind":"textbox","id":"sh/18jqh0fe","slide":7,"name":"footer-right","text":"07 / 13","textPreview":"07 / 13","textChars":7,"textLines":1,"bbox":[1130,660,108,22]}
+{"kind":"textbox","id":"sh/q5o7qpg3","slide":7,"name":"slide-subtitle","text":"Some lists do not identify fraud or sanctions. They decide whether a party or borrower can participate.","textPreview":"Some lists do not identify fraud or sanctions. They decide whether a party or borrower can participate.","textChars":103,"textLines":1,"bbox":[43,146,960,38]}
+{"kind":"table","id":"tb/at47y1kr","slide":7,"name":"","rows":7,"cols":3,"preview":"Control | Question | Mortgage relevance","bbox":[41,190,1198,392]}
+{"kind":"notes","id":"nt/alcgce","slide":7,"text":""}
+{"kind":"slide","id":"sl/j7gzdw","slide":8,"title":"Screening Works as a Series of Gates","textShapes":23}
+{"kind":"textbox","id":"sh/fyxobm58","slide":8,"name":"slide-title","text":"Screening Works as a Series of Gates","textPreview":"Screening Works as a Series of Gates","textChars":36,"textLines":1,"bbox":[41,36,1198,104]}
+{"kind":"textbox","id":"sh/8jqh0fep","slide":8,"name":"footer-left","text":"Mortgage screening controls","textPreview":"Mortgage screening controls","textChars":27,"textLines":1,"bbox":[41,660,520,22]}
+{"kind":"textbox","id":"sh/x4nap4r6","slide":8,"name":"footer-right","text":"08 / 13","textPreview":"08 / 13","textChars":7,"textLines":1,"bbox":[1130,660,108,22]}
+{"kind":"textbox","id":"sh/qpg3ex0n","slide":8,"name":"slide-subtitle","text":"Each checkpoint answers a fresh version of: are we allowed to keep going?","textPreview":"Each checkpoint answers a fresh version of: are we allowed to keep going?","textChars":73,"textLines":1,"bbox":[43,146,960,38]}
+{"kind":"shape","id":"sh/fa9w3m94","slide":8,"name":"timeline","bbox":[74,382,1120,2]}
+{"kind":"shape","id":"sh/8v6psfil","slide":8,"name":"timeline-dot-0","bbox":[73,376,13,13]}
+{"kind":"textbox","id":"sh/xczed8v6","slide":8,"name":"timeline-head-0","text":"Onboard","textPreview":"Onboard","textChars":7,"textLines":1,"bbox":[70,246,150,34]}
+{"kind":"textbox","id":"sh/qtcj6tov","slide":8,"name":"timeline-body-0","text":"Broker, vendor,\nlicense, approval","textPreview":"Broker, vendor, | license, approval","textChars":33,"textLines":2,"bbox":[70,294,150,66]}
+{"kind":"textbox","id":"sh/je9cvixc","slide":8,"name":"timeline-num-0","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[70,420,70,30]}
+{"kind":"shape","id":"sh/nih4byhg","slide":8,"name":"timeline-dot-1","bbox":[287,376,13,13]}
+{"kind":"textbox","id":"sh/yxobm58z","slide":8,"name":"timeline-head-1","text":"Application","textPreview":"Application","textChars":11,"textLines":1,"bbox":[284,246,150,34]}
+{"kind":"textbox","id":"sh/5o7qpg3e","slide":8,"name":"timeline-body-1","text":"Borrower, parties,\nidentity, sanctions","textPreview":"Borrower, parties, | identity, sanctions","textChars":38,"textLines":2,"bbox":[284,294,150,66]}
+{"kind":"textbox","id":"sh/g3ex0nux","slide":8,"name":"timeline-num-1","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[284,420,70,30]}
+{"kind":"shape","id":"sh/r65wjudg","slide":8,"name":"timeline-dot-2","bbox":[501,376,13,13]}
+{"kind":"textbox","id":"sh/ylc7u54z","slide":8,"name":"timeline-head-2","text":"Underwrite","textPreview":"Underwrite","textChars":10,"textLines":1,"bbox":[498,246,150,34]}
+{"kind":"textbox","id":"sh/9cvixcze","slide":8,"name":"timeline-body-2","text":"Fraud alerts,\nCAIVRS, eligibility","textPreview":"Fraud alerts, | CAIVRS, eligibility","textChars":33,"textLines":2,"bbox":[498,294,150,66]}
+{"kind":"textbox","id":"sh/gr2p8nqx","slide":8,"name":"timeline-num-2","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[498,420,70,30]}
+{"kind":"shape","id":"sh/rytsvu9k","slide":8,"name":"timeline-dot-3","bbox":[715,376,13,13]}
+{"kind":"textbox","id":"sh/yd0z6103","slide":8,"name":"timeline-head-3","text":"Close/Fund","textPreview":"Close/Fund","textChars":10,"textLines":1,"bbox":[712,246,150,34]}
+{"kind":"textbox","id":"sh/a9w3m94f","slide":8,"name":"timeline-body-3","text":"OFAC refresh,\nwire and party controls","textPreview":"OFAC refresh, | wire and party controls","textChars":37,"textLines":2,"bbox":[712,294,150,66]}
+{"kind":"textbox","id":"sh/zupwb2hw","slide":8,"name":"timeline-num-3","text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[712,420,70,30]}
+{"kind":"shape","id":"sh/sfil0rqd","slide":8,"name":"timeline-dot-4","bbox":[929,376,13,13]}
+{"kind":"textbox","id":"sh/h0fepkzu","slide":8,"name":"timeline-head-4","text":"Deliver","textPreview":"Deliver","textChars":7,"textLines":1,"bbox":[926,246,150,34]}
+{"kind":"textbox","id":"sh/al87ed8b","slide":8,"name":"timeline-body-4","text":"Investor and GSE\neligibility checks","textPreview":"Investor and GSE | eligibility checks","textChars":35,"textLines":2,"bbox":[926,294,150,66]}
+{"kind":"textbox","id":"sh/z61032ls","slide":8,"name":"timeline-num-4","text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[926,420,70,30]}
+{"kind":"shape","id":"sh/orytsvu9","slide":8,"name":"timeline-dot-5","bbox":[1143,376,13,13]}
+{"kind":"textbox","id":"sh/hcrmhk3q","slide":8,"name":"timeline-head-5","text":"Service","textPreview":"Service","textChars":7,"textLines":1,"bbox":[1140,246,150,34]}
+{"kind":"textbox","id":"sh/6xkf6dcb","slide":8,"name":"timeline-body-5","text":"Monitoring,\npayments, events","textPreview":"Monitoring, | payments, events","textChars":28,"textLines":2,"bbox":[1140,294,150,66]}
+{"kind":"textbox","id":"sh/zed8v6ps","slide":8,"name":"timeline-num-5","text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[1140,420,70,30]}
+{"kind":"shape","id":"sh/pg3ex0nu","slide":8,"name":"bottom-panel","bbox":[41,520,1198,78]}
+{"kind":"textbox","id":"sh/wval87ed","slide":8,"name":"bottom","text":"Repeat checks because sanctions lists update, transaction parties change, and fraud or investor issues can emerge after closing.","textPreview":"Repeat checks because sanctions lists update, transaction parties change, and fraud or investor issues can emerge after closing.","textChars":128,"textLines":1,"bbox":[73,545,1060,36]}
+{"kind":"notes","id":"nt/j7gzdw","slide":8,"text":""}
+{"kind":"slide","id":"sl/ge22m6","slide":9,"title":"Pre-Close and Post-Close Controls Differ","textShapes":11}
+{"kind":"textbox","id":"sh/3m94fu18","slide":9,"name":"slide-title","text":"Pre-Close and Post-Close Controls Differ","textPreview":"Pre-Close and Post-Close Controls Differ","textChars":40,"textLines":1,"bbox":[41,36,1198,104]}
+{"kind":"textbox","id":"sh/s72x4nap","slide":9,"name":"footer-left","text":"Mortgage screening controls","textPreview":"Mortgage screening controls","textChars":27,"textLines":1,"bbox":[41,660,520,22]}
+{"kind":"textbox","id":"sh/lszqtcj6","slide":9,"name":"footer-right","text":"09 / 13","textPreview":"09 / 13","textChars":7,"textLines":1,"bbox":[1130,660,108,22]}
+{"kind":"textbox","id":"sh/adsji5sn","slide":9,"name":"slide-subtitle","text":"The same screening ecosystem protects different decisions at different points in time.","textPreview":"The same screening ecosystem protects different decisions at different points in time.","textChars":86,"textLines":1,"bbox":[43,146,960,38]}
+{"kind":"shape","id":"sh/3ylc7u54","slide":9,"name":"pre-panel","bbox":[41,196,562,330]}
+{"kind":"textbox","id":"sh/sji5snel","slide":9,"name":"pre-label","text":"PRE-CLOSE","textPreview":"PRE-CLOSE","textChars":9,"textLines":1,"bbox":[75,230,180,28]}
+{"kind":"textbox","id":"sh/h4byhgn2","slide":9,"name":"pre-main","text":"Can we make this loan?","textPreview":"Can we make this loan?","textChars":22,"textLines":1,"bbox":[75,290,430,72]}
+{"kind":"textbox","id":"sh/ap4r65wj","slide":9,"name":"pre-body","text":"Avoid funding with sanctioned parties, excluded participants, unresolved fraud facts, ineligible borrowers, or unauthorized originators.","textPreview":"Avoid funding with sanctioned parties, excluded participants, unresolved fraud facts, ineligible borrowers, or unauthorized originators.","textChars":136,"textLines":1,"bbox":[75,404,452,80]}
+{"kind":"shape","id":"sh/za1gvy90","slide":9,"name":"post-panel","bbox":[677,196,562,330]}
+{"kind":"textbox","id":"sh/z61032ls","slide":9,"name":"post-label","text":"POST-CLOSE","textPreview":"POST-CLOSE","textChars":10,"textLines":1,"bbox":[711,230,190,28]}
+{"kind":"textbox","id":"sh/al87ed8b","slide":9,"name":"post-main","text":"Can we sell, service, report, and keep it clean?","textPreview":"Can we sell, service, report, and keep it clean?","textChars":48,"textLines":1,"bbox":[711,290,440,112]}
+{"kind":"textbox","id":"sh/hcrmhk3q","slide":9,"name":"post-body","text":"Handle investor defects, fraud findings, sanctions changes, servicing restrictions, repurchase exposure, and reporting obligations.","textPreview":"Handle investor defects, fraud findings, sanctions changes, servicing restrictions, repurchase exposure, and reporting obligations.","textChars":131,"textLines":1,"bbox":[711,430,452,80]}
+{"kind":"textbox","id":"sh/orytsvu9","slide":9,"name":"bottom","text":"Clean control evidence matters almost as much as the screen itself.","textPreview":"Clean control evidence matters almost as much as the screen itself.","textChars":67,"textLines":1,"bbox":[43,596,900,40]}
+{"kind":"notes","id":"nt/ge22m6","slide":9,"text":""}
+{"kind":"slide","id":"sl/8ou9gs","slide":10,"title":"Every Hit Needs a Controlled Disposition","textShapes":14}
+{"kind":"textbox","id":"sh/hgn29gr2","slide":10,"name":"slide-title","text":"Every Hit Needs a Controlled Disposition","textPreview":"Every Hit Needs a Controlled Disposition","textChars":40,"textLines":1,"bbox":[41,36,1198,104]}
+{"kind":"textbox","id":"sh/ap4r65wj","slide":10,"name":"footer-left","text":"Mortgage screening controls","textPreview":"Mortgage screening controls","textChars":27,"textLines":1,"bbox":[41,660,520,22]}
+{"kind":"textbox","id":"sh/za1gvy90","slide":10,"name":"footer-right","text":"10 / 13","textPreview":"10 / 13","textChars":7,"textLines":1,"bbox":[1130,660,108,22]}
+{"kind":"textbox","id":"sh/s36hcrmh","slide":10,"name":"slide-subtitle","text":"Classify the hit, verify the identity, then decide the disposition.","textPreview":"Classify the hit, verify the identity, then decide the disposition.","textChars":67,"textLines":1,"bbox":[43,146,960,38]}
+{"kind":"shape","id":"sh/hoza1gvy","slide":10,"name":"step-panel-0","bbox":[41,196,374,316]}
+{"kind":"textbox","id":"sh/a1gvy90j","slide":10,"name":"step-num-0","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[73,230,74,44]}
+{"kind":"textbox","id":"sh/zidonyd0","slide":10,"name":"step-head-0","text":"Classify","textPreview":"Classify","textChars":8,"textLines":1,"bbox":[73,300,280,54]}
+{"kind":"textbox","id":"sh/s72x4nap","slide":10,"name":"step-body-0","text":"What kind of hit is this? OFAC, fraud alert, exclusion, CAIVRS, licensing, or internal list?","textPreview":"What kind of hit is this? OFAC, fraud alert, exclusion, CAIVRS, licensing, or internal list?","textChars":92,"textLines":1,"bbox":[73,384,304,88]}
+{"kind":"shape","id":"sh/lszqtcj6","slide":10,"name":"step-panel-1","bbox":[453,196,374,316]}
+{"kind":"textbox","id":"sh/h0fepkzu","slide":10,"name":"step-num-1","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[485,230,74,44]}
+{"kind":"textbox","id":"sh/sfil0rqd","slide":10,"name":"step-head-1","text":"Verify","textPreview":"Verify","textChars":6,"textLines":1,"bbox":[485,300,280,54]}
+{"kind":"textbox","id":"sh/zupwb2hw","slide":10,"name":"step-body-1","text":"Is it a real match? Compare name, identifiers, role, address, entity details, and source data.","textPreview":"Is it a real match? Compare name, identifiers, role, address, entity details, and source data.","textChars":94,"textLines":1,"bbox":[485,384,304,88]}
+{"kind":"shape","id":"sh/a9w3m94f","slide":10,"name":"step-panel-2","bbox":[865,196,374,316]}
+{"kind":"textbox","id":"sh/hcrmhk3q","slide":10,"name":"step-num-2","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[897,230,74,44]}
+{"kind":"textbox","id":"sh/orytsvu9","slide":10,"name":"step-head-2","text":"Dispose","textPreview":"Dispose","textChars":7,"textLines":1,"bbox":[897,300,280,54]}
+{"kind":"textbox","id":"sh/z61032ls","slide":10,"name":"step-body-2","text":"Clear, request more info, escalate, remove party, suspend, block, report, notify, or stop.","textPreview":"Clear, request more info, escalate, remove party, suspend, block, report, notify, or stop.","textChars":90,"textLines":1,"bbox":[897,384,304,88]}
+{"kind":"textbox","id":"sh/al87ed8b","slide":10,"name":"bottom","text":"The playbook changes by hit type, but the discipline does not: no silent clears and no ignored alerts.","textPreview":"The playbook changes by hit type, but the discipline does not: no silent clears and no ignored alerts.","textChars":102,"textLines":1,"bbox":[43,596,1060,40]}
+{"kind":"notes","id":"nt/8ou9gs","slide":10,"text":""}
+{"kind":"slide","id":"sl/uvkbs4","slide":11,"title":"Good Documentation Explains the Clearance","textShapes":15}
+{"kind":"textbox","id":"sh/lkjm1cfa","slide":11,"name":"slide-title","text":"Good Documentation Explains the Clearance","textPreview":"Good Documentation Explains the Clearance","textChars":41,"textLines":1,"bbox":[41,36,1198,104]}
+{"kind":"textbox","id":"sh/at47y1kr","slide":11,"name":"footer-left","text":"Mortgage screening controls","textPreview":"Mortgage screening controls","textChars":27,"textLines":1,"bbox":[41,660,520,22]}
+{"kind":"textbox","id":"sh/3ex0nuxc","slide":11,"name":"footer-right","text":"11 / 13","textPreview":"11 / 13","textChars":7,"textLines":1,"bbox":[1130,660,108,22]}
+{"kind":"textbox","id":"sh/sneloj2t","slide":11,"name":"slide-subtitle","text":"The audit trail should make the decision understandable later.","textPreview":"The audit trail should make the decision understandable later.","textChars":62,"textLines":1,"bbox":[43,146,960,38]}
+{"kind":"textbox","id":"sh/l87ed8ba","slide":11,"name":"main","text":"Bad note:\nCleared.","textPreview":"Bad note: | Cleared.","textChars":18,"textLines":2,"bbox":[41,224,330,150]}
+{"kind":"shape","id":"sh/ahoza1gv","slide":11,"name":"divider","bbox":[416,206,2,348]}
+{"kind":"textbox","id":"sh/32lszqtc","slide":11,"name":"right-head","text":"A better note answers:","textPreview":"A better note answers:","textChars":22,"textLines":1,"bbox":[453,210,400,42]}
+{"kind":"shape","id":"sh/wb2hwfyx","slide":11,"name":"doc-box-0","bbox":[453,284,344,42]}
+{"kind":"textbox","id":"sh/lwval87e","slide":11,"name":"doc-line-0","text":"What hit occurred","textPreview":"What hit occurred","textChars":17,"textLines":1,"bbox":[469,293,304,22]}
+{"kind":"shape","id":"sh/hoza1gvy","slide":11,"name":"doc-box-1","bbox":[453,346,344,42]}
+{"kind":"textbox","id":"sh/s36hcrmh","slide":11,"name":"doc-line-1","text":"Who or what matched","textPreview":"Who or what matched","textChars":19,"textLines":1,"bbox":[469,355,304,22]}
+{"kind":"shape","id":"sh/zidonyd0","slide":11,"name":"doc-box-2","bbox":[453,408,344,42]}
+{"kind":"textbox","id":"sh/a1gvy90j","slide":11,"name":"doc-line-2","text":"Which identifiers matched or did not match","textPreview":"Which identifiers matched or did not match","textChars":42,"textLines":1,"bbox":[469,417,304,22]}
+{"kind":"shape","id":"sh/hgn29gr2","slide":11,"name":"doc-box-3","bbox":[453,470,344,42]}
+{"kind":"textbox","id":"sh/svu9knih","slide":11,"name":"doc-line-3","text":"What evidence was reviewed","textPreview":"What evidence was reviewed","textChars":26,"textLines":1,"bbox":[469,479,304,22]}
+{"kind":"shape","id":"sh/za1gvy90","slide":11,"name":"doc-box-4","bbox":[843,284,344,42]}
+{"kind":"textbox","id":"sh/ap4r65wj","slide":11,"name":"doc-line-4","text":"Who reviewed it","textPreview":"Who reviewed it","textChars":15,"textLines":1,"bbox":[859,293,304,22]}
+{"kind":"shape","id":"sh/h4byhgn2","slide":11,"name":"doc-box-5","bbox":[843,346,344,42]}
+{"kind":"textbox","id":"sh/sji5snel","slide":11,"name":"doc-line-5","text":"What policy or rule applied","textPreview":"What policy or rule applied","textChars":27,"textLines":1,"bbox":[859,355,304,22]}
+{"kind":"shape","id":"sh/87ed8bat","slide":11,"name":"doc-box-6","bbox":[843,408,344,42]}
+{"kind":"textbox","id":"sh/xs72x4na","slide":11,"name":"doc-line-6","text":"What final action was taken","textPreview":"What final action was taken","textChars":27,"textLines":1,"bbox":[859,417,304,22]}
+{"kind":"shape","id":"sh/q1orytsv","slide":11,"name":"doc-box-7","bbox":[843,470,344,42]}
+{"kind":"textbox","id":"sh/fmlkjm1c","slide":11,"name":"doc-line-7","text":"Why the file is cleared or not cleared","textPreview":"Why the file is cleared or not cleared","textChars":38,"textLines":1,"bbox":[859,479,304,22]}
+{"kind":"textbox","id":"sh/8z25kb6x","slide":11,"name":"bottom","text":"If the note cannot explain the clearance, the file is not truly clear.","textPreview":"If the note cannot explain the clearance, the file is not truly clear.","textChars":70,"textLines":1,"bbox":[43,594,900,42]}
+{"kind":"notes","id":"nt/uvkbs4","slide":11,"text":""}
+{"kind":"slide","id":"sl/w3gauk","slide":12,"title":"Resolve, Escalate, or Stop Each Hit","textShapes":12}
+{"kind":"textbox","id":"sh/0rqd4vmt","slide":12,"name":"slide-title","text":"Resolve, Escalate, or Stop Each Hit","textPreview":"Resolve, Escalate, or Stop Each Hit","textChars":35,"textLines":1,"bbox":[41,36,1198,104]}
+{"kind":"textbox","id":"sh/b6xkf6dc","slide":12,"name":"footer-left","text":"Mortgage screening controls","textPreview":"Mortgage screening controls","textChars":27,"textLines":1,"bbox":[41,660,520,22]}
+{"kind":"textbox","id":"sh/il0rqd4v","slide":12,"name":"footer-right","text":"12 / 13","textPreview":"12 / 13","textChars":7,"textLines":1,"bbox":[1130,660,108,22]}
+{"kind":"textbox","id":"sh/t47y1kre","slide":12,"name":"slide-subtitle","text":"A hit should never become ignored.","textPreview":"A hit should never become ignored.","textChars":34,"textLines":1,"bbox":[43,146,960,38]}
+{"kind":"shape","id":"sh/0je9cvix","slide":12,"name":"habit-panel-0","bbox":[41,218,374,230]}
+{"kind":"textbox","id":"sh/byhgn29g","slide":12,"name":"habit-title-0","text":"Resolved","textPreview":"Resolved","textChars":8,"textLines":1,"bbox":[73,260,300,54]}
+{"kind":"textbox","id":"sh/idonyd0z","slide":12,"name":"habit-body-0","text":"False positive or cleared with evidence","textPreview":"False positive or cleared with evidence","textChars":39,"textLines":1,"bbox":[73,344,298,70]}
+{"kind":"shape","id":"sh/p0bi9s36","slide":12,"name":"habit-panel-1","bbox":[453,218,374,230]}
+{"kind":"textbox","id":"sh/0fepkzup","slide":12,"name":"habit-title-1","text":"Escalated","textPreview":"Escalated","textChars":9,"textLines":1,"bbox":[485,260,300,54]}
+{"kind":"textbox","id":"sh/itgfmlkj","slide":12,"name":"habit-body-1","text":"Compliance, fraud, AML, legal, investor, or agency path","textPreview":"Compliance, fraud, AML, legal, investor, or agency path","textChars":55,"textLines":1,"bbox":[485,344,298,70]}
+{"kind":"shape","id":"sh/7ed8bat4","slide":12,"name":"habit-panel-2","bbox":[865,218,374,230]}
+{"kind":"textbox","id":"sh/0z61032l","slide":12,"name":"habit-title-2","text":"Stopped","textPreview":"Stopped","textChars":7,"textLines":1,"bbox":[897,260,300,54]}
+{"kind":"textbox","id":"sh/pkzupwb2","slide":12,"name":"habit-body-2","text":"Suspended, blocked, rejected, declined, removed, or not eligible","textPreview":"Suspended, blocked, rejected, declined, removed, or not eligible","textChars":64,"textLines":1,"bbox":[897,344,298,70]}
+{"kind":"textbox","id":"sh/ih4byhgn","slide":12,"name":"not","text":"Not an option: ignored.","textPreview":"Not an option: ignored.","textChars":23,"textLines":1,"bbox":[41,540,640,62]}
+{"kind":"textbox","id":"sh/72x4nap4","slide":12,"name":"close","text":"Screening only works when every alert has an owner, a rule, evidence, and a disposition.","textPreview":"Screening only works when every alert has an owner, a rule, evidence, and a disposition.","textChars":88,"textLines":1,"bbox":[678,540,500,64]}
+{"kind":"notes","id":"nt/w3gauk","slide":12,"text":""}
+{"kind":"slide","id":"sl/2k5q6o","slide":13,"title":"Use Current Official Sources Before You Rely on a List","textShapes":17}
+{"kind":"textbox","id":"sh/w7mp0bi9","slide":13,"name":"slide-title","text":"Use Current Official Sources Before You Rely on a List","textPreview":"Use Current Official Sources Before You Rely on a List","textChars":54,"textLines":1,"bbox":[41,36,1198,104]}
+{"kind":"textbox","id":"sh/7mp0bi9s","slide":13,"name":"footer-left","text":"Mortgage screening controls","textPreview":"Mortgage screening controls","textChars":27,"textLines":1,"bbox":[41,660,520,22]}
+{"kind":"textbox","id":"sh/e1w7mp0b","slide":13,"name":"footer-right","text":"13 / 13","textPreview":"13 / 13","textChars":7,"textLines":1,"bbox":[1130,660,108,22]}
+{"kind":"textbox","id":"sh/pg3ex0nu","slide":13,"name":"slide-subtitle","text":"List content and program requirements change. Production decisions should rely on live systems and current policy.","textPreview":"List content and program requirements change. Production decisions should rely on live systems and current policy.","textChars":114,"textLines":1,"bbox":[43,146,960,38]}
+{"kind":"shape","id":"sh/wval87ed","slide":13,"name":"sources-panel","bbox":[41,194,1198,390]}
+{"kind":"textbox","id":"sh/7adsji5s","slide":13,"name":"source-name-0","text":"OFAC","textPreview":"OFAC","textChars":4,"textLines":1,"bbox":[76,222,160,26]}
+{"kind":"textbox","id":"sh/epkzupwb","slide":13,"name":"source-desc-0","text":"Sanctions List Service and Sanctions List Search","textPreview":"Sanctions List Service and Sanctions List Search","textChars":48,"textLines":1,"bbox":[272,222,860,28]}
+{"kind":"textbox","id":"sh/lc7u54zi","slide":13,"name":"source-name-1","text":"FinCEN","textPreview":"FinCEN","textChars":6,"textLines":1,"bbox":[76,276,160,26]}
+{"kind":"textbox","id":"sh/wra5gbq1","slide":13,"name":"source-desc-1","text":"AML program and SAR resources for mortgage companies and brokers","textPreview":"AML program and SAR resources for mortgage companies and brokers","textChars":64,"textLines":1,"bbox":[272,276,860,28]}
+{"kind":"textbox","id":"sh/upwb2hwf","slide":13,"name":"source-name-2","text":"HUD / SAM","textPreview":"HUD / SAM","textChars":9,"textLines":1,"bbox":[76,330,160,26]}
+{"kind":"textbox","id":"sh/nap4r65w","slide":13,"name":"source-desc-2","text":"HUD LDP, CAIVRS, and SAM.gov exclusions","textPreview":"HUD LDP, CAIVRS, and SAM.gov exclusions","textChars":39,"textLines":1,"bbox":[272,330,860,28]}
+{"kind":"textbox","id":"sh/cvixczed","slide":13,"name":"source-name-3","text":"FHFA / GSEs","textPreview":"FHFA / GSEs","textChars":11,"textLines":1,"bbox":[76,384,160,26]}
+{"kind":"textbox","id":"sh/5gbq1ory","slide":13,"name":"source-desc-3","text":"FHFA Suspended Counterparty Program plus Fannie Mae and Freddie Mac guides","textPreview":"FHFA Suspended Counterparty Program plus Fannie Mae and Freddie Mac guides","textChars":74,"textLines":1,"bbox":[272,384,860,28]}
+{"kind":"textbox","id":"sh/udg7adsj","slide":13,"name":"source-name-4","text":"NMLS","textPreview":"NMLS","textChars":4,"textLines":1,"bbox":[76,438,160,26]}
+{"kind":"textbox","id":"sh/nyd0z610","slide":13,"name":"source-desc-4","text":"Consumer Access licensing checks","textPreview":"Consumer Access licensing checks","textChars":32,"textLines":1,"bbox":[272,438,860,28]}
+{"kind":"textbox","id":"sh/cj6tovah","slide":13,"name":"source-name-5","text":"CFPB","textPreview":"CFPB","textChars":4,"textLines":1,"bbox":[76,492,160,26]}
+{"kind":"textbox","id":"sh/54zidony","slide":13,"name":"source-desc-5","text":"Regulation V and Regulation B resources for consumer-report/adverse-action context","textPreview":"Regulation V and Regulation B resources for consumer-report/adverse-action context","textChars":82,"textLines":1,"bbox":[272,492,860,28]}
+{"kind":"textbox","id":"sh/u9knih4b","slide":13,"name":"bottom-source-note","text":"This deck is an intuition aid. Compliance teams should use current investor guides, agency rules, vendor procedures, internal policy, and counsel.","textPreview":"This deck is an intuition aid. Compliance teams should use current investor guides, agency rules, vendor procedures, internal policy, and...","textChars":146,"textLines":1,"bbox":[73,612,1070,40]}
+{"kind":"notes","id":"nt/2k5q6o","slide":13,"text":""}

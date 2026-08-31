@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Statistics Reference</title>
+    <style>
+      :root {
+        --bg: #ffffff;
+        --surface: #ffffff;
+        --border: #dfe4ee;
+        --text: #202735;
+        --muted: #5f6b80;
+        --faint: #8a95a8;
+        --accent: #00b7ff;
+        --accent-strong: #009fdb;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Lato", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        color: var(--text);
+        background: var(--bg);
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      button, input {
+        font: inherit;
+      }
+
+      .shell {
+        width: min(1420px, 100%);
+        min-height: 100vh;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 250px minmax(0, 1fr) 250px;
+        background: var(--surface);
+      }
+
+      .sidebar, .toc {
+        position: sticky;
+        top: 0;
+        align-self: start;
+        height: 100vh;
+        overflow: auto;
+        background: var(--surface);
+      }
+
+      .sidebar {
+        padding: 34px 22px 28px 28px;
+        border-right: 1px solid var(--border);
+      }
+
+      .toc {
+        padding: 22px 24px 28px;
+      }
+
+      .brand {
+        margin-bottom: 22px;
+        line-height: 1.08;
+      }
+
+      .brand strong {
+        display: block;
+        font-size: 1.02rem;
+        font-weight: 700;
+      }
+
+      .brand span {
+        display: block;
+        margin-top: 4px;
+        color: var(--accent-strong);
+        font-size: 0.98rem;
+        font-style: italic;
+      }
+
+      .search-wrap {
+        margin-bottom: 22px;
+      }
+
+      .search-wrap input {
+        width: 100%;
+        height: 30px;
+        padding: 0 12px;
+        border: 1px solid #d7dde8;
+        border-radius: 4px;
+        color: var(--text);
+        background: #ffffff;
+        outline: none;
+      }
+
+      .search-wrap input:focus {
+        border-color: rgba(0, 183, 255, 0.75);
+        box-shadow: 0 0 0 3px rgba(0, 183, 255, 0.12);
+      }
+
+      .section-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .section-link {
+        display: block;
+        padding: 4px 0;
+        color: var(--muted);
+        line-height: 1.2;
+        cursor: pointer;
+      }
+
+      .section-link:hover {
+        color: var(--accent);
+      }
+
+      .section-link.active {
+        color: var(--accent-strong);
+        font-weight: 600;
+      }
+
+      .section-link .number {
+        display: inline-block;
+        width: 18px;
+      }
+
+      .main {
+        padding: 28px 68px 56px;
+        min-width: 0;
+      }
+
+      .article {
+        max-width: 760px;
+      }
+
+      .eyebrow {
+        margin-bottom: 10px;
+        color: var(--faint);
+        font-size: 0.82rem;
+      }
+
+      .article h1 {
+        margin: 0;
+        font-size: clamp(2.5rem, 4vw, 3.5rem);
+        line-height: 1;
+        font-weight: 700;
+      }
+
+      .lede {
+        margin: 18px 0 26px;
+        color: var(--muted);
+        font-size: 1.02rem;
+        line-height: 1.7;
+      }
+
+      .content-section + .content-section {
+        margin-top: 34px;
+      }
+
+      .content-section h2 {
+        margin: 0 0 12px;
+        font-size: 1.7rem;
+        line-height: 1.15;
+        font-weight: 700;
+      }
+
+      .content-section p {
+        margin: 0;
+        font-size: 1rem;
+        line-height: 1.75;
+        color: var(--text);
+        white-space: pre-wrap;
+      }
+
+      .toc h2 {
+        margin: 0 0 10px;
+        font-size: 1rem;
+        font-weight: 400;
+      }
+
+      .toc-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .toc-list li {
+        margin: 0;
+      }
+
+      .toc-link {
+        display: block;
+        padding: 4px 0 4px 10px;
+        border-left: 2px solid transparent;
+        color: var(--muted);
+        line-height: 1.2;
+        cursor: pointer;
+      }
+
+      .toc-link:hover {
+        color: var(--accent);
+      }
+
+      .toc-link.active {
+        border-left-color: var(--accent-strong);
+        color: #1c5fda;
+      }
+
+      .toc-link .toc-number {
+        display: inline-block;
+        min-width: 34px;
+      }
+
+      .toc-caption {
+        margin-top: 18px;
+        color: var(--faint);
+        font-size: 0.86rem;
+        line-height: 1.5;
+      }
+
+      .empty-note {
+        margin-top: 14px;
+        color: var(--faint);
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+    </style>
+</head>
+<body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <strong>Statistics Guide</strong>
+          <span>100 Topics</span>
+        </div>
+
+        <div class="search-wrap">
+          <input id="tocSearch" type="text" placeholder="Search entries" />
+        </div>
+
+        <nav class="section-nav" id="sectionNav"></nav>
+      </aside>
+
+      <main class="main">
+        <article class="article">
+          <div class="eyebrow" id="articleEyebrow"></div>
+          <h1 id="articleTitle"></h1>
+          <p class="lede" id="articleLede"></p>
+
+          <section class="content-section">
+            <h2 id="sectionOneTitle"></h2>
+            <p id="sectionOneBody"></p>
+          </section>
+
+          <section class="content-section">
+            <h2 id="sectionTwoTitle"></h2>
+            <p id="sectionTwoBody"></p>
+          </section>
+        </article>
+      </main>
+
+      <aside class="toc">
+        <h2>Table of contents</h2>
+        <ul class="toc-list" id="itemNav"></ul>
+        <p class="toc-caption">Click a topic to view details.</p>
+      </aside>
+    </div>
+
+    <script>
+      // DATA EMBEDDED BELOW
+      const dataJSON = '{"chapter_1": {"number": "1", "label": "Introduction To Statistics", "items": [{"id": "01-descriptive-vs-inferential-statistics", "number": "1.1", "title": "1.1 Descriptive vs Inferential Statistics", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 1.1 Descriptive vs Inferential Statistics\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n- Descriptive statistics\n- Inferential statistics\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/01-introduction-to-statistics/01-descriptive-vs-inferential-statistics.md"}, {"id": "02-population-vs-sample", "number": "1.2", "title": "1.2 Population vs Sample", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 1.2 Population vs Sample\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n- Population\n- Sample\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/01-introduction-to-statistics/02-population-vs-sample.md"}, {"id": "03-parameters-vs-statistics", "number": "1.3", "title": "1.3 Parameters vs Statistics", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 1.3 Parameters vs Statistics\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n- Parameters\n- Statistics\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/01-introduction-to-statistics/03-parameters-vs-statistics.md"}, {"id": "04-qualitative-vs-quantitative-data", "number": "1.4", "title": "1.4 Qualitative vs Quantitative Data", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 1.4 Qualitative vs Quantitative Data\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n- Qualitative data\n- Quantitative data\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/01-introduction-to-statistics/04-qualitative-vs-quantitative-data.md"}, {"id": "05-levels-of-measurement", "number": "1.5", "title": "1.5 Levels of Measurement", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 1.5 Levels of Measurement\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n- Nominal\n- Ordinal\n- Interval\n- Ratio\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/01-introduction-to-statistics/05-levels-of-measurement.md"}, {"id": "06-discrete-vs-continuous-variables", "number": "1.6", "title": "1.6 Discrete vs Continuous Variables", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 1.6 Discrete vs Continuous Variables\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n- Discrete variables\n- Continuous variables\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/01-introduction-to-statistics/06-discrete-vs-continuous-variables.md"}, {"id": "07-cross-sectional-vs-time-series-data", "number": "1.7", "title": "1.7 Cross-sectional vs Time-series Data", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 1.7 Cross-sectional vs Time-series Data\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n- Cross-sectional data\n- Time-series data\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/01-introduction-to-statistics/07-cross-sectional-vs-time-series-data.md"}, {"id": "08-structured-vs-unstructured-data", "number": "1.8", "title": "1.8 Structured vs Unstructured Data", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 1.8 Structured vs Unstructured Data\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n- Structured data\n- Unstructured data\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/01-introduction-to-statistics/08-structured-vs-unstructured-data.md"}, {"id": "09-data-collection-methods", "number": "1.9", "title": "1.9 Data Collection Methods", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 1.9 Data Collection Methods\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n- Data collection techniques\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/01-introduction-to-statistics/09-data-collection-methods.md"}, {"id": "10-common-data-sources", "number": "1.10", "title": "1.10 Common Data Sources in Data Science", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 1.10 Common Data Sources in Data Science\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n- Data sources\n- Data availability\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/01-introduction-to-statistics/10-common-data-sources.md"}]}, "chapter_2": {"number": "2", "label": "Measures Of Central Tendency", "items": [{"id": "01-arithmetic-mean", "number": "2.1", "title": "2.1 Arithmetic Mean", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 2.1 Arithmetic Mean\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/02-measures-of-central-tendency/01-arithmetic-mean.md"}, {"id": "010-effect-of-outliers-on-central-tendency", "number": "2.2", "title": "2.10 Effect of Outliers on Central Tendency", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 2.10 Effect of Outliers on Central Tendency\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/02-measures-of-central-tendency/010-effect-of-outliers-on-central-tendency.md"}, {"id": "02-weighted-mean", "number": "2.3", "title": "2.2 Weighted Mean", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 2.2 Weighted Mean\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/02-measures-of-central-tendency/02-weighted-mean.md"}, {"id": "03-geometric-and-harmonic-mean", "number": "2.4", "title": "2.3 Geometric and Harmonic Mean", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 2.3 Geometric and Harmonic Mean\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/02-measures-of-central-tendency/03-geometric-and-harmonic-mean.md"}, {"id": "04-median", "number": "2.5", "title": "2.4 Median", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 2.4 Median\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/02-measures-of-central-tendency/04-median.md"}, {"id": "05-mode", "number": "2.6", "title": "2.5 Mode", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 2.5 Mode\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/02-measures-of-central-tendency/05-mode.md"}, {"id": "06-trimmed-mean", "number": "2.7", "title": "2.6 Trimmed Mean", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 2.6 Trimmed Mean\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/02-measures-of-central-tendency/06-trimmed-mean.md"}, {"id": "07-percentiles", "number": "2.8", "title": "2.7 Percentiles", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 2.7 Percentiles\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/02-measures-of-central-tendency/07-percentiles.md"}, {"id": "08-quartiles", "number": "2.9", "title": "2.8 Quartiles", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 2.8 Quartiles\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/02-measures-of-central-tendency/08-quartiles.md"}, {"id": "09-five-number-summary", "number": "2.10", "title": "2.9 Five-number Summary", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 2.9 Five-number Summary\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/02-measures-of-central-tendency/09-five-number-summary.md"}]}, "chapter_3": {"number": "3", "label": "Measures Of Spread", "items": [{"id": "01-range", "number": "3.1", "title": "3.1 Range", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 3.1 Range\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/03-measures-of-spread/01-range.md"}, {"id": "010-empirical-rule-68-95-99.7", "number": "3.2", "title": "3.10 Empirical Rule (68-95-99.7)", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 3.10 Empirical Rule (68-95-99.7)\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/03-measures-of-spread/010-empirical-rule-68-95-99.7.md"}, {"id": "02-interquartile-range-iqr", "number": "3.3", "title": "3.2 Interquartile Range (IQR)", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 3.2 Interquartile Range (IQR)\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/03-measures-of-spread/02-interquartile-range-iqr.md"}, {"id": "03-variance-population-and-sample", "number": "3.4", "title": "3.3 Variance (Population and Sample)", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 3.3 Variance (Population and Sample)\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/03-measures-of-spread/03-variance-population-and-sample.md"}, {"id": "04-standard-deviation", "number": "3.5", "title": "3.4 Standard Deviation", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 3.4 Standard Deviation\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/03-measures-of-spread/04-standard-deviation.md"}, {"id": "05-mean-absolute-deviation", "number": "3.6", "title": "3.5 Mean Absolute Deviation", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 3.5 Mean Absolute Deviation\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/03-measures-of-spread/05-mean-absolute-deviation.md"}, {"id": "06-coefficient-of-variation", "number": "3.7", "title": "3.6 Coefficient of Variation", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 3.6 Coefficient of Variation\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/03-measures-of-spread/06-coefficient-of-variation.md"}, {"id": "07-skewness", "number": "3.8", "title": "3.7 Skewness", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 3.7 Skewness\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/03-measures-of-spread/07-skewness.md"}, {"id": "08-kurtosis", "number": "3.9", "title": "3.8 Kurtosis", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 3.8 Kurtosis\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/03-measures-of-spread/08-kurtosis.md"}, {"id": "09-standardization-vs-normalization", "number": "3.10", "title": "3.9 Standardization vs Normalization", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 3.9 Standardization vs Normalization\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/03-measures-of-spread/09-standardization-vs-normalization.md"}]}, "chapter_4": {"number": "4", "label": "Data Visualization", "items": [{"id": "01-frequency-distributions", "number": "4.1", "title": "4.1 Frequency Distributions", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 4.1 Frequency Distributions\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/04-data-visualization/01-frequency-distributions.md"}, {"id": "010-pair-plots", "number": "4.2", "title": "4.10 Pair Plots", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 4.10 Pair Plots\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/04-data-visualization/010-pair-plots.md"}, {"id": "02-histograms", "number": "4.3", "title": "4.2 Histograms", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 4.2 Histograms\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/04-data-visualization/02-histograms.md"}, {"id": "03-bar-charts-and-pie-charts", "number": "4.4", "title": "4.3 Bar Charts and Pie Charts", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 4.3 Bar Charts and Pie Charts\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/04-data-visualization/03-bar-charts-and-pie-charts.md"}, {"id": "04-box-plots-and-violin-plots", "number": "4.5", "title": "4.4 Box Plots and Violin Plots", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 4.4 Box Plots and Violin Plots\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/04-data-visualization/04-box-plots-and-violin-plots.md"}, {"id": "05-scatter-plots", "number": "4.6", "title": "4.5 Scatter Plots", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 4.5 Scatter Plots\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/04-data-visualization/05-scatter-plots.md"}, {"id": "06-line-charts", "number": "4.7", "title": "4.6 Line Charts", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 4.6 Line Charts\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/04-data-visualization/06-line-charts.md"}, {"id": "07-q-q-plots", "number": "4.8", "title": "4.7 Q-Q Plots", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 4.7 Q-Q Plots\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/04-data-visualization/07-q-q-plots.md"}, {"id": "08-density-plots-and-kernel-density-estimation", "number": "4.9", "title": "4.8 Density Plots and Kernel Density Estimation", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 4.8 Density Plots and Kernel Density Estimation\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/04-data-visualization/08-density-plots-and-kernel-density-estimation.md"}, {"id": "09-heatmaps", "number": "4.10", "title": "4.9 Heatmaps", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 4.9 Heatmaps\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/04-data-visualization/09-heatmaps.md"}]}, "chapter_5": {"number": "5", "label": "Sampling Distributions", "items": [{"id": "01-simple-random-sampling", "number": "5.1", "title": "5.1 Simple Random Sampling", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 5.1 Simple Random Sampling\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/05-sampling-distributions/01-simple-random-sampling.md"}, {"id": "010-imbalanced-data-and-resampling-techniques", "number": "5.2", "title": "5.10 Imbalanced Data and Resampling Techniques", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 5.10 Imbalanced Data and Resampling Techniques\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/05-sampling-distributions/010-imbalanced-data-and-resampling-techniques.md"}, {"id": "02-stratified-sampling", "number": "5.3", "title": "5.2 Stratified Sampling", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 5.2 Stratified Sampling\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/05-sampling-distributions/02-stratified-sampling.md"}, {"id": "03-cluster-sampling", "number": "5.4", "title": "5.3 Cluster Sampling", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 5.3 Cluster Sampling\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/05-sampling-distributions/03-cluster-sampling.md"}, {"id": "04-systematic-sampling", "number": "5.5", "title": "5.4 Systematic Sampling", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 5.4 Systematic Sampling\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/05-sampling-distributions/04-systematic-sampling.md"}, {"id": "05-convenience-and-judgment-sampling", "number": "5.6", "title": "5.5 Convenience and Judgment Sampling", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 5.5 Convenience and Judgment Sampling\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/05-sampling-distributions/05-convenience-and-judgment-sampling.md"}, {"id": "06-sampling-bias", "number": "5.7", "title": "5.6 Sampling Bias", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 5.6 Sampling Bias\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/05-sampling-distributions/06-sampling-bias.md"}, {"id": "07-sample-size-determination", "number": "5.8", "title": "5.7 Sample Size Determination", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 5.7 Sample Size Determination\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/05-sampling-distributions/07-sample-size-determination.md"}, {"id": "08-sampling-distribution-of-the-mean", "number": "5.9", "title": "5.8 Sampling Distribution of the Mean", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 5.8 Sampling Distribution of the Mean\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/05-sampling-distributions/08-sampling-distribution-of-the-mean.md"}, {"id": "09-standard-error", "number": "5.10", "title": "5.9 Standard Error", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 5.9 Standard Error\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/05-sampling-distributions/09-standard-error.md"}]}, "chapter_6": {"number": "6", "label": "Confidence Intervals", "items": [{"id": "01-point-estimation", "number": "6.1", "title": "6.1 Point Estimation", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 6.1 Point Estimation\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/06-confidence-intervals/01-point-estimation.md"}, {"id": "010-common-misinterpretations-of-confidence-intervals", "number": "6.2", "title": "6.10 Common Misinterpretations of Confidence Intervals", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 6.10 Common Misinterpretations of Confidence Intervals\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/06-confidence-intervals/010-common-misinterpretations-of-confidence-intervals.md"}, {"id": "02-interval-estimation", "number": "6.3", "title": "6.2 Interval Estimation", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 6.2 Interval Estimation\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/06-confidence-intervals/02-interval-estimation.md"}, {"id": "03-maximum-likelihood-estimation", "number": "6.4", "title": "6.3 Maximum Likelihood Estimation", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 6.3 Maximum Likelihood Estimation\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/06-confidence-intervals/03-maximum-likelihood-estimation.md"}, {"id": "04-bias---variance-tradeoff", "number": "6.5", "title": "6.4 Bias - Variance Tradeoff", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 6.4 Bias - Variance Tradeoff\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/06-confidence-intervals/04-bias---variance-tradeoff.md"}, {"id": "05-confidence-intervals-for-the-mean-z-and-t", "number": "6.6", "title": "6.5 Confidence Intervals for the Mean (z and t)", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 6.5 Confidence Intervals for the Mean (z and t)\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/06-confidence-intervals/05-confidence-intervals-for-the-mean-z-and-t.md"}, {"id": "06-confidence-intervals-for-proportions", "number": "6.7", "title": "6.6 Confidence Intervals for Proportions", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 6.6 Confidence Intervals for Proportions\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/06-confidence-intervals/06-confidence-intervals-for-proportions.md"}, {"id": "07-confidence-intervals-for-variance", "number": "6.8", "title": "6.7 Confidence Intervals for Variance", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 6.7 Confidence Intervals for Variance\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/06-confidence-intervals/07-confidence-intervals-for-variance.md"}, {"id": "08-margin-of-error", "number": "6.9", "title": "6.8 Margin of Error", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 6.8 Margin of Error\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/06-confidence-intervals/08-margin-of-error.md"}, {"id": "09-interpreting-confidence-intervals", "number": "6.10", "title": "6.9 Interpreting Confidence Intervals", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 6.9 Interpreting Confidence Intervals\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/06-confidence-intervals/09-interpreting-confidence-intervals.md"}]}, "chapter_7": {"number": "7", "label": "Ab Testing Hypothesis Testing", "items": [{"id": "01-null--and--alternative-hypotheses", "number": "7.1", "title": "7.1 Null & Alternative Hypotheses", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 7.1 Null & Alternative Hypotheses\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/07-ab-testing-hypothesis-testing/01-null--and--alternative-hypotheses.md"}, {"id": "010-one-tailed-vs-two-tailed-tests", "number": "7.2", "title": "7.10 One-tailed vs Two-tailed Tests", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 7.10 One-tailed vs Two-tailed Tests\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/07-ab-testing-hypothesis-testing/010-one-tailed-vs-two-tailed-tests.md"}, {"id": "02-control-group--and--treatment-group", "number": "7.3", "title": "7.2 Control Group & Treatment Group", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 7.2 Control Group & Treatment Group\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/07-ab-testing-hypothesis-testing/02-control-group--and--treatment-group.md"}, {"id": "03-test-statistics", "number": "7.4", "title": "7.3 Test Statistics", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 7.3 Test Statistics\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/07-ab-testing-hypothesis-testing/03-test-statistics.md"}, {"id": "04-significance-level-alpha", "number": "7.5", "title": "7.4 Significance Level (Alpha)", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 7.4 Significance Level (Alpha)\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/07-ab-testing-hypothesis-testing/04-significance-level-alpha.md"}, {"id": "05-p-values", "number": "7.6", "title": "7.5 P-values", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 7.5 P-values\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/07-ab-testing-hypothesis-testing/05-p-values.md"}, {"id": "06-type-i-and-type-ii-errors", "number": "7.7", "title": "7.6 Type I and Type II Errors", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 7.6 Type I and Type II Errors\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/07-ab-testing-hypothesis-testing/06-type-i-and-type-ii-errors.md"}, {"id": "07-statistical-power-and-effect-size", "number": "7.8", "title": "7.7 Statistical Power and Effect Size", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 7.7 Statistical Power and Effect Size\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/07-ab-testing-hypothesis-testing/07-statistical-power-and-effect-size.md"}, {"id": "08-z-test-one-sample-and-two-sample", "number": "7.9", "title": "7.8 Z-test (One-sample and Two-sample)", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 7.8 Z-test (One-sample and Two-sample)\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/07-ab-testing-hypothesis-testing/08-z-test-one-sample-and-two-sample.md"}, {"id": "09-t-test-one-sample,-two-sample,-paired", "number": "7.10", "title": "7.9 T-test (One-sample, Two-sample, Paired)", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 7.9 T-test (One-sample, Two-sample, Paired)\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/07-ab-testing-hypothesis-testing/09-t-test-one-sample,-two-sample,-paired.md"}]}, "chapter_8": {"number": "8", "label": "Inferential Statistics", "items": [{"id": "01-one-way-anova", "number": "8.1", "title": "8.1 One-way ANOVA", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 8.1 One-way ANOVA\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/08-inferential-statistics/01-one-way-anova.md"}, {"id": "010-interaction-effects", "number": "8.2", "title": "8.10 Interaction Effects", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 8.10 Interaction Effects\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/08-inferential-statistics/010-interaction-effects.md"}, {"id": "02-two-way-anova", "number": "8.3", "title": "8.2 Two-way ANOVA", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 8.2 Two-way ANOVA\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/08-inferential-statistics/02-two-way-anova.md"}, {"id": "03-f-test-for-comparing-variances", "number": "8.4", "title": "8.3 F-test for Comparing Variances", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 8.3 F-test for Comparing Variances\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/08-inferential-statistics/03-f-test-for-comparing-variances.md"}, {"id": "04-correlation-is-not-causation", "number": "8.5", "title": "8.4 Correlation is not Causation", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 8.4 Correlation is not Causation\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/08-inferential-statistics/04-correlation-is-not-causation.md"}, {"id": "05-latent-variables", "number": "8.6", "title": "8.5 Latent Variables", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 8.5 Latent Variables\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/08-inferential-statistics/05-latent-variables.md"}, {"id": "06-martingale-property", "number": "8.7", "title": "8.6 Martingale Property", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 8.6 Martingale Property\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/08-inferential-statistics/06-martingale-property.md"}, {"id": "07-markov-chain-property", "number": "8.8", "title": "8.7 Markov Chain Property", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 8.7 Markov Chain Property\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/08-inferential-statistics/07-markov-chain-property.md"}, {"id": "08-monte-carlo-simulation", "number": "8.9", "title": "8.8 Monte Carlo Simulation", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 8.8 Monte Carlo Simulation\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/08-inferential-statistics/08-monte-carlo-simulation.md"}, {"id": "09-randomized-control-trials---rcts", "number": "8.10", "title": "8.9 Randomized Control Trials - RCTs", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 8.9 Randomized Control Trials - RCTs\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/08-inferential-statistics/09-randomized-control-trials---rcts.md"}]}, "chapter_9": {"number": "9", "label": "Correlation And Covariance", "items": [{"id": "01-covariance", "number": "9.1", "title": "9.1 Covariance", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 9.1 Covariance\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/09-correlation-and-covariance/01-covariance.md"}, {"id": "010-central-limit-theorem", "number": "9.2", "title": "9.10 Central Limit Theorem", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 9.10 Central Limit Theorem\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/09-correlation-and-covariance/010-central-limit-theorem.md"}, {"id": "02-pearson-correlation-coefficient", "number": "9.3", "title": "9.2 Pearson Correlation Coefficient", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 9.2 Pearson Correlation Coefficient\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/09-correlation-and-covariance/02-pearson-correlation-coefficient.md"}, {"id": "03-spearman-rank-correlation", "number": "9.4", "title": "9.3 Spearman Rank Correlation", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 9.3 Spearman Rank Correlation\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/09-correlation-and-covariance/03-spearman-rank-correlation.md"}, {"id": "04-correlation-vs-causation", "number": "9.5", "title": "9.4 Correlation vs Causation", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 9.4 Correlation vs Causation\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/09-correlation-and-covariance/04-correlation-vs-causation.md"}, {"id": "05-spurious-correlation", "number": "9.6", "title": "9.5 Spurious Correlation", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 9.5 Spurious Correlation\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/09-correlation-and-covariance/05-spurious-correlation.md"}, {"id": "06-confounding-variables", "number": "9.7", "title": "9.6 Confounding Variables", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 9.6 Confounding Variables\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/09-correlation-and-covariance/06-confounding-variables.md"}, {"id": "07-simpsons-paradox", "number": "9.8", "title": "9.7 Simpsons Paradox", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 9.7 Simpsons Paradox\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/09-correlation-and-covariance/07-simpsons-paradox.md"}, {"id": "08-interaction-effects", "number": "9.9", "title": "9.8 Interaction Effects", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 9.8 Interaction Effects\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/09-correlation-and-covariance/08-interaction-effects.md"}, {"id": "09-law-of-large-numbers", "number": "9.10", "title": "9.9 Law of Large Numbers", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 9.9 Law of Large Numbers\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/09-correlation-and-covariance/09-law-of-large-numbers.md"}]}, "chapter_10": {"number": "10", "label": "Outlier Detection", "items": [{"id": "01-z-score-standardization", "number": "10.1", "title": "10.1 Z-score Standardization", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 10.1 Z-score Standardization\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/10-outlier-detection/01-z-score-standardization.md"}, {"id": "010-minimum-covariance-determinant-mcd-dirty-data-with-outliers", "number": "10.2", "title": "10.10 Minimum Covariance Determinant MCD Dirty Data with Outliers", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 10.10 Minimum Covariance Determinant MCD Dirty Data with Outliers\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/10-outlier-detection/010-minimum-covariance-determinant-mcd-dirty-data-with-outliers.md"}, {"id": "02-min-max-normalization", "number": "10.3", "title": "10.2 Min-max Normalization", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 10.2 Min-max Normalization\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/10-outlier-detection/02-min-max-normalization.md"}, {"id": "03-log-and-power-transformations", "number": "10.4", "title": "10.3 Log and Power Transformations", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 10.3 Log and Power Transformations\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/10-outlier-detection/03-log-and-power-transformations.md"}, {"id": "04-handling-missing-data", "number": "10.5", "title": "10.4 Handling Missing Data", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 10.4 Handling Missing Data\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/10-outlier-detection/04-handling-missing-data.md"}, {"id": "05-encoding-categorical-variables", "number": "10.6", "title": "10.5 Encoding Categorical Variables", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 10.5 Encoding Categorical Variables\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/10-outlier-detection/05-encoding-categorical-variables.md"}, {"id": "06-z-score-classic-baseline-for-outliers", "number": "10.7", "title": "10.6 Z-score Classic Baseline for Outliers", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 10.6 Z-score Classic Baseline for Outliers\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/10-outlier-detection/06-z-score-classic-baseline-for-outliers.md"}, {"id": "07-iqr-tukey-rule-simple-no-strong-assumptions", "number": "10.8", "title": "10.7 IQR Tukey Rule Simple No Strong Assumptions", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 10.7 IQR Tukey Rule Simple No Strong Assumptions\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/10-outlier-detection/07-iqr-tukey-rule-simple-no-strong-assumptions.md"}, {"id": "08-modified-z-score-skewed-or-dirty-data", "number": "10.9", "title": "10.8 Modified Z-score Skewed or Dirty Data", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 10.8 Modified Z-score Skewed or Dirty Data\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/10-outlier-detection/08-modified-z-score-skewed-or-dirty-data.md"}, {"id": "09-mahalanobis-distance-multiple-numeric-columns", "number": "10.10", "title": "10.9 Mahalanobis Distance Multiple Numeric Columns", "lede": "[Content placeholder]", "sectionOneTitle": "Overview", "sectionOneBody": "# 10.9 Mahalanobis Distance Multiple Numeric Columns\n\n## Overview\n[Content placeholder]\n\n## Key Concepts\n\n## Related Topics\n", "sectionTwoTitle": "Key Concepts", "sectionTwoBody": "[Add key concepts here]", "images": [], "md_file": "statistics/10-outlier-detection/09-mahalanobis-distance-multiple-numeric-columns.md"}]}}';
+      
+      let content = JSON.parse(dataJSON);
+      
+      const state = {
+        section: "chapter_1",
+        item: null,
+        query: ""
+      };
+
+      // Initialize
+      if (content[state.section]) {
+        state.item = content[state.section].items[0].id;
+      }
+
+      const sectionNav = document.getElementById("sectionNav");
+      const itemNav = document.getElementById("itemNav");
+      const tocSearch = document.getElementById("tocSearch");
+      const articleEyebrow = document.getElementById("articleEyebrow");
+      const articleTitle = document.getElementById("articleTitle");
+      const articleLede = document.getElementById("articleLede");
+      const sectionOneTitle = document.getElementById("sectionOneTitle");
+      const sectionOneBody = document.getElementById("sectionOneBody");
+      const sectionTwoTitle = document.getElementById("sectionTwoTitle");
+      const sectionTwoBody = document.getElementById("sectionTwoBody");
+
+      function currentSection() {
+        return content[state.section];
+      }
+
+      function filteredItems() {
+        const query = state.query.trim().toLowerCase();
+        const items = currentSection().items;
+        if (!query) {
+          return items;
+        }
+        return items.filter((item) => item.title.toLowerCase().includes(query));
+      }
+
+      function currentItem() {
+        const visibleItems = filteredItems();
+        const match = visibleItems.find((item) => item.id === state.item);
+        return match || visibleItems[0] || currentSection().items[0];
+      }
+
+      function renderSectionNav() {
+        const sections = Object.keys(content).sort((a, b) => {
+          return parseInt(content[a].number) - parseInt(content[b].number);
+        });
+
+        sectionNav.innerHTML = sections.map(key => {
+          const section = content[key];
+          const active = key === state.section ? " active" : "";
+          return '<a class="section-link' + active + '" href="#" data-section="' + key + '"><span class="number">' + section.number + '</span>' + section.label + '</a>';
+        }).join("");
+
+        sectionNav.querySelectorAll("[data-section]").forEach((link) => {
+          link.addEventListener("click", (event) => {
+            event.preventDefault();
+            const nextSection = event.currentTarget.dataset.section;
+            state.section = nextSection;
+            state.query = "";
+            tocSearch.value = "";
+            state.item = content[nextSection].items[0].id;
+            render();
+          });
+        });
+      }
+
+      function renderItemNav() {
+        const items = filteredItems();
+
+        if (!items.length) {
+          itemNav.innerHTML = '<li class="empty-note">No matches in this section.</li>';
+          return;
+        }
+
+        itemNav.innerHTML = items.map((item) => {
+          const active = item.id === state.item ? " active" : "";
+          return '<li><a class="toc-link' + active + '" href="#" data-item="' + item.id + '"><span class="toc-number">' + item.number + '</span>' + item.title + '</a></li>';
+        }).join("");
+
+        itemNav.querySelectorAll("[data-item]").forEach((link) => {
+          link.addEventListener("click", (event) => {
+            event.preventDefault();
+            state.item = event.currentTarget.dataset.item;
+            render();
+          });
+        });
+      }
+
+      function renderArticle() {
+        const section = currentSection();
+        const item = currentItem();
+        state.item = item.id;
+
+        articleEyebrow.textContent = section.number + '. ' + section.label;
+        articleTitle.textContent = item.title;
+        articleLede.textContent = item.lede;
+
+        sectionOneTitle.textContent = item.sectionOneTitle;
+        sectionOneBody.textContent = item.sectionOneBody;
+        sectionTwoTitle.textContent = item.sectionTwoTitle;
+        sectionTwoBody.textContent = item.sectionTwoBody;
+      }
+
+      function render() {
+        renderSectionNav();
+        renderItemNav();
+        renderArticle();
+      }
+
+      tocSearch.addEventListener("input", (event) => {
+        state.query = event.target.value;
+        const visible = filteredItems();
+        if (visible.length && !visible.some((item) => item.id === state.item)) {
+          state.item = visible[0].id;
+        }
+        renderItemNav();
+        renderArticle();
+      });
+
+      // Initial render
+      render();
+    </script>
+</body>
+</html>

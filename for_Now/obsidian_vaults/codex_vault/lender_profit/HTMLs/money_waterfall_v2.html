@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>One Loan — the Money Waterfall (arrows &amp; deductions)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F5F7; --ink:#1A2433; --muted:#75818F; --line:#DFE4E9;
+    --green:#1E8A63; --red:#C23B4E;
+    --f-green:#A9D6C0;
+    --mono:'IBM Plex Mono', ui-monospace, Menlo, monospace;
+    --sans:'IBM Plex Sans', system-ui, sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--ink); font-family:var(--sans); font-variant-numeric:tabular-nums;}
+  .wrap{max-width:1040px; margin:0 auto; padding:36px 20px 56px;}
+  header{text-align:center;}
+  h1{font-weight:700; font-size:clamp(22px,3.6vw,34px); letter-spacing:-.015em; color:#1F4E79;}
+  .sub{color:var(--muted); font-size:13.5px; margin-top:7px;}
+  .legend{display:flex; justify-content:center; gap:22px; margin-top:10px; font-size:12.5px; color:var(--muted); flex-wrap:wrap;}
+  .sw{display:inline-block; width:11px; height:11px; border-radius:3px; margin-right:6px; vertical-align:-1px;}
+  .board{background:#fff; border:1px solid var(--line); border-radius:14px; padding:8px 4px; margin-top:16px;
+         box-shadow:0 1px 2px rgba(26,36,51,.05);}
+  svg{display:block; width:100%; height:auto;}
+  .t-name{font-family:var(--sans); font-weight:700; font-size:16px; fill:var(--ink);}
+  .t-name-sm{font-family:var(--sans); font-weight:600; font-size:14.5px; fill:var(--ink);}
+  .t-usd{font-family:var(--mono); font-weight:600; font-size:14px; fill:var(--ink);}
+  .t-bps-g{font-family:var(--mono); font-weight:600; font-size:12.5px; fill:var(--green);}
+  .t-bps-r{font-family:var(--mono); font-weight:600; font-size:12.5px; fill:var(--red);}
+  .t-sub{font-family:var(--sans); font-size:11.5px; fill:var(--muted);}
+  .t-item{font-family:var(--sans); font-size:12px; fill:var(--muted);}
+  .t-item-usd{font-family:var(--mono); font-size:12px; fill:var(--ink);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>One Loan — the Money Waterfall</h1>
+    <p class="sub">Lender view · $400,000 conventional 30-yr at 6.625% · the stream narrows at every red deduction; what reaches the bottom is kept</p>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--f-green)"></i>money still yours</span>
+      <span><i class="sw" style="background:var(--red)"></i>deduction</span>
+      <span>dollars in <b style="font-family:var(--mono); color:var(--ink)">black</b> · bps in <b style="font-family:var(--mono); color:var(--green)">green</b> (profit) / <b style="font-family:var(--mono); color:var(--red)">red</b> (loss)</span>
+    </div>
+  </header>
+  <div class="board"><svg id="fall" viewBox="0 0 1000 925" role="img" aria-label="Waterfall: revenue narrowing through red deductions to a small green profit bar"></svg></div>
+</div>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const fmt=v=>'$'+Math.round(v).toLocaleString('en-US');
+  const bps=v=>Math.round(v/40);
+  const S=0.0255, L=150, TAPER=26;
+  const RX=640, RW=28;                    // red rectangles column
+
+  const REVROWS=[
+    ['#9AA1AB','Loan sale premium (TBA)',6400],
+    ['#AFB6BF','Servicing value (MSR)',4600],
+    ['#C5CAD2','Borrower-paid fees',1600],
+    ['#D9DDE3','LLPA collected via price',1500],
+  ];
+  const TOTALV=14100;
+
+  const STAGES=[
+    {y1:280, branch:{name:'Direct costs',v:6600,
+      items:[['LLPA remitted to GSE',1500],['Broker comp (LPC)',4000],['Hedge & lock costs',800],['Buyback & EPO reserve',300]]},
+     after:{name:'Gross profit',v:7500,sub:'53% of revenue'}},
+    {y1:500, branch:{name:'Operating expenses',v:3900,
+      items:[['Underwriting & ops',1800],['AE & support',800],['Technology',700],['Corporate G&A',600]]},
+     after:{name:'Operating profit',v:3600,sub:''}},
+    {y1:700, branch:{name:'Tax',v:850,items:[]},
+     after:null},
+  ];
+  const NET=2750, STREAM_END=806;
+
+  let g='';
+  g+='<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">'+
+     '<path d="M0 0 L10 5 L0 10 Z" fill="var(--red)"/></marker></defs>';
+
+  const money=(x,y,anchor,v,neg)=>'<text text-anchor="'+anchor+'" x="'+x+'" y="'+y+'">'+
+      '<tspan class="t-usd">'+(neg?'('+fmt(v)+')':fmt(v))+'</tspan>'+
+      '<tspan class="'+(neg?'t-bps-r':'t-bps-g')+'" dx="8">'+(neg?'\u2212':'+')+bps(v)+' bps</tspan></text>';
+
+  /* ---- top: revenue sources + bar ---- */
+  let y=40;
+  REVROWS.forEach(([col,name,v])=>{
+    g+='<rect x="24" y="'+(y-10)+'" width="11" height="11" rx="3" fill="'+col+'"/>';
+    g+='<text class="t-item" x="44" y="'+y+'">'+name+'</text>';
+    g+='<text class="t-item-usd" x="284" y="'+y+'">'+fmt(v)+'</text>';
+    g+='<text class="t-bps-g" x="364" y="'+y+'">+'+bps(v)+' bps</text>';
+    y+=26;
+  });
+  const W0=TOTALV*S;
+  const barY=158, barH=44;
+  g+='<text class="t-name" text-anchor="middle" x="'+(L+W0/2)+'" y="'+(barY-24)+'">Total revenue</text>';
+  g+=money(L+W0/2,(barY-4),'middle',TOTALV,false);
+  g+='<rect x="'+L+'" y="'+barY+'" width="'+W0+'" height="'+barH+'" fill="var(--ink)" rx="4"/>';
+  let cx=L;
+  REVROWS.forEach(([col,,v])=>{ const w=v*S;
+    g+='<rect x="'+cx+'" y="'+(barY+barH-10)+'" width="'+w+'" height="10" fill="'+col+'"/>'; cx+=w; });
+
+  /* ---- stream polygon with tapered notches ---- */
+  const widths=[W0, 7500*S, 3600*S, NET*S];   // before each split / final
+  let d='M'+L+' '+(barY+barH);
+  d+=' L'+L+' '+STREAM_END;                              // left edge down
+  d+=' L'+(L+widths[3])+' '+STREAM_END;                  // bottom
+  // right edge up with tapers
+  d+=' L'+(L+widths[3])+' '+(STAGES[2].y1+TAPER);
+  d+=' L'+(L+widths[2])+' '+STAGES[2].y1;
+  d+=' L'+(L+widths[2])+' '+(STAGES[1].y1+TAPER);
+  d+=' L'+(L+widths[1])+' '+STAGES[1].y1;
+  d+=' L'+(L+widths[1])+' '+(STAGES[0].y1+TAPER);
+  d+=' L'+(L+widths[0])+' '+STAGES[0].y1;
+  d+=' L'+(L+widths[0])+' '+(barY+barH)+' Z';
+  g+='<path d="'+d+'" fill="var(--f-green)"/>';
+
+  /* ---- deduction stages ---- */
+  STAGES.forEach((st,i)=>{
+    const wBefore=widths[i], wAfter=widths[i+1], bw=st.branch.v*S;
+    const ay=st.y1+TAPER/2;                                  // arrow y
+    const ax=L+(wBefore+wAfter)/2+10;                        // arrow start (at taper edge)
+    // arrow
+    g+='<line x1="'+ax+'" y1="'+ay+'" x2="'+(RX-10)+'" y2="'+ay+'" stroke="var(--red)" stroke-width="2.5" marker-end="url(#ah)"/>';
+    // loss amount on the arrow
+    g+=money((ax+RX-10)/2, ay-12, 'middle', st.branch.v, true);
+    // red rectangle, height proportional to the loss
+    const rh=Math.max(bw,6), ry=ay-rh/2;
+    g+='<rect x="'+RX+'" y="'+ry+'" width="'+RW+'" height="'+rh+'" rx="3" fill="var(--red)"/>';
+    // name + itemized lines to the right
+    const lx=RX+RW+18; let ly=ay-6;
+    if(st.branch.items.length){ ly=ay- (st.branch.items.length*23+22)/2 + 14; }
+    g+='<text class="t-name-sm" x="'+lx+'" y="'+ly+'" fill="var(--red)">'+st.branch.name+'</text>'; ly+=25;
+    st.branch.items.forEach(([nm,v])=>{
+      g+='<text class="t-item" x="'+lx+'" y="'+ly+'">\u00b7 '+nm+'</text>'+
+         '<text class="t-item-usd" x="'+(lx+192)+'" y="'+ly+'">('+fmt(v)+')</text>';
+      ly+=23;
+    });
+    // milestone label on the left of the continuing stream
+    if(st.after){
+      const nextY=(i<2)?STAGES[i+1].y1:STREAM_END;
+      const my=(st.y1+TAPER+nextY)/2;
+      g+='<text class="t-name-sm" text-anchor="end" x="'+(L-18)+'" y="'+(my-10)+'" fill="var(--green)">'+st.after.name+'</text>';
+      g+=money(L-18,my+11,'end',st.after.v,false);
+      if(st.after.sub) g+='<text class="t-sub" text-anchor="end" x="'+(L-18)+'" y="'+(my+30)+'">'+st.after.sub+'</text>';
+    }
+  });
+
+  /* ---- the small green bar that survives ---- */
+  const nw=NET*S;
+  g+='<rect x="'+L+'" y="'+(STREAM_END-4)+'" width="'+nw+'" height="18" rx="9" fill="var(--green)"/>';
+  const bx=L+nw/2;
+  g+='<text class="t-name" text-anchor="middle" x="'+bx+'" y="'+(STREAM_END+46)+'" fill="var(--green)">Net profit</text>';
+  g+=money(bx,(STREAM_END+70),'middle',NET,false);
+  g+='<text class="t-sub" text-anchor="middle" x="'+bx+'" y="'+(STREAM_END+92)+'">the small green bar that survives \u00b7 all figures illustrative</text>';
+
+  $('fall').innerHTML=g;
+})();
+</script>
+</body>
+</html>

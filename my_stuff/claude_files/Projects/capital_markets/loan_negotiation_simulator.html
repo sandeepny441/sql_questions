@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Loan Negotiation Simulator</title>
+  <style>
+    /* ─── Reset & Base ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f1117;
+      color: #e0e0e0;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ─── Header ────────────────────────────────────────────────────── */
+    header {
+      background: #1a1d27;
+      border-bottom: 1px solid #2a2d3e;
+      padding: 10px 28px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    header h1 { font-size: 1rem; font-weight: 600; color: #fff; letter-spacing: 0.3px; }
+    header span { font-size: 0.72rem; color: #7a7f99; margin-top: 1px; }
+    .badge {
+      margin-left: auto;
+      background: #252836;
+      border: 1px solid #3a3d52;
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-size: 0.7rem;
+      color: #9da3c0;
+    }
+
+    /* ─── Main Layout ───────────────────────────────────────────────── */
+    main {
+      flex: 1;
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      overflow: hidden;
+      padding: 18px 22px;
+      gap: 18px;
+    }
+
+    /* ─── Panel shared ──────────────────────────────────────────────── */
+    .panel {
+      background: #1a1d27;
+      border: 1px solid #2a2d3e;
+      border-radius: 12px;
+      padding: 18px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .panel-title {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #5a5f7a;
+      margin-bottom: 2px;
+    }
+
+    /* ─── Rate Bar Panel ────────────────────────────────────────────── */
+    #bar-panel {
+      width: 96px;
+      flex-shrink: 0;
+      align-items: center;
+    }
+
+    .rate-bar-wrap {
+      flex: 1;
+      position: relative;
+      width: 44px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* The actual bar */
+    #rate-bar {
+      width: 32px;
+      height: 100%;
+      border-radius: 8px;
+      position: relative;
+      overflow: visible;
+      cursor: ns-resize;
+      /* Gradient: red → green → red across the full height */
+    }
+
+    /* Axis labels on the right side */
+    .axis-labels {
+      position: absolute;
+      right: -36px;
+      top: 0;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+    .axis-label {
+      font-size: 0.58rem;
+      color: #5a5f7a;
+      white-space: nowrap;
+    }
+
+    /* Thumb inside the green zone */
+    #slider-thumb {
+      position: absolute;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 44px;
+      height: 20px;
+      background: #ffffff;
+      border: 2px solid #00c9a7;
+      border-radius: 6px;
+      box-shadow: 0 2px 10px rgba(0,201,167,0.5);
+      cursor: ns-resize;
+      z-index: 10;
+      transition: box-shadow 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #slider-thumb:hover, #slider-thumb.dragging {
+      box-shadow: 0 2px 18px rgba(0,201,167,0.85);
+    }
+    #slider-thumb::before, #slider-thumb::after {
+      content: '';
+      width: 14px;
+      height: 1.5px;
+      background: #2a2d3e;
+      border-radius: 2px;
+      position: absolute;
+    }
+    #slider-thumb::before { top: 5px; }
+    #slider-thumb::after  { bottom: 5px; }
+
+    /* Zone annotations */
+    .zone-label {
+      position: absolute;
+      left: 40px;
+      font-size: 0.58rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    .zone-label.green { color: #00c9a7; }
+    .zone-label.red   { color: #ff5e7e; }
+
+    /* ─── Stats Panel ───────────────────────────────────────────────── */
+    #stats-panel { flex: 0 0 200px; justify-content: flex-start; }
+
+    .stat-card {
+      background: #12141e;
+      border: 1px solid #2a2d3e;
+      border-radius: 8px;
+      padding: 10px 14px;
+      flex-shrink: 0;
+    }
+    .stat-label {
+      font-size: 0.62rem;
+      color: #5a5f7a;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 4px;
+    }
+    .stat-value {
+      font-size: 1.45rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .stat-sub {
+      font-size: 0.62rem;
+      color: #5a5f7a;
+      margin-top: 3px;
+    }
+    .highlight-green { color: #00c9a7; }
+    .highlight-yellow { color: #f5c842; }
+    .highlight-red { color: #ff5e7e; }
+    .highlight-blue { color: #5b9cf6; }
+
+    .divider {
+      width: 100%;
+      height: 1px;
+      background: #2a2d3e;
+      flex-shrink: 0;
+    }
+
+    .ideal-box {
+      background: #0d1f1a;
+      border: 1px solid #00c9a740;
+      border-radius: 8px;
+      padding: 10px 14px;
+      flex-shrink: 0;
+    }
+    .ideal-box .stat-label { color: #00c9a7; }
+    .ideal-box .stat-value { font-size: 1.1rem; color: #00c9a7; }
+
+    /* ─── Chart Panel ───────────────────────────────────────────────── */
+    #chart-panel { flex: 1; min-width: 0; }
+
+    canvas#prob-chart {
+      width: 100%;
+      flex: 1;
+      min-height: 0;
+      border-radius: 8px;
+    }
+
+    /* ─── Footer ────────────────────────────────────────────────────── */
+    footer {
+      flex-shrink: 0;
+      text-align: center;
+      font-size: 0.6rem;
+      color: #3a3d52;
+      padding: 6px 0 8px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Loan Negotiation Simulator</h1>
+    <span>Acceptance probability &amp; profit optimizer</span>
+  </div>
+  <div class="badge">Mortgage Risk Analytics</div>
+</header>
+
+<main>
+
+  <!-- ─── Rate Bar ──────────────────────────────────────────────────── -->
+  <div class="panel" id="bar-panel">
+    <div class="panel-title">Rate</div>
+    <div class="rate-bar-wrap">
+      <div id="rate-bar">
+        <!-- Thumb rendered by JS -->
+      </div>
+      <div class="axis-labels" id="axis-labels"></div>
+    </div>
+  </div>
+
+  <!-- ─── Stats ────────────────────────────────────────────────────── -->
+  <div class="panel" id="stats-panel">
+    <div class="panel-title">Live Stats</div>
+
+    <div class="stat-card">
+      <div class="stat-label">Current Rate</div>
+      <div class="stat-value highlight-green" id="display-rate">6.00%</div>
+      <div class="stat-sub">Draggable within green band</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Acceptance Probability</div>
+      <div class="stat-value highlight-yellow" id="display-prob">—</div>
+      <div class="stat-sub">Logistic curve model</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="stat-card">
+      <div class="stat-label">Gross Margin</div>
+      <div class="stat-value highlight-blue" id="display-gross">— bps</div>
+      <div class="stat-sub">Rate above floor (5.5%)</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Expected Profit</div>
+      <div class="stat-value highlight-yellow" id="display-expected">— bps</div>
+      <div class="stat-sub">Gross × Acceptance probability</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="ideal-box">
+      <div class="stat-label">Optimal Rate</div>
+      <div class="stat-value" id="display-optimal-rate">—</div>
+      <div class="stat-sub">Max expected profit within green band</div>
+      <div style="margin-top:6px; font-size:0.72rem; color:#00c9a7;" id="display-optimal-profit">— bps expected</div>
+    </div>
+  </div>
+
+  <!-- ─── Chart ────────────────────────────────────────────────────── -->
+  <div class="panel" id="chart-panel">
+    <div class="panel-title">Acceptance Probability vs. Rate &nbsp;·&nbsp; Expected Profit Curve</div>
+    <canvas id="prob-chart"></canvas>
+  </div>
+
+</main>
+
+<footer>Floor rate = 5.50% (break-even) &nbsp;|&nbsp; Profit (bps) = (rate − floor) × 100 &nbsp;|&nbsp; Expected profit = profit × P(accept) &nbsp;|&nbsp; Logistic acceptance model</footer>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════════
+   CONFIGURATION
+   ══════════════════════════════════════════════════════════════════════ */
+const CONFIG = {
+  rateMin   : 4.50,   // bottom of full bar
+  rateMax   : 8.00,   // top of full bar
+  greenLow  : 5.50,   // bottom of preferred (green) zone
+  greenHigh : 6.50,   // top of preferred (green) zone
+  floorRate : 5.50,   // break-even baseline for profit calculation
+
+  /*
+   * Logistic acceptance model:
+   *   P(accept) = 1 / (1 + exp(k * (rate - midpoint)))
+   *   k controls steepness — higher k = sharper decline as rate rises
+   *   midpoint is the rate at which P(accept) = 0.50
+   */
+  logistic: {
+    midpoint : 6.50,  // 50% acceptance threshold
+    k        : 3.5,   // steepness
+  },
+
+  tickCount : 8,      // axis label ticks
+};
+
+/* ══════════════════════════════════════════════════════════════════════
+   MATH HELPERS
+   ══════════════════════════════════════════════════════════════════════ */
+
+/** Logistic acceptance probability for a given rate */
+function acceptanceProb(rate) {
+  const { midpoint, k } = CONFIG.logistic;
+  return 1 / (1 + Math.exp(k * (rate - midpoint)));
+}
+
+/**
+ * Gross margin in basis points above the floor rate.
+ * profit_bps = (rate - floor) * 100
+ */
+function grossMarginBps(rate) {
+  return Math.max(0, (rate - CONFIG.floorRate) * 100);
+}
+
+/**
+ * Expected profit = gross margin × acceptance probability
+ * This is the key metric to maximize — it balances higher margin
+ * (higher rate) against lower probability (borrower walks away).
+ */
+function expectedProfitBps(rate) {
+  return grossMarginBps(rate) * acceptanceProb(rate);
+}
+
+/** Find optimal rate (maximise expected profit) within the green band */
+function findOptimalRate() {
+  let bestRate = CONFIG.greenLow, bestProfit = 0;
+  for (let r = CONFIG.greenLow; r <= CONFIG.greenHigh + 0.001; r += 0.005) {
+    const ep = expectedProfitBps(r);
+    if (ep > bestProfit) { bestProfit = ep; bestRate = r; }
+  }
+  return { rate: bestRate, profit: bestProfit };
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   RATE BAR — build the visual bar with gradient segments
+   ══════════════════════════════════════════════════════════════════════ */
+const barEl   = document.getElementById('rate-bar');
+const axisEl  = document.getElementById('axis-labels');
+
+/** Convert a rate value → fraction from top (0 = top = rateMax) */
+function rateToFrac(rate) {
+  return (CONFIG.rateMax - rate) / (CONFIG.rateMax - CONFIG.rateMin);
+}
+
+function buildBar() {
+  const greenTopFrac    = rateToFrac(CONFIG.greenHigh);
+  const greenBottomFrac = rateToFrac(CONFIG.greenLow);
+  const pctTop    = (greenTopFrac    * 100).toFixed(2);
+  const pctBottom = (greenBottomFrac * 100).toFixed(2);
+
+  /* Bar gradient: red zones above/below, green in the middle */
+  barEl.style.background = `linear-gradient(to bottom,
+    #ff3b5c 0%,
+    #cc2244 ${pctTop}%,
+    #00c9a7 ${pctTop}%,
+    #00c9a7 ${pctBottom}%,
+    #cc2244 ${pctBottom}%,
+    #ff3b5c 100%
+  )`;
+
+  /* Zone labels */
+  ['red-top','green-mid','red-bot'].forEach(id => {
+    const old = barEl.querySelector('.zone-label');
+    if (old) old.remove();
+  });
+
+  addZoneLabel(barEl, (greenTopFrac * 100 / 2).toFixed(1) + '%',
+    'HIGH RISK', 'red');
+  addZoneLabel(barEl, ((greenTopFrac + greenBottomFrac) / 2 * 100).toFixed(1) + '%',
+    'PREFERRED', 'green');
+  addZoneLabel(barEl, ((greenBottomFrac + 1) / 2 * 100).toFixed(1) + '%',
+    'BELOW FLOOR', 'red');
+
+  /* Axis ticks */
+  axisEl.innerHTML = '';
+  for (let i = 0; i <= CONFIG.tickCount; i++) {
+    const rate = CONFIG.rateMax - i * (CONFIG.rateMax - CONFIG.rateMin) / CONFIG.tickCount;
+    const label = document.createElement('div');
+    label.className = 'axis-label';
+    label.textContent = rate.toFixed(1) + '%';
+    axisEl.appendChild(label);
+  }
+}
+
+function addZoneLabel(parent, topPct, text, type) {
+  const el = document.createElement('div');
+  el.className = `zone-label ${type}`;
+  el.style.top = topPct + '%';
+  el.textContent = text;
+  parent.appendChild(el);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   SLIDER THUMB — drag logic constrained to green band
+   ══════════════════════════════════════════════════════════════════════ */
+let currentRate = 6.00;  // default rate
+
+const thumb = document.createElement('div');
+thumb.id = 'slider-thumb';
+barEl.appendChild(thumb);
+
+function positionThumb(rate) {
+  const frac = rateToFrac(rate);
+  thumb.style.top = (frac * 100).toFixed(3) + '%';
+}
+
+function fracToRate(frac) {
+  return CONFIG.rateMax - frac * (CONFIG.rateMax - CONFIG.rateMin);
+}
+
+function clampToGreen(rate) {
+  return Math.min(CONFIG.greenHigh, Math.max(CONFIG.greenLow, rate));
+}
+
+/* Drag state */
+let dragging = false;
+
+thumb.addEventListener('mousedown', startDrag);
+barEl.addEventListener('mousedown', startDragBar);
+
+function startDrag(e) {
+  dragging = true;
+  thumb.classList.add('dragging');
+  e.preventDefault();
+  e.stopPropagation();
+}
+
+function startDragBar(e) {
+  /* Clicking anywhere on the bar jumps the thumb to the nearest green pos */
+  const rect = barEl.getBoundingClientRect();
+  const frac = (e.clientY - rect.top) / rect.height;
+  const rate = clampToGreen(fracToRate(frac));
+  currentRate = rate;
+  positionThumb(rate);
+  updateStats(rate);
+  drawChart(rate);
+  dragging = true;
+  thumb.classList.add('dragging');
+  e.preventDefault();
+}
+
+document.addEventListener('mousemove', (e) => {
+  if (!dragging) return;
+  const rect = barEl.getBoundingClientRect();
+  let frac = (e.clientY - rect.top) / rect.height;
+  frac = Math.max(0, Math.min(1, frac));
+  const rate = clampToGreen(fracToRate(frac));
+  currentRate = rate;
+  positionThumb(rate);
+  updateStats(rate);
+  drawChart(rate);
+});
+
+document.addEventListener('mouseup', () => {
+  dragging = false;
+  thumb.classList.remove('dragging');
+});
+
+/* Touch support */
+thumb.addEventListener('touchstart', (e) => { dragging = true; e.preventDefault(); }, { passive: false });
+document.addEventListener('touchmove', (e) => {
+  if (!dragging) return;
+  const t = e.touches[0];
+  const rect = barEl.getBoundingClientRect();
+  let frac = (t.clientY - rect.top) / rect.height;
+  frac = Math.max(0, Math.min(1, frac));
+  const rate = clampToGreen(fracToRate(frac));
+  currentRate = rate;
+  positionThumb(rate);
+  updateStats(rate);
+  drawChart(rate);
+  e.preventDefault();
+}, { passive: false });
+document.addEventListener('touchend', () => { dragging = false; });
+
+/* ══════════════════════════════════════════════════════════════════════
+   STATS UPDATE
+   ══════════════════════════════════════════════════════════════════════ */
+const optimal = findOptimalRate();
+
+function updateStats(rate) {
+  const prob   = acceptanceProb(rate);
+  const gross  = grossMarginBps(rate);
+  const expPft = expectedProfitBps(rate);
+
+  document.getElementById('display-rate').textContent     = rate.toFixed(2) + '%';
+  document.getElementById('display-prob').textContent     = (prob * 100).toFixed(1) + '%';
+  document.getElementById('display-gross').textContent    = gross.toFixed(0) + ' bps';
+  document.getElementById('display-expected').textContent = expPft.toFixed(1) + ' bps';
+
+  /* Colour the rate by zone */
+  const rateEl = document.getElementById('display-rate');
+  rateEl.className = 'stat-value highlight-green';
+
+  /* Colour acceptance prob */
+  const probEl = document.getElementById('display-prob');
+  probEl.className = 'stat-value ' + (prob >= 0.7 ? 'highlight-green' : prob >= 0.45 ? 'highlight-yellow' : 'highlight-red');
+
+  /* Optimal */
+  document.getElementById('display-optimal-rate').textContent   = optimal.rate.toFixed(2) + '%';
+  document.getElementById('display-optimal-profit').textContent = optimal.profit.toFixed(1) + ' bps expected';
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   CHART — Canvas-drawn dual-axis chart
+   ══════════════════════════════════════════════════════════════════════ */
+const canvas = document.getElementById('prob-chart');
+const ctx    = canvas.getContext('2d');
+
+function drawChart(selectedRate) {
+  /* Sync canvas pixels to CSS size */
+  const W = canvas.offsetWidth;
+  const H = canvas.offsetHeight;
+  canvas.width  = W;
+  canvas.height = H;
+
+  /* Layout */
+  const PAD_L = 48, PAD_R = 52, PAD_T = 20, PAD_B = 36;
+  const plotW = W - PAD_L - PAD_R;
+  const plotH = H - PAD_T - PAD_B;
+
+  /* Clear */
+  ctx.clearRect(0, 0, W, H);
+
+  /* Grid background */
+  ctx.fillStyle = '#12141e';
+  ctx.beginPath();
+  ctx.roundRect(PAD_L, PAD_T, plotW, plotH, 6);
+  ctx.fill();
+
+  /* Build data arrays */
+  const steps = 300;
+  const rateStep = (CONFIG.rateMax - CONFIG.rateMin) / steps;
+  const rates = [], probs = [], profits = [];
+
+  for (let i = 0; i <= steps; i++) {
+    const r = CONFIG.rateMin + i * rateStep;
+    rates.push(r);
+    probs.push(acceptanceProb(r));
+    profits.push(expectedProfitBps(r));
+  }
+
+  const maxProfit = Math.max(...profits);
+
+  /* Helpers: map rate/value → canvas coords */
+  function xOf(rate) {
+    return PAD_L + ((rate - CONFIG.rateMin) / (CONFIG.rateMax - CONFIG.rateMin)) * plotW;
+  }
+  function yProb(p) { return PAD_T + (1 - p) * plotH; }
+  function yProfit(p) { return PAD_T + (1 - p / (maxProfit * 1.1)) * plotH; }
+
+  /* ── Green band shading ── */
+  const gx1 = xOf(CONFIG.greenLow);
+  const gx2 = xOf(CONFIG.greenHigh);
+  ctx.fillStyle = 'rgba(0,201,167,0.07)';
+  ctx.fillRect(gx1, PAD_T, gx2 - gx1, plotH);
+
+  ctx.strokeStyle = 'rgba(0,201,167,0.25)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(gx1, PAD_T); ctx.lineTo(gx1, PAD_T + plotH); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(gx2, PAD_T); ctx.lineTo(gx2, PAD_T + plotH); ctx.stroke();
+  ctx.setLineDash([]);
+
+  /* ── Grid lines (probability axis) ── */
+  ctx.strokeStyle = '#1e2130';
+  ctx.lineWidth = 1;
+  [0.25, 0.5, 0.75, 1.0].forEach(p => {
+    const y = yProb(p);
+    ctx.beginPath(); ctx.moveTo(PAD_L, y); ctx.lineTo(PAD_L + plotW, y); ctx.stroke();
+    ctx.fillStyle = '#3a3d52';
+    ctx.font = '9px Segoe UI';
+    ctx.textAlign = 'right';
+    ctx.fillText((p * 100).toFixed(0) + '%', PAD_L - 5, y + 3);
+  });
+
+  /* ── Expected profit curve (right axis) ── */
+  ctx.beginPath();
+  ctx.strokeStyle = '#f5c842';
+  ctx.lineWidth = 2;
+  rates.forEach((r, i) => {
+    const x = xOf(r);
+    const y = yProfit(profits[i]);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  /* ── Acceptance probability curve ── */
+  ctx.beginPath();
+  ctx.strokeStyle = '#5b9cf6';
+  ctx.lineWidth = 2.5;
+  rates.forEach((r, i) => {
+    const x = xOf(r);
+    const y = yProb(probs[i]);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  /* ── Optimal rate vertical line ── */
+  const oxl = xOf(optimal.rate);
+  ctx.strokeStyle = 'rgba(0,201,167,0.6)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 3]);
+  ctx.beginPath(); ctx.moveTo(oxl, PAD_T); ctx.lineTo(oxl, PAD_T + plotH); ctx.stroke();
+  ctx.setLineDash([]);
+
+  /* ── Selected rate vertical line ── */
+  const sx = xOf(selectedRate);
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath(); ctx.moveTo(sx, PAD_T); ctx.lineTo(sx, PAD_T + plotH); ctx.stroke();
+  ctx.setLineDash([]);
+
+  /* Dot on prob curve */
+  const sy = yProb(acceptanceProb(selectedRate));
+  ctx.fillStyle = '#5b9cf6';
+  ctx.beginPath();
+  ctx.arc(sx, sy, 5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#0f1117';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  /* Dot on profit curve */
+  const spy = yProfit(expectedProfitBps(selectedRate));
+  ctx.fillStyle = '#f5c842';
+  ctx.beginPath();
+  ctx.arc(sx, spy, 5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#0f1117';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  /* ── X-axis labels ── */
+  ctx.fillStyle = '#5a5f7a';
+  ctx.font = '9px Segoe UI';
+  ctx.textAlign = 'center';
+  for (let r = 4.5; r <= 8.01; r += 0.5) {
+    const x = xOf(r);
+    ctx.fillText(r.toFixed(1) + '%', x, PAD_T + plotH + 14);
+  }
+
+  /* ── Right axis labels (profit) ── */
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#f5c842';
+  ctx.font = '9px Segoe UI';
+  [0, 0.25, 0.5, 0.75, 1.0].forEach(frac => {
+    const val = frac * maxProfit * 1.1;
+    const y = yProfit(val);
+    ctx.fillText(val.toFixed(0), PAD_L + plotW + 4, y + 3);
+  });
+
+  /* ── Legend ── */
+  const legends = [
+    { color: '#5b9cf6', label: 'Acceptance Prob' },
+    { color: '#f5c842', label: 'Expected Profit (bps)' },
+    { color: '#00c9a7', label: 'Optimal Rate' },
+    { color: 'rgba(255,255,255,0.55)', label: 'Selected Rate' },
+  ];
+  let lx = PAD_L + 8;
+  legends.forEach(({ color, label }) => {
+    ctx.fillStyle = color;
+    ctx.fillRect(lx, PAD_T + 6, 14, 3);
+    ctx.fillStyle = '#7a7f99';
+    ctx.font = '9px Segoe UI';
+    ctx.textAlign = 'left';
+    ctx.fillText(label, lx + 18, PAD_T + 10);
+    lx += ctx.measureText(label).width + 38;
+  });
+
+  /* ── Axis titles ── */
+  ctx.fillStyle = '#3a3d52';
+  ctx.font = '9px Segoe UI';
+  ctx.textAlign = 'center';
+  ctx.fillText('Interest Rate', PAD_L + plotW / 2, H - 4);
+
+  ctx.save();
+  ctx.translate(10, PAD_T + plotH / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = '#5b9cf6';
+  ctx.fillText('Prob.', 0, 0);
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(W - 8, PAD_T + plotH / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = '#f5c842';
+  ctx.fillText('Exp. Profit (bps)', 0, 0);
+  ctx.restore();
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   INIT
+   ══════════════════════════════════════════════════════════════════════ */
+function init() {
+  buildBar();
+  positionThumb(currentRate);
+  updateStats(currentRate);
+  drawChart(currentRate);
+}
+
+init();
+
+/* Redraw chart on window resize */
+const resizeObserver = new ResizeObserver(() => drawChart(currentRate));
+resizeObserver.observe(document.getElementById('chart-panel'));
+</script>
+</body>
+</html>

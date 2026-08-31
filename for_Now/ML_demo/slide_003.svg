@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="864" viewBox="0 0 1600 864" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="title desc" style="display:block;width:100%;height:auto;max-width:100vw">
+  <title id="title">Feature Engineering to Model Selection</title>
+  <desc id="desc">Feature engineering splits into correlation analysis and margin sensitivity analysis, which combine into an analytical dataset feeding separate models for high-volume and low-volume loan officers.</desc>
+
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F8FAFC"/>
+      <stop offset="1" stop-color="#F1F5F9"/>
+    </linearGradient>
+    <linearGradient id="indigoPanel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F3F5FF"/>
+      <stop offset="1" stop-color="#E8ECFF"/>
+    </linearGradient>
+    <linearGradient id="violetPanel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F9F6FF"/>
+      <stop offset="1" stop-color="#F0E9FF"/>
+    </linearGradient>
+    <linearGradient id="greenPanel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F0FDF4"/>
+      <stop offset="1" stop-color="#ECFDF5"/>
+    </linearGradient>
+    <linearGradient id="orangePanel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFF7ED"/>
+      <stop offset="1" stop-color="#FFF1F2"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-30%" width="140%" height="180%">
+      <feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#0F172A" flood-opacity=".10"/>
+    </filter>
+    <filter id="smallShadow" x="-20%" y="-30%" width="140%" height="180%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#0F172A" flood-opacity=".07"/>
+    </filter>
+    <style>
+      text { font-family: Arial, Helvetica, sans-serif; text-rendering: geometricPrecision; }
+      .root         { font-size: 26px; font-weight: 700; fill: #0F172A; }
+      .panel-title  { font-size: 26px; font-weight: 700; }
+      .node         { font-size: 19px; font-weight: 700; fill: #1E293B; }
+      .hub          { font-size: 21px; font-weight: 700; fill: #FFFFFF; letter-spacing: .3px; }
+      .model        { font-size: 19px; font-weight: 700; fill: #FFFFFF; }
+      .neutral-line { fill: none; stroke: #64748B; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+      .indigo-line  { fill: none; stroke: #4338CA; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+      .violet-line  { fill: none; stroke: #6D28D9; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+      .green-line   { fill: none; stroke: #15803D; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+      .orange-line  { fill: none; stroke: #C2410C; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="864" fill="url(#background)"/>
+  <circle cx="70" cy="844" r="150" fill="#DCFCE7" opacity=".38"/>
+  <circle cx="1530" cy="844" r="150" fill="#E0E7FF" opacity=".38"/>
+
+  <!-- ===================== ROOT ===================== -->
+  <g filter="url(#shadow)">
+    <rect x="560" y="40" width="480" height="62" rx="16" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+    <circle cx="654" cy="71" r="22" fill="#EEF2FF"/>
+    <path d="M643 63H665M643 71H665M643 79H665" fill="none" stroke="#4F46E5" stroke-width="2.2" stroke-linecap="round"/>
+    <circle cx="650" cy="63" r="3.4" fill="#4F46E5"/>
+    <circle cx="660" cy="71" r="3.4" fill="#4F46E5"/>
+    <circle cx="653" cy="79" r="3.4" fill="#4F46E5"/>
+    <text x="698" y="80" class="root">Feature Engineering</text>
+  </g>
+
+  <path d="M800 102 V132 Q800 142 790 142 H410 Q400 142 400 152 V158" class="neutral-line"/>
+  <path d="M391 158 H409 L400 168 Z" fill="#64748B"/>
+  <path d="M800 102 V132 Q800 142 810 142 H1190 Q1200 142 1200 152 V158" class="neutral-line"/>
+  <path d="M1191 158 H1209 L1200 168 Z" fill="#64748B"/>
+
+  <!-- ===================== CORRELATION ANALYSIS ===================== -->
+  <text x="400" y="198" text-anchor="middle" class="panel-title" fill="#312E81">Correlation Analysis</text>
+
+  <g filter="url(#shadow)">
+    <rect x="40" y="220" width="720" height="264" rx="24" fill="url(#indigoPanel)" stroke="#A5B4FC" stroke-width="2"/>
+  </g>
+
+  <g filter="url(#smallShadow)">
+    <rect x="110" y="240" width="580" height="64" rx="14" fill="#FFFFFF" stroke="#C7D2FE" stroke-width="2"/>
+    <circle cx="150" cy="272" r="6" fill="#4338CA"/>
+    <text x="400" y="279" text-anchor="middle" class="node">Feature Direction &amp; Signal Strength</text>
+  </g>
+  <g filter="url(#smallShadow)">
+    <rect x="110" y="320" width="580" height="64" rx="14" fill="#FFFFFF" stroke="#C7D2FE" stroke-width="2"/>
+    <circle cx="150" cy="352" r="6" fill="#4338CA"/>
+    <text x="400" y="359" text-anchor="middle" class="node">Statistical Significance per Variable</text>
+  </g>
+  <g filter="url(#smallShadow)">
+    <rect x="110" y="400" width="580" height="64" rx="14" fill="#FFFFFF" stroke="#C7D2FE" stroke-width="2"/>
+    <circle cx="150" cy="432" r="6" fill="#4338CA"/>
+    <text x="400" y="439" text-anchor="middle" class="node">Temporal Stability Across Periods</text>
+  </g>
+
+  <!-- ===================== MARGIN SENSITIVITY ANALYSIS ===================== -->
+  <text x="1200" y="198" text-anchor="middle" class="panel-title" fill="#4C1D95">Margin Sensitivity Analysis</text>
+
+  <g filter="url(#shadow)">
+    <rect x="840" y="220" width="720" height="264" rx="24" fill="url(#violetPanel)" stroke="#C4B5FD" stroke-width="2"/>
+  </g>
+
+  <g filter="url(#smallShadow)">
+    <rect x="910" y="240" width="580" height="64" rx="14" fill="#FFFFFF" stroke="#DDD6FE" stroke-width="2"/>
+    <circle cx="950" cy="272" r="6" fill="#6D28D9"/>
+    <text x="1200" y="279" text-anchor="middle" class="node">Pull-Through Rate at Each BPS</text>
+  </g>
+  <g filter="url(#smallShadow)">
+    <rect x="910" y="320" width="580" height="64" rx="14" fill="#FFFFFF" stroke="#DDD6FE" stroke-width="2"/>
+    <circle cx="950" cy="352" r="6" fill="#6D28D9"/>
+    <text x="1200" y="359" text-anchor="middle" class="node">Revenue Impact of Margin Stretch</text>
+  </g>
+  <g filter="url(#smallShadow)">
+    <rect x="910" y="400" width="580" height="64" rx="14" fill="#FFFFFF" stroke="#DDD6FE" stroke-width="2"/>
+    <circle cx="950" cy="432" r="6" fill="#6D28D9"/>
+    <text x="1200" y="439" text-anchor="middle" class="node">Churn Probability Threshold per BPS</text>
+  </g>
+
+  <!-- ===================== ANALYTICAL DATASET ===================== -->
+  <path d="M400 484 V504 Q400 514 410 514 H690 Q700 514 700 522" class="indigo-line"/>
+  <path d="M691 522 H709 L700 532 Z" fill="#4338CA"/>
+  <path d="M1200 484 V504 Q1200 514 1190 514 H910 Q900 514 900 522" class="violet-line"/>
+  <path d="M891 522 H909 L900 532 Z" fill="#6D28D9"/>
+
+  <g filter="url(#shadow)">
+    <rect x="580" y="532" width="440" height="58" rx="15" fill="#0F172A"/>
+    <text x="800" y="568" text-anchor="middle" class="hub">Analytical Dataset</text>
+  </g>
+
+  <path d="M800 590 V606 Q800 616 790 616 H410 Q400 616 400 626 V632" class="green-line"/>
+  <path d="M391 632 H409 L400 642 Z" fill="#15803D"/>
+  <path d="M800 590 V606 Q800 616 810 616 H1190 Q1200 616 1200 626 V632" class="orange-line"/>
+  <path d="M1191 632 H1209 L1200 642 Z" fill="#C2410C"/>
+
+  <!-- ===================== HIGH VOLUME MODELS ===================== -->
+  <text x="400" y="672" text-anchor="middle" class="panel-title" fill="#14532D">ML Models for High Volume LOs</text>
+
+  <g filter="url(#shadow)">
+    <rect x="40" y="694" width="720" height="130" rx="24" fill="url(#greenPanel)" stroke="#86EFAC" stroke-width="2"/>
+  </g>
+  <g filter="url(#smallShadow)">
+    <rect x="70" y="724" width="300" height="70" rx="15" fill="#15803D"/>
+    <text x="220" y="766" text-anchor="middle" class="model">Regression Model</text>
+  </g>
+  <path d="M386 759 H414 M400 745 V773" fill="none" stroke="#15803D" stroke-width="5.5" stroke-linecap="round"/>
+  <g filter="url(#smallShadow)">
+    <rect x="430" y="724" width="300" height="70" rx="15" fill="#15803D"/>
+    <text x="580" y="766" text-anchor="middle" class="model">Churn Prediction Model</text>
+  </g>
+
+  <!-- ===================== LOW VOLUME MODEL ===================== -->
+  <text x="1200" y="672" text-anchor="middle" class="panel-title" fill="#7C2D12">ML Model for Low Volume LOs</text>
+
+  <g filter="url(#shadow)">
+    <rect x="840" y="694" width="720" height="130" rx="24" fill="url(#orangePanel)" stroke="#FDBA74" stroke-width="2"/>
+  </g>
+  <g filter="url(#smallShadow)">
+    <rect x="870" y="724" width="660" height="70" rx="15" fill="#C2410C"/>
+    <text x="1200" y="766" text-anchor="middle" class="model">Regression Model</text>
+  </g>
+</svg>

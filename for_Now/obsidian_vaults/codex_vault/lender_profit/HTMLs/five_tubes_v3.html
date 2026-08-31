@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Five tubes — where the loan's premium goes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAFBFC; --ink:#1A2433; --muted:#75818F; --line:#DFE4E9; --line2:#C6CDD5;
+    --margin:#3B77B8; --gse:#7A6BD1; --hedge:#D9A03C; --broker:#C2653B;
+    --credit:#2C9B72; --debit:#C23B4E;
+    --mono:'IBM Plex Mono', ui-monospace, Menlo, monospace;
+    --sans:'IBM Plex Sans', system-ui, sans-serif;
+    --tube-h:40px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--ink); font-family:var(--sans); font-size:15px; font-variant-numeric:tabular-nums;}
+  .wrap{max-width:960px; margin:0 auto; padding:48px 24px 72px;}
+  header{text-align:center;}
+  h1{font-weight:600; font-size:clamp(20px,3.2vw,26px); letter-spacing:-.01em;}
+  .sub{color:var(--muted); font-size:13.5px; margin-top:8px; max-width:56ch; margin-left:auto; margin-right:auto; line-height:1.55;}
+  .eq{font-family:var(--mono); font-size:13px; text-align:center; margin:28px 0 36px; color:var(--muted);}
+  .eq b{color:var(--ink); font-weight:600;}
+  .c-m{color:var(--margin);} .c-g{color:var(--gse);} .c-h{color:var(--hedge);}
+  .c-b{color:var(--broker);} .c-w{color:var(--credit);} .c-d{color:var(--debit);}
+
+  /* ---- rows: [info 232][tube 1fr][readout 128] ---- */
+  .bench{display:grid; grid-template-columns:232px 1fr 128px; column-gap:24px; row-gap:0;}
+  .info{padding:12px 0 0;}
+  .info .name{font-weight:600; font-size:14px;}
+  .info .who{font-family:var(--mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin:2px 0 4px;}
+  .info .desc{font-size:11.5px; color:var(--muted); line-height:1.45;}
+  .readout{padding-top:16px; text-align:right; font-family:var(--mono);}
+  .readout .pts{font-weight:600; font-size:17px; line-height:1.2;}
+  .readout .usd{font-size:10.5px; color:var(--muted); margin-top:2px;}
+  .row-pad{grid-column:1 / -1; height:24px; border-bottom:0;}
+  .row-rule{grid-column:1 / -1; border-top:1px solid var(--line); margin:24px 0 0;}
+
+  /* ---- ruler ---- */
+  .ruler{position:relative; height:24px; align-self:end;}
+  .ruler .rt{position:absolute; bottom:0; width:1px; height:6px; background:var(--line2);}
+  .ruler .rt.major{height:10px; background:var(--muted);}
+  .ruler .rl{position:absolute; bottom:12px; transform:translateX(-50%); font-family:var(--mono); font-size:9px; color:var(--muted);}
+  .ruler-cap{font-family:var(--mono); font-size:9px; color:var(--muted); align-self:end; padding-bottom:1px;}
+  .ruler-cap.r{text-align:right;}
+
+  /* ---- horizontal tube ---- */
+  .tube-cell{padding:8px 0; position:relative;}
+  .htube{position:relative; height:var(--tube-h); border:2px solid var(--ink);
+         border-radius:20px 6px 6px 20px; overflow:visible;
+         background:linear-gradient(180deg, rgba(255,255,255,.95), rgba(226,233,239,.5) 55%, rgba(255,255,255,.9));}
+  .htube::before{content:""; position:absolute; left:10px; right:10px; top:6px; height:7px; border-radius:7px;
+                 background:linear-gradient(90deg, rgba(255,255,255,.95), rgba(255,255,255,.1)); z-index:5; pointer-events:none;}
+  .htube .clip{position:absolute; inset:0; border-radius:18px 4px 4px 18px; overflow:hidden;}
+  .liq{position:absolute; top:0; bottom:0; left:0; z-index:1;}
+  .tick{position:absolute; top:0; width:1px; height:8px; background:var(--line2); z-index:4; pointer-events:none;}
+  .tick.major{height:12px; background:var(--muted);}
+
+  /* piston: vertical disc + rod to the right + grip */
+  .piston{position:absolute; top:-8px; height:calc(var(--tube-h) + 16px); width:72px; z-index:6;
+          cursor:grab; touch-action:none; transition:left .3s cubic-bezier(.3,.9,.35,1);}
+  .piston.dragging{transition:none; cursor:grabbing;}
+  .piston:focus-visible{outline:none;}
+  .piston:focus-visible .disc{box-shadow:0 0 0 2.5px var(--bg), 0 0 0 4.5px var(--ink);}
+  .piston .disc{position:absolute; left:0; top:6px; bottom:6px; width:10px; border-radius:3px;
+                background:linear-gradient(90deg,#F2F5F8,#C9D1D9); border:2px solid var(--ink);}
+  .piston .rod{position:absolute; left:10px; top:50%; transform:translateY(-50%); width:44px; height:4px;
+               background:var(--ink); border-radius:2px;}
+  .piston .grip{position:absolute; left:54px; top:50%; transform:translateY(-50%); width:8px; height:26px;
+                background:var(--ink); border-radius:4px;}
+  .liq.instant{transition:none !important;}
+  .liq{transition:width .3s cubic-bezier(.3,.9,.35,1), left .3s cubic-bezier(.3,.9,.35,1);}
+
+  /* borrower diverging tube */
+  .htube.split{border-radius:6px;}
+  .htube.split .clip{border-radius:4px;}
+  .parline{position:absolute; top:-10px; bottom:-10px; left:50%; width:2px; background:var(--ink); z-index:5;}
+  .parlab{position:absolute; top:-26px; left:50%; transform:translateX(-50%); font-family:var(--mono);
+          font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink); z-index:5;}
+  .zone-lab{position:absolute; bottom:-22px; font-family:var(--mono); font-size:9px; letter-spacing:.08em;
+            text-transform:uppercase; z-index:5;}
+  .zone-lab.l{left:0; color:var(--debit);}
+  .zone-lab.r{right:0; color:var(--credit); text-align:right;}
+  .offscale{position:absolute; top:50%; transform:translateY(-50%); font-family:var(--mono); font-size:10px;
+            font-weight:600; z-index:6; display:none;}
+
+  .result{margin:48px auto 0; max-width:600px; text-align:center; font-family:var(--mono); font-size:13px;
+          border-top:1px solid var(--line); padding-top:24px; line-height:2;}
+  .result b{font-size:15px;}
+  .note{margin-top:24px; text-align:center; color:var(--muted); font-size:12px; max-width:58ch;
+        margin-left:auto; margin-right:auto; line-height:1.6;}
+  .hintline{font-family:var(--mono); font-size:9.5px; letter-spacing:.08em; text-transform:uppercase;
+            color:var(--muted); text-align:center; margin-top:32px;}
+
+  @media(max-width:760px){
+    .bench{grid-template-columns:1fr 96px;}
+    .info{grid-column:1 / -1; padding-top:16px;}
+    .ruler-cap{display:none;}
+    .ruler{grid-column:1;}
+    .readout{padding-top:14px;}
+  }
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>The loan is worth 2.750 points over par. Five tubes share it.</h1>
+    <p class="sub">Drag a piston left or right. Nothing is created or destroyed — whatever you push out of one tube reappears in the borrower's, and whatever you draw in comes out of it. $400,000 loan, anchored at 6.625%.</p>
+  </header>
+
+  <p class="eq" aria-live="polite">
+    <b>2.750</b> = <span class="c-m" id="e-m">1.150</span> + <span class="c-g" id="e-g">0.375</span> + <span class="c-h" id="e-h">0.200</span> + <span class="c-b" id="e-b">1.000</span> + <span class="c-w" id="e-w">0.025</span>
+  </p>
+
+  <div class="bench" id="bench">
+    <!-- ruler row -->
+    <div class="ruler-cap">pts of premium →</div>
+    <div class="ruler" id="ruler"></div>
+    <div class="ruler-cap r">on $400k</div>
+
+    <!-- rows injected by JS -->
+  </div>
+
+  <div class="result" aria-live="polite" id="result"></div>
+  <p class="hintline">drag pistons · or focus and use ← → keys</p>
+  <p class="note">The lender only truly controls the first tube. The GSE tube is set by the borrower's file, the hedge tube by the market, the broker tube by the broker's plan — and the last tube is the rate the borrower feels.</p>
+</div>
+
+<script>
+(function(){
+  const TOTAL=2.75;
+  const $=id=>document.getElementById(id);
+  const fmt$=n=>'$'+Math.abs(Math.round(n)).toLocaleString('en-US');
+  const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+
+  const CFG={
+    m:{val:1.15, min:0.40, max:2.00, step:0.05,  color:'var(--margin)', name:'Lender margin',
+       who:"the desk's choice", desc:'The typed-in profit target. The only tube that pays no one — it becomes gain-on-sale after the loan is sold.'},
+    g:{val:0.375,min:0.00, max:1.50, step:0.125, color:'var(--gse)', name:'GSE cost (LLPA)',
+       who:"the borrower's file", desc:'Risk fee owed to Fannie / Freddie for this FICO, LTV and occupancy. Collected from the borrower, passed through.'},
+    h:{val:0.20, min:0.10, max:0.50, step:0.05,  color:'var(--hedge)', name:'Hedge cost',
+       who:'the market', desc:'The price of carrying the rate lock: convexity slippage, extensions and fallout. Rises with volatility.'},
+    b:{val:1.00, min:0.50, max:2.75, step:0.25,  color:'var(--broker)', name:'Broker comp (LPC)',
+       who:"the broker's plan", desc:'Fixed percentage under Reg Z — identical on every loan this broker sends, regardless of rate.'},
+  };
+  const W={name:"Borrower's share", who:'the residue', desc:'Whatever is left of 2.750. Fills right as a lender credit, left as discount points due at closing.'};
+
+  // ---- build rows ----
+  const bench=$('bench');
+  function infoCell(o){
+    return '<div class="info"><div class="name">'+o.name+'</div><div class="who">'+o.who+'</div><div class="desc">'+o.desc+'</div></div>';
+  }
+  ['m','g','h','b'].forEach(k=>{
+    const c=CFG[k];
+    bench.insertAdjacentHTML('beforeend',
+      infoCell(c)+
+      '<div class="tube-cell"><div class="htube" data-k="'+k+'">'+
+        '<div class="clip"><div class="liq" id="t-'+k+'" style="background:'+c.color+'"></div></div>'+
+        '<div class="piston" id="p-'+k+'" tabindex="0" role="slider" aria-label="'+c.name+', points of the premium" aria-valuemin="'+c.min+'" aria-valuemax="'+c.max+'">'+
+          '<div class="disc"></div><div class="rod"></div><div class="grip"></div>'+
+        '</div>'+
+      '</div></div>'+
+      '<div class="readout" id="r-'+k+'"></div>'
+    );
+  });
+  bench.insertAdjacentHTML('beforeend','<div class="row-rule"></div>');
+  bench.insertAdjacentHTML('beforeend',
+    infoCell(W)+
+    '<div class="tube-cell" style="padding-bottom:24px;"><div class="htube split" data-k="w">'+
+      '<div class="clip"><div class="liq instant" id="t-w"></div></div>'+
+      '<div class="parline"></div><div class="parlab">par</div>'+
+      '<div class="zone-lab l">← points due</div><div class="zone-lab r">lender credit →</div>'+
+      '<div class="offscale" id="off-l" style="left:8px; color:#fff;">◂ off scale</div>'+
+      '<div class="offscale" id="off-r" style="right:8px; color:#fff;">off scale ▸</div>'+
+    '</div></div>'+
+    '<div class="readout" id="r-w"></div>'
+  );
+
+  // ---- shared scale from live tube width ----
+  function tubeW(){ return document.querySelector('.htube').clientWidth - 4; } // inner, minus borders
+  function scale(){ return tubeW()/TOTAL; }
+
+  // ticks: cost tubes from left; ruler above; borrower ticks from center
+  function drawTicks(){
+    const s=scale();
+    // ruler
+    const ruler=$('ruler'); ruler.innerHTML='';
+    // align ruler to tube column automatically (same grid column width)
+    for(let v=0; v<=TOTAL+0.001; v+=0.25){
+      const major=Math.abs(v%0.5)<0.001;
+      const t=document.createElement('div');
+      t.className='rt'+(major?' major':''); t.style.left=(v*s+2)+'px';
+      ruler.appendChild(t);
+      if(major && v>0 && v<2.75){
+        const l=document.createElement('div'); l.className='rl'; l.style.left=(v*s+2)+'px';
+        l.textContent=v.toFixed(1); ruler.appendChild(l);
+      }
+    }
+    document.querySelectorAll('.htube').forEach(tube=>{
+      tube.querySelectorAll('.tick').forEach(t=>t.remove());
+      const k=tube.dataset.k;
+      if(k!=='w'){
+        for(let v=0.5; v<TOTAL; v+=0.5){
+          const t=document.createElement('div');
+          t.className='tick'+((v===1||v===2)?' major':'');
+          t.style.left=(v*s+2)+'px'; tube.appendChild(t);
+        }
+      } else {
+        for(let d=0.5; d<=1.25; d+=0.5){
+          [+1,-1].forEach(sign=>{
+            const t=document.createElement('div');
+            t.className='tick'; t.style.left='calc(50% + '+(sign*d*s)+'px)';
+            tube.appendChild(t);
+          });
+        }
+      }
+    });
+  }
+
+  function setPiston(k){
+    const c=CFG[k], s=scale();
+    $('t-'+k).style.width=(c.val*s)+'px';
+    $('p-'+k).style.left=(c.val*s - 3)+'px';   // disc leading edge on the liquid surface
+    const p=$('p-'+k);
+    p.setAttribute('aria-valuenow',c.val.toFixed(3));
+    p.setAttribute('aria-valuetext',c.val.toFixed(3)+' points, '+fmt$(c.val*4000));
+  }
+
+  function readout(id,pts,label,color){
+    $(id).innerHTML='<div class="pts" style="color:'+color+'">'+pts.toFixed(3)+'</div><div class="usd">'+label+'</div>';
+  }
+
+  function parRate(w){
+    let best=6.625,bd=1e9;
+    for(let r=5.75;r<=7.8751;r+=0.125){
+      const st=(r-6.625)/0.25;
+      const price=100+w+(st>0? st*0.95-st*st*0.06 : st*0.98);
+      const d=Math.abs(price-100); if(d<bd){bd=d;best=r;}
+    }
+    return best;
+  }
+  const pmt=r=>{const i=r/100/12;return 400000*i/(1-Math.pow(1+i,-360));};
+
+  function render(){
+    const s=scale(), half=tubeW()/2;
+    ['m','g','h','b'].forEach(k=>{ setPiston(k);
+      readout('r-'+k, CFG[k].val, fmt$(CFG[k].val*4000), CFG[k].color);
+      $('e-'+k).textContent=CFG[k].val.toFixed(3);
+    });
+    const w=TOTAL-CFG.m.val-CFG.g.val-CFG.h.val-CFG.b.val;
+
+    const liq=$('t-w'), offL=$('off-l'), offR=$('off-r');
+    const px=Math.min(Math.abs(w)*s, half-2);
+    offL.style.display='none'; offR.style.display='none';
+    if(w>=0){
+      liq.style.background='var(--credit)';
+      liq.style.left='50%'; liq.style.width=px+'px';
+      if(Math.abs(w)*s>half-2) offR.style.display='block';
+      readout('r-w', w, fmt$(w*4000)+' credit', 'var(--credit)');
+      $('e-w').textContent=w.toFixed(3); $('e-w').className='c-w';
+    }else{
+      liq.style.background='var(--debit)';
+      liq.style.left='calc(50% - '+px+'px)'; liq.style.width=px+'px';
+      if(Math.abs(w)*s>half-2) offL.style.display='block';
+      readout('r-w', -w, fmt$(-w*4000)+' pts due', 'var(--debit)');
+      $('e-w').textContent='('+w.toFixed(3)+')'; $('e-w').className='c-d';
+    }
+
+    const pr=parRate(w);
+    $('result').innerHTML = w>=0
+      ? 'At 6.625% the borrower gets <b class="c-w">'+fmt$(w*4000)+' of lender credit</b>.<br>'+
+        'The "free" par rate: <b>'+pr.toFixed(3)+'%</b> · '+fmt$(pmt(pr))+'/mo P&I.'
+      : 'The four cost tubes overflow the premium: at 6.625% the borrower owes <b class="c-d">'+fmt$(-w*4000)+' in discount points</b><br>'+
+        '— or climbs to the new par rate: <b>'+pr.toFixed(3)+'%</b> · '+fmt$(pmt(pr))+'/mo P&I.';
+  }
+
+  // ---- drag ----
+  document.querySelectorAll('.piston').forEach(p=>{
+    const k=p.id.slice(2), tube=p.closest('.htube');
+    let dragging=false;
+    p.addEventListener('pointerdown',e=>{
+      dragging=true; p.classList.add('dragging'); $('t-'+k).classList.add('instant');
+      p.setPointerCapture(e.pointerId); e.preventDefault();
+    });
+    p.addEventListener('pointermove',e=>{
+      if(!dragging) return;
+      const rect=tube.getBoundingClientRect(), c=CFG[k];
+      let v=(e.clientX-rect.left-2)/scale();
+      v=Math.round(v/c.step)*c.step;
+      c.val=clamp(+v.toFixed(3),c.min,c.max);
+      render();
+    });
+    const stop=()=>{ if(!dragging) return; dragging=false; p.classList.remove('dragging'); $('t-'+k).classList.remove('instant'); };
+    p.addEventListener('pointerup',stop); p.addEventListener('pointercancel',stop);
+    p.addEventListener('keydown',e=>{
+      const c=CFG[k]; let hit=true;
+      if(e.key==='ArrowRight'||e.key==='ArrowUp') c.val=clamp(+(c.val+c.step).toFixed(3),c.min,c.max);
+      else if(e.key==='ArrowLeft'||e.key==='ArrowDown') c.val=clamp(+(c.val-c.step).toFixed(3),c.min,c.max);
+      else if(e.key==='Home') c.val=c.min;
+      else if(e.key==='End') c.val=c.max;
+      else hit=false;
+      if(hit){ e.preventDefault(); render(); }
+    });
+  });
+
+  let rt=null;
+  window.addEventListener('resize',()=>{ clearTimeout(rt); rt=setTimeout(()=>{drawTicks(); render();},100); });
+  drawTicks(); render();
+})();
+</script>
+</body>
+</html>

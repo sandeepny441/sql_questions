@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>One Loan, Step by Step — the Butterfly P&amp;L</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F5F7; --ink:#1A2433; --muted:#75818F; --line:#E3E7EC;
+    --green:#1E8A63; --green-lt:#7FC3A4; --red:#C23B4E;
+    --mono:'IBM Plex Mono', ui-monospace, Menlo, monospace;
+    --sans:'IBM Plex Sans', system-ui, sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--ink); font-family:var(--sans); font-variant-numeric:tabular-nums;}
+  .wrap{max-width:1140px; margin:0 auto; padding:40px 20px 64px;}
+  header{text-align:center;}
+  h1{font-weight:700; font-size:clamp(23px,3.8vw,36px); letter-spacing:-.015em; color:#1F4E79;}
+  .sub{color:var(--muted); font-size:14px; margin-top:8px;}
+  .legend{display:flex; justify-content:center; gap:24px; margin-top:12px; font-size:12.5px; color:var(--muted); flex-wrap:wrap;}
+  .sw{display:inline-block; width:11px; height:11px; border-radius:3px; margin-right:6px; vertical-align:-1px;}
+  .board{background:#fff; border:1px solid var(--line); border-radius:14px; padding:8px 4px; margin-top:18px;
+         box-shadow:0 1px 2px rgba(26,36,51,.05);}
+  svg{display:block; width:100%; height:auto;}
+  .cap{font-family:var(--mono); font-size:11px; letter-spacing:.16em; fill:var(--muted);}
+  .nm{font-family:var(--sans); font-weight:600; font-size:14px; fill:var(--ink);}
+  .nm-w{font-family:var(--sans); font-weight:700; font-size:14.5px; fill:#fff;}
+  .nm-chk{font-family:var(--sans); font-weight:700; font-size:14.5px; fill:var(--green);}
+  .usd{font-family:var(--mono); font-weight:600; font-size:13.5px; fill:var(--ink);}
+  .bps-g{font-family:var(--mono); font-weight:600; font-size:12px; fill:var(--green);}
+  .bps-r{font-family:var(--mono); font-weight:600; font-size:12px; fill:var(--red);}
+  .sub-t{font-family:var(--sans); font-size:11px; fill:var(--muted);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>One Loan, Step by Step — the Butterfly P&amp;L</h1>
+    <p class="sub">Lender view · $400,000 conventional 30-yr at 6.625% · losses swing left, profits swing right, and the running balance shrinks down the spine</p>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--green-lt)"></i>money coming in</span>
+      <span><i class="sw" style="background:var(--green)"></i>running balance kept</span>
+      <span><i class="sw" style="background:var(--red)"></i>money lost / paid out</span>
+      <span>dollars in <b style="font-family:var(--mono); color:var(--ink)">black</b> · bps in <b style="font-family:var(--mono); color:var(--green)">green</b> / <b style="font-family:var(--mono); color:var(--red)">red</b></span>
+    </div>
+  </header>
+  <div class="board"><svg id="fly" viewBox="0 0 1120 1150" role="img" aria-label="Butterfly chart of lender profit and loss, step by step"></svg></div>
+</div>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const fmt=v=>'$'+Math.round(v).toLocaleString('en-US');
+  const bps=v=>Math.round(v/40);
+  const S=0.02837, CX=470, BAR=20, CHK=26;
+
+  const ROWS=[
+    {t:'cap', txt:'MONEY POURING IN'},
+    {t:'in', name:'Loan sale premium (TBA / UMBS)', v:6400},
+    {t:'in', name:'Servicing value (MSR)', v:4600},
+    {t:'in', name:'Borrower-paid fees', v:1600},
+    {t:'in', name:'LLPA collected via price', v:1500},
+    {t:'chk', name:'Total revenue', v:14100, sub:'3.53 pts of the loan'},
+    {t:'cap', txt:'STEP 1 \u00b7 DIRECT COSTS AT SALE'},
+    {t:'out', name:'LLPA remitted to GSE', v:1500, sub:'pass-through \u2014 nets to zero'},
+    {t:'out', name:'Broker comp (LPC)', v:4000},
+    {t:'out', name:'Hedge & lock costs', v:800},
+    {t:'out', name:'Buyback & EPO reserve', v:300},
+    {t:'chk', name:'Gross profit', v:7500, sub:'53% of revenue'},
+    {t:'cap', txt:'STEP 2 \u00b7 COST TO MANUFACTURE THE LOAN'},
+    {t:'out', name:'Underwriting & ops', v:1800},
+    {t:'out', name:'AE & support', v:800},
+    {t:'out', name:'Technology', v:700},
+    {t:'out', name:'Corporate G&A', v:600},
+    {t:'chk', name:'Operating profit', v:3600, sub:''},
+    {t:'cap', txt:'STEP 3 \u00b7 TAX'},
+    {t:'out', name:'Tax', v:850},
+    {t:'final', name:'Net profit', v:2750, sub:'what the lender keeps, per loan \u00b7 all figures illustrative'},
+  ];
+
+  let g='', y=36;
+  const spineTop=y+10;
+
+  const moneyTs=(neg,v)=>'<tspan class="usd">'+(neg?'('+fmt(v)+')':fmt(v))+'</tspan>'+
+    '<tspan class="'+(neg?'bps-r':'bps-g')+'" dx="8">'+(neg?'\u2212':'+')+bps(v)+' bps</tspan>';
+
+  ROWS.forEach(r=>{
+    if(r.t==='cap'){
+      y+=18;
+      g+='<text class="cap" x="40" y="'+y+'">'+r.txt+'</text>';
+      y+=24;
+      return;
+    }
+    const w=r.v*S;
+    if(r.t==='in'){
+      const cy=y+BAR/2;
+      g+='<rect x="'+CX+'" y="'+y+'" width="'+w+'" height="'+BAR+'" rx="3" fill="var(--green-lt)"/>';
+      g+='<text class="nm" x="'+(CX+w+12)+'" y="'+(cy-1)+'">'+r.name+'</text>';
+      g+='<text x="'+(CX+w+12)+'" y="'+(cy+16)+'">'+moneyTs(false,r.v)+'</text>';
+      y+=BAR+28;
+    } else if(r.t==='out'){
+      const cy=y+BAR/2, x0=CX-w;
+      g+='<rect x="'+x0+'" y="'+y+'" width="'+w+'" height="'+BAR+'" rx="3" fill="var(--red)"/>';
+      g+='<text class="nm" text-anchor="end" x="'+(x0-12)+'" y="'+(cy-1)+'">'+r.name+'</text>';
+      g+='<text text-anchor="end" x="'+(x0-12)+'" y="'+(cy+16)+'">'+moneyTs(true,r.v)+'</text>';
+      if(r.sub) g+='<text class="sub-t" text-anchor="end" x="'+(x0-12)+'" y="'+(cy+32)+'">'+r.sub+'</text>';
+      y+=BAR+(r.sub?40:28);
+    } else if(r.t==='chk' || r.t==='final'){
+      y+=6;
+      const h=CHK, cy=y+h/2;
+      g+='<line x1="60" x2="1060" y1="'+(y-8)+'" y2="'+(y-8)+'" stroke="var(--line)" stroke-width="1"/>';
+      g+='<rect x="'+CX+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="4" fill="var(--green)"'+
+         (r.t==='final'?' stroke="var(--ink)" stroke-width="2"':'')+'/>';
+      if(w>=175){
+        g+='<text class="nm-w" x="'+(CX+12)+'" y="'+(cy+5)+'">'+r.name+'</text>';
+        g+='<text x="'+(CX+w+12)+'" y="'+(cy+5)+'">'+moneyTs(false,r.v)+'</text>';
+        if(r.sub) g+='<text class="sub-t" x="'+(CX+w+12)+'" y="'+(cy+22)+'">'+r.sub+'</text>';
+      } else {
+        g+='<text class="nm-chk" x="'+(CX+w+12)+'" y="'+(cy-3)+'">'+r.name+'</text>';
+        g+='<text x="'+(CX+w+12)+'" y="'+(cy+15)+'">'+moneyTs(false,r.v)+'</text>';
+        if(r.sub) g+='<text class="sub-t" x="'+(CX+w+12)+'" y="'+(cy+32)+'">'+r.sub+'</text>';
+      }
+      y+=h+(r.sub&&w<175?40:30);
+    }
+  });
+
+  // central spine + arrowheads at each step boundary
+  g='<line x1="'+CX+'" x2="'+CX+'" y1="'+spineTop+'" y2="'+(y-4)+'" stroke="var(--ink)" stroke-width="2"/>'+g;
+  g+='<path d="M'+(CX-6)+' '+(y-4)+' L'+CX+' '+(y+6)+' L'+(CX+6)+' '+(y-4)+' Z" fill="var(--ink)"/>';
+
+  $('fly').innerHTML=g;
+})();
+</script>
+</body>
+</html>

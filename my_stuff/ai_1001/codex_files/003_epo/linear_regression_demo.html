@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Linear Regression Demo</title>
+    <style>
+      :root {
+        --bg: #fbf7ff;
+        --panel: rgba(255, 255, 255, 0.9);
+        --panel-strong: #ffffff;
+        --text: #202433;
+        --muted: #5f687d;
+        --border: rgba(153, 104, 213, 0.18);
+        --accent: #8b3dff;
+        --accent-2: #ec4899;
+        --accent-soft: rgba(139, 61, 255, 0.12);
+        --line: #e11d48;
+        --point: #6d28d9;
+        --point-soft: rgba(109, 40, 217, 0.2);
+        --grid: #eadff7;
+        --shadow: 0 22px 50px rgba(77, 34, 138, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Aptos", "Segoe UI", "Helvetica Neue", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(139, 61, 255, 0.12), transparent 24%),
+          radial-gradient(circle at 85% 10%, rgba(236, 72, 153, 0.1), transparent 22%),
+          linear-gradient(180deg, #fdfaff 0%, #f8f3ff 100%);
+      }
+
+      .page {
+        display: grid;
+        grid-template-columns: 320px minmax(0, 1fr);
+        gap: 28px;
+        max-width: 1440px;
+        margin: 0 auto;
+        padding: 32px;
+      }
+
+      .sidebar,
+      .main-card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(14px);
+      }
+
+      .sidebar {
+        border-radius: 30px;
+        padding: 28px 24px;
+        position: sticky;
+        top: 20px;
+        align-self: start;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 18px 0 10px;
+        font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+        font-size: clamp(2.5rem, 5vw, 4rem);
+        line-height: 0.96;
+        letter-spacing: -0.05em;
+      }
+
+      .lead {
+        margin: 0 0 26px;
+        color: var(--muted);
+        font-size: 1rem;
+        line-height: 1.7;
+      }
+
+      .control-group + .control-group {
+        margin-top: 22px;
+      }
+
+      .control-top {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+
+      .control-label {
+        font-weight: 700;
+        font-size: 1rem;
+      }
+
+      .control-value {
+        min-width: 64px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(153, 104, 213, 0.2);
+        color: var(--accent);
+        font-weight: 700;
+        text-align: center;
+      }
+
+      input[type="range"] {
+        width: 100%;
+        accent-color: var(--accent);
+      }
+
+      .control-hint {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 0.92rem;
+        line-height: 1.55;
+      }
+
+      .button-row {
+        display: flex;
+        gap: 12px;
+        margin-top: 28px;
+      }
+
+      button {
+        appearance: none;
+        border: 0;
+        border-radius: 14px;
+        padding: 12px 16px;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+      }
+
+      .primary {
+        color: white;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        box-shadow: 0 16px 28px rgba(139, 61, 255, 0.22);
+      }
+
+      .secondary {
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(153, 104, 213, 0.18);
+      }
+
+      .stat-grid {
+        display: grid;
+        gap: 12px;
+        margin-top: 26px;
+      }
+
+      .stat-card {
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid rgba(153, 104, 213, 0.16);
+      }
+
+      .stat-label {
+        color: var(--muted);
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .stat-value {
+        margin-top: 8px;
+        font-size: 1.55rem;
+        font-weight: 800;
+      }
+
+      .main-card {
+        border-radius: 34px;
+        padding: 26px;
+      }
+
+      .main-head {
+        display: flex;
+        align-items: start;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 22px;
+      }
+
+      .main-head h2 {
+        margin: 10px 0 0;
+        font-size: 1.05rem;
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      .equation-box {
+        min-width: 240px;
+        padding: 18px 20px;
+        border-radius: 22px;
+        background:
+          linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(249, 243, 255, 0.98));
+        border: 1px solid rgba(153, 104, 213, 0.2);
+      }
+
+      .equation-label {
+        color: var(--muted);
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .equation {
+        margin-top: 10px;
+        font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+        font-size: 2rem;
+        line-height: 1.05;
+        color: #7e22ce;
+      }
+
+      .chart-shell {
+        border-radius: 30px;
+        padding: 18px;
+        background: var(--panel-strong);
+        border: 1px solid rgba(153, 104, 213, 0.15);
+      }
+
+      svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      .notes-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        margin-top: 18px;
+      }
+
+      .note-card {
+        padding: 18px 18px 20px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(153, 104, 213, 0.16);
+      }
+
+      .note-card h3 {
+        margin: 0 0 10px;
+        font-size: 0.94rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #7e22ce;
+      }
+
+      .note-card p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.98rem;
+        line-height: 1.72;
+      }
+
+      .axis-label {
+        fill: #63708a;
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .tick-label {
+        fill: #7b8599;
+        font-size: 12px;
+      }
+
+      .grid-line {
+        stroke: var(--grid);
+        stroke-width: 1;
+      }
+
+      .axis-line {
+        stroke: #b6b3ca;
+        stroke-width: 1.4;
+      }
+
+      .data-point {
+        fill: var(--point-soft);
+        stroke: var(--point);
+        stroke-width: 2.2;
+      }
+
+      .fit-line {
+        stroke: var(--line);
+        stroke-width: 4;
+        stroke-linecap: round;
+      }
+
+      .residual-line {
+        stroke: rgba(139, 61, 255, 0.35);
+        stroke-width: 2;
+        stroke-dasharray: 6 6;
+      }
+
+      .chart-caption {
+        display: flex;
+        gap: 18px;
+        align-items: center;
+        margin-top: 14px;
+        color: var(--muted);
+        font-size: 0.94rem;
+      }
+
+      .legend-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .legend-dot,
+      .legend-line {
+        flex: 0 0 auto;
+      }
+
+      .legend-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: rgba(109, 40, 217, 0.28);
+        border: 2px solid var(--point);
+      }
+
+      .legend-line {
+        width: 22px;
+        height: 0;
+        border-top: 4px solid var(--line);
+        border-radius: 999px;
+      }
+
+      @media (max-width: 1100px) {
+        .page {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          position: static;
+        }
+
+        .notes-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .main-head {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <aside class="sidebar">
+        <div class="eyebrow">Interactive Lesson</div>
+        <h1>Linear Regression</h1>
+        <p class="lead">
+          Move the two controls and watch how the red line rotates or shifts. This is the simplest
+          way to explain what a regression line is trying to do.
+        </p>
+
+        <div class="control-group">
+          <div class="control-top">
+            <div class="control-label">Slope</div>
+            <div class="control-value" id="slopeValue">1.8</div>
+          </div>
+          <input id="slopeSlider" type="range" min="-1" max="5" step="0.1" value="1.8" />
+          <p class="control-hint">Higher slope makes the line steeper. Lower slope makes it flatter.</p>
+        </div>
+
+        <div class="control-group">
+          <div class="control-top">
+            <div class="control-label">Intercept</div>
+            <div class="control-value" id="interceptValue">3.0</div>
+          </div>
+          <input id="interceptSlider" type="range" min="-5" max="15" step="0.1" value="3" />
+          <p class="control-hint">Changing the intercept moves the line up or down without changing its tilt.</p>
+        </div>
+
+        <div class="button-row">
+          <button class="primary" id="bestFitButton">Use Best Fit</button>
+          <button class="secondary" id="resetButton">Reset</button>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-label">Sum of Squared Errors</div>
+            <div class="stat-value" id="sseValue">0.00</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Best-Fit Line</div>
+            <div class="stat-value" id="bestFitValue">y = 0.00x + 0.00</div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main-card">
+        <div class="main-head">
+          <div>
+            <div class="eyebrow">One Graph</div>
+            <h2>Observed data points and one adjustable regression line</h2>
+          </div>
+
+          <div class="equation-box">
+            <div class="equation-label">Current Equation</div>
+            <div class="equation" id="equationText">y = 1.8x + 3.0</div>
+          </div>
+        </div>
+
+        <div class="chart-shell">
+          <svg id="chart" viewBox="0 0 920 540" aria-label="Linear regression chart"></svg>
+          <div class="chart-caption">
+            <span class="legend-chip"><span class="legend-dot"></span>Observed points</span>
+            <span class="legend-chip"><span class="legend-line"></span>Your line</span>
+            <span>Dashed guides show the distance from each point to the line.</span>
+          </div>
+        </div>
+
+        <div class="notes-grid">
+          <section class="note-card">
+            <h3>Layman Definition</h3>
+            <p>
+              Linear regression is a smart way to draw one line through a cloud of points so the
+              line gets as close to the data as it can overall.
+            </p>
+          </section>
+          <section class="note-card">
+            <h3>What To Notice</h3>
+            <p>
+              If the red line is badly placed, the dashed gaps get longer. When the line fits the
+              pattern well, those gaps shrink and the total error drops.
+            </p>
+          </section>
+          <section class="note-card">
+            <h3>Technical Definition</h3>
+            <p>
+              Ordinary least squares chooses the slope and intercept that minimize the sum of the
+              squared residuals between the observed values and the fitted line.
+            </p>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const svg = document.getElementById("chart");
+      const slopeSlider = document.getElementById("slopeSlider");
+      const interceptSlider = document.getElementById("interceptSlider");
+      const slopeValue = document.getElementById("slopeValue");
+      const interceptValue = document.getElementById("interceptValue");
+      const equationText = document.getElementById("equationText");
+      const sseValue = document.getElementById("sseValue");
+      const bestFitValue = document.getElementById("bestFitValue");
+      const bestFitButton = document.getElementById("bestFitButton");
+      const resetButton = document.getElementById("resetButton");
+
+      const data = [
+        { x: 1, y: 5 },
+        { x: 2, y: 8 },
+        { x: 3, y: 8 },
+        { x: 4, y: 10 },
+        { x: 5, y: 14 },
+        { x: 6, y: 14 },
+        { x: 7, y: 17 },
+        { x: 8, y: 18 },
+        { x: 9, y: 22 },
+        { x: 10, y: 22 },
+        { x: 11, y: 25 },
+        { x: 12, y: 27 }
+      ];
+
+      const initialState = { slope: 1.8, intercept: 3.0 };
+      const bounds = { minX: 0, maxX: 13, minY: 0, maxY: 30 };
+      const frame = { left: 88, right: 38, top: 30, bottom: 68 };
+
+      function mean(values) {
+        return values.reduce((sum, value) => sum + value, 0) / values.length;
+      }
+
+      function bestFit(points) {
+        const xs = points.map((point) => point.x);
+        const ys = points.map((point) => point.y);
+        const xBar = mean(xs);
+        const yBar = mean(ys);
+
+        let numerator = 0;
+        let denominator = 0;
+
+        points.forEach((point) => {
+          numerator += (point.x - xBar) * (point.y - yBar);
+          denominator += (point.x - xBar) ** 2;
+        });
+
+        const slope = numerator / denominator;
+        const intercept = yBar - slope * xBar;
+        return { slope, intercept };
+      }
+
+      const optimal = bestFit(data);
+
+      function formatNumber(value) {
+        return Number(value).toFixed(1);
+      }
+
+      function scaleX(x) {
+        const width = 920 - frame.left - frame.right;
+        return frame.left + ((x - bounds.minX) / (bounds.maxX - bounds.minX)) * width;
+      }
+
+      function scaleY(y) {
+        const height = 540 - frame.top - frame.bottom;
+        return 540 - frame.bottom - ((y - bounds.minY) / (bounds.maxY - bounds.minY)) * height;
+      }
+
+      function lineValue(x, slope, intercept) {
+        return slope * x + intercept;
+      }
+
+      function computeSSE(slope, intercept) {
+        return data.reduce((sum, point) => {
+          const residual = point.y - lineValue(point.x, slope, intercept);
+          return sum + residual * residual;
+        }, 0);
+      }
+
+      function axisLabels() {
+        let markup = "";
+
+        for (let x = 0; x <= 12; x += 2) {
+          const px = scaleX(x);
+          markup += '<line class="grid-line" x1="' + px + '" y1="' + frame.top + '" x2="' + px + '" y2="' + (540 - frame.bottom) + '"></line>';
+          markup += '<text class="tick-label" x="' + px + '" y="' + (540 - frame.bottom + 28) + '" text-anchor="middle">' + x + "</text>";
+        }
+
+        for (let y = 0; y <= 30; y += 5) {
+          const py = scaleY(y);
+          markup += '<line class="grid-line" x1="' + frame.left + '" y1="' + py + '" x2="' + (920 - frame.right) + '" y2="' + py + '"></line>';
+          markup += '<text class="tick-label" x="' + (frame.left - 18) + '" y="' + (py + 4) + '" text-anchor="end">' + y + "</text>";
+        }
+
+        markup += '<line class="axis-line" x1="' + frame.left + '" y1="' + frame.top + '" x2="' + frame.left + '" y2="' + (540 - frame.bottom) + '"></line>';
+        markup += '<line class="axis-line" x1="' + frame.left + '" y1="' + (540 - frame.bottom) + '" x2="' + (920 - frame.right) + '" y2="' + (540 - frame.bottom) + '"></line>';
+        markup += '<text class="axis-label" x="' + ((frame.left + 920 - frame.right) / 2) + '" y="515" text-anchor="middle">X</text>';
+        markup += '<text class="axis-label" x="26" y="' + ((frame.top + 540 - frame.bottom) / 2) + '" text-anchor="middle" transform="rotate(-90 26 ' + ((frame.top + 540 - frame.bottom) / 2) + ')">Y</text>';
+        return markup;
+      }
+
+      function renderChart() {
+        const slope = Number(slopeSlider.value);
+        const intercept = Number(interceptSlider.value);
+        const sse = computeSSE(slope, intercept);
+
+        slopeValue.textContent = formatNumber(slope);
+        interceptValue.textContent = formatNumber(intercept);
+        equationText.textContent = "y = " + formatNumber(slope) + "x + " + formatNumber(intercept);
+        sseValue.textContent = sse.toFixed(2);
+        bestFitValue.textContent =
+          "y = " + optimal.slope.toFixed(2) + "x + " + optimal.intercept.toFixed(2);
+
+        let residuals = "";
+        let points = "";
+
+        data.forEach((point) => {
+          const x = scaleX(point.x);
+          const y = scaleY(point.y);
+          const fittedY = scaleY(lineValue(point.x, slope, intercept));
+
+          residuals += '<line class="residual-line" x1="' + x + '" y1="' + y + '" x2="' + x + '" y2="' + fittedY + '"></line>';
+          points += '<circle class="data-point" cx="' + x + '" cy="' + y + '" r="7"></circle>';
+        });
+
+        const x1 = bounds.minX;
+        const y1 = lineValue(x1, slope, intercept);
+        const x2 = bounds.maxX;
+        const y2 = lineValue(x2, slope, intercept);
+
+        const lineMarkup =
+          '<line class="fit-line" x1="' + scaleX(x1) + '" y1="' + scaleY(y1) + '" x2="' + scaleX(x2) + '" y2="' + scaleY(y2) + '"></line>';
+
+        svg.innerHTML = axisLabels() + residuals + lineMarkup + points;
+      }
+
+      slopeSlider.addEventListener("input", renderChart);
+      interceptSlider.addEventListener("input", renderChart);
+
+      bestFitButton.addEventListener("click", () => {
+        slopeSlider.value = optimal.slope.toFixed(1);
+        interceptSlider.value = optimal.intercept.toFixed(1);
+        renderChart();
+      });
+
+      resetButton.addEventListener("click", () => {
+        slopeSlider.value = initialState.slope;
+        interceptSlider.value = initialState.intercept;
+        renderChart();
+      });
+
+      renderChart();
+    </script>
+  </body>
+</html>

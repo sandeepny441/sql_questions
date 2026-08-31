@@ -1,0 +1,258 @@
+{
+  "main": {
+    "id": "2519118fcd72cd07",
+    "type": "split",
+    "children": [
+      {
+        "id": "8620e194f7eb9c0e",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "e959856e9dbd7bcf",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Untitled 5.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Untitled 5"
+            }
+          },
+          {
+            "id": "021a33505647e475",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "projects/EPO/prepayment types.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "prepayment types"
+            }
+          }
+        ],
+        "currentTab": 1
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "16f6a9599dc60bdb",
+    "type": "split",
+    "children": [
+      {
+        "id": "59b6c72c58973be9",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "808a9b5b87d54ece",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": true
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "3c0ed82de62894c3",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "cc88ae6b91402c2b",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 200
+  },
+  "right": {
+    "id": "7602cbdcebc93056",
+    "type": "split",
+    "children": [
+      {
+        "id": "dcad164390cccc9b",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "311f4a0385c05417",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "factorization.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": true,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for factorization"
+            }
+          },
+          {
+            "id": "924fb9c25661614b",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "factorization.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from factorization"
+            }
+          },
+          {
+            "id": "b2954ebe99732106",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "c6028f74074c01ec",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "factorization.md",
+                "followCursor": true,
+                "showSearch": true,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of factorization"
+            }
+          },
+          {
+            "id": "b683e29e031406d8",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "iconic:Open rulebook": false,
+      "copilot:Open Copilot Chat": false,
+      "fix-math:Current file": false,
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "021a33505647e475",
+  "lastOpenFiles": [
+    "Kubernetes - Hollywood.md",
+    "Untitled 11.md",
+    "Untitled 12.md",
+    "Untitled 13.md",
+    "GNNS/GNN how.md",
+    "Untitled.base",
+    "Black-Litterman.md",
+    "ML problems.md",
+    "SHAP.md",
+    "GNN Vocab.md",
+    "factorization.md",
+    "blackHole.md",
+    "2026-05-16.md",
+    "projects/EPO/GSE/reports/202210-Note-PMMS-12.pdf",
+    "wafts.md",
+    "projects/EPO/prepayment types.md",
+    "projects/EPO/history.md",
+    "projects/EPO/001_resources.md",
+    "projects/EPO/GSE/types of Tranches.md",
+    "projects/EPO/GSE/pooling.md",
+    "netifly/how.md",
+    "Untitled 1",
+    "Untitled 5.md",
+    "Pasted image 20260518232954.png",
+    "obsidian/snippets/blue-divider.css",
+    "obsidian/snippets",
+    "obsidian/untitled folder",
+    "obsidian",
+    "untitled folder",
+    "Untitled 9.md",
+    "Untitled 8.md",
+    "Untitled 1.base",
+    "Untitled 1.md",
+    "ML_algos.canvas",
+    "Pasted image 20260515231859.png",
+    "sa.canvas",
+    "Untitled 7.md",
+    "Untitled 6.md",
+    "Untitled.canvas",
+    "Untitled 1.canvas",
+    "Untitled 2.canvas",
+    "Excalidraw",
+    "Pasted image 20260515231814.png",
+    "function_plots/02_sigmoid.png",
+    "function_plots/overview.png",
+    "function_plots/04_relu.png",
+    "function_plots/01_step_function.png",
+    "function_plots/06_softmax.png",
+    "function_plots/03_tanh.png",
+    "function_plots/09_log_softmax.png",
+    "tranches_flowchart.canvas"
+  ]
+}

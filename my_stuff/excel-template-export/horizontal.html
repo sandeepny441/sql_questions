@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Jargon Blaster Horizontal</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="horizontal.css" />
+  </head>
+  <body class="layout-horizontal">
+    <div class="page-shell">
+      <div class="corner-upload">
+        <label class="upload-pill" for="workbook-input">upload excel</label>
+        <p class="workbook-status is-hidden" id="workbook-status" aria-live="polite"></p>
+        <input
+          class="workbook-input"
+          id="workbook-input"
+          type="file"
+          accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        />
+      </div>
+
+      <header class="hero-panel">
+        <div class="header-title-block">
+          <p class="eyebrow">Mortgage</p>
+          <div class="title-copy">
+            <h1>Jargon Blaster</h1>
+          </div>
+        </div>
+        <div class="header-topic-block">
+          <div class="topic-header-row">
+            <p class="hero-kicker">topics</p>
+          </div>
+          <div class="topic-card-list" id="topic-tab-list" role="tablist" aria-label="Topic selector"></div>
+        </div>
+      </header>
+
+      <main class="content-area">
+        <section
+          class="card-sections"
+          id="topic-panel"
+          role="tabpanel"
+          aria-labelledby="tab-fraud"
+          aria-live="polite"
+          aria-label="Flashcard deck"
+        ></section>
+      </main>
+
+      <aside class="alphabet-rail" aria-label="Flashcard index">
+        <nav class="alphabet-index" id="alphabet-index"></nav>
+      </aside>
+    </div>
+
+    <template id="letter-section-template">
+      <section class="letter-section">
+        <div class="card-grid"></div>
+      </section>
+    </template>
+
+    <template id="card-template">
+      <article class="flash-card" tabindex="0">
+        <div class="flash-card-inner">
+          <div class="flash-card-face flash-card-front">
+            <div class="card-front-main">
+              <div class="card-front-badge">
+                <p class="card-abbreviation"></p>
+              </div>
+              <div class="card-front-copy">
+                <h4 class="card-term"></h4>
+              </div>
+            </div>
+            <div class="card-front-definition">
+              <p class="card-definition"></p>
+              <p class="flip-hint">Click to Flip</p>
+            </div>
+          </div>
+          <div class="flash-card-face flash-card-back flash-card-back-horizontal">
+            <div class="card-chip">Back</div>
+            <div class="back-stage-stack back-stage-stack-horizontal">
+              <section class="back-stage back-stage-horizontal is-active" data-stage="casual">
+                <article class="back-horizontal-card back-horizontal-card-casual">
+                  <h4>casual</h4>
+                  <div class="back-horizontal-copy card-casual"></div>
+                  <p class="back-horizontal-next">next: example</p>
+                </article>
+              </section>
+              <section class="back-stage back-stage-horizontal" data-stage="example">
+                <article class="back-horizontal-card back-horizontal-card-example">
+                  <h4>example</h4>
+                  <div class="back-horizontal-copy card-example"></div>
+                  <p class="back-horizontal-next">next: technical</p>
+                </article>
+              </section>
+              <section class="back-stage back-stage-horizontal" data-stage="technical">
+                <article class="back-horizontal-card back-horizontal-card-technical">
+                  <h4>technical</h4>
+                  <div class="back-horizontal-copy card-technical"></div>
+                  <div class="technical-chart-slot"></div>
+                  <p class="back-horizontal-next">next: front</p>
+                </article>
+              </section>
+            </div>
+          </div>
+          <div class="flash-card-fragments" aria-hidden="true"></div>
+        </div>
+      </article>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>

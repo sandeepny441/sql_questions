@@ -1,0 +1,266 @@
+Here is the revised snippet. The **left pane** is chapters, the **middle pane** is content, and the **right pane** is topics — all correctly positioned. Chapters and topics are simply numbered 1‑5, and the three content sections are separated by dotted lines (not collapsible). Topic numbers are shown as `1.2`, `1.3`, etc.
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Statistics Documentation</title>
+<style>
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    display: flex;
+    height: 100vh;
+  }
+
+  /* ---- Left pane: Chapters ---- */
+  .left-pane {
+    width: 18%;
+    background: #f4f4f4;
+    padding: 1rem;
+    overflow-y: auto;
+    border-right: 1px solid #ccc;
+  }
+  .left-pane h2 {
+    margin: 0 0 0.75rem 0;
+    font-size: 1.1rem;
+    color: #333;
+  }
+  .left-pane ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .left-pane li {
+    padding: 0.5rem 0.5rem;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    font-size: 0.95rem;
+  }
+  .left-pane li:hover,
+  .left-pane li.active {
+    background: #e0e0e0;
+    border-left-color: #0066cc;
+  }
+
+  /* ---- Middle pane: Content ---- */
+  .middle-pane {
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+    border-right: 1px solid #ccc;
+  }
+  .middle-pane h3 {
+    margin: 0 0 1rem 0;
+    color: #0066cc;
+    font-size: 1.3rem;
+  }
+  .content-section {
+    margin-bottom: 1.5rem;
+  }
+  .content-section h4 {
+    margin: 0.75rem 0 0.25rem 0;
+    color: #555;
+    font-size: 0.95rem;
+    border-bottom: 1px dotted #aaa;
+    padding-bottom: 0.25rem;
+  }
+  .content-section p {
+    margin: 0.5rem 0 0 0;
+    line-height: 1.6;
+    font-size: 0.9rem;
+  }
+  .placeholder {
+    color: #999;
+    font-style: italic;
+  }
+
+  /* ---- Right pane: Topics ---- */
+  .right-pane {
+    width: 22%;
+    background: #fafafa;
+    padding: 1rem;
+    overflow-y: auto;
+  }
+  .right-pane h2 {
+    margin: 0 0 0.75rem 0;
+    font-size: 1.1rem;
+    color: #333;
+  }
+  .right-pane ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .right-pane li {
+    padding: 0.5rem 0.5rem;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    font-size: 0.95rem;
+  }
+  .right-pane li:hover,
+  .right-pane li.active {
+    background: #e0e0e0;
+    border-left-color: #0066cc;
+  }
+</style>
+</head>
+<body>
+
+<!-- Left pane: Chapters -->
+<div class="left-pane">
+  <h2>Chapters</h2>
+  <ul id="chapterList">
+    <li data-chapter="1" class="active">one</li>
+    <li data-chapter="2">two</li>
+    <li data-chapter="3">three</li>
+    <li data-chapter="4">four</li>
+    <li data-chapter="5">five</li>
+  </ul>
+</div>
+
+<!-- Middle pane: Content -->
+<div class="middle-pane" id="contentPane">
+  <h3 id="topicTitle">Select a topic</h3>
+  <div class="content-section">
+    <h4>Definition</h4>
+    <p id="defText" class="placeholder">Click a topic to see its definition.</p>
+  </div>
+  <div class="content-section">
+    <h4>Example</h4>
+    <p id="exText" class="placeholder">Click a topic to see an example.</p>
+  </div>
+  <div class="content-section">
+    <h4>Layman's Definition</h4>
+    <p id="layText" class="placeholder">Click a topic to see a simple explanation.</p>
+  </div>
+</div>
+
+<!-- Right pane: Topics -->
+<div class="right-pane">
+  <h2>Topics</h2>
+  <ul id="topicList"></ul>
+</div>
+
+<script>
+/* --------------------------------------------------------------
+   Data – five chapters, five topics each
+   -------------------------------------------------------------- */
+const chapters = {
+  1: [
+    { id: '1-1', title: 'one', def: 'Descriptive statistics summarize and organize data so it can be easily understood.', ex: 'Calculating the mean of a set of test scores.', lay: 'It is like making a summary of a book so you know the main points without reading every page.' },
+    { id: '1-2', title: 'two', def: 'Standard deviation measures how spread out the data points are from the mean.', ex: 'A low standard deviation means scores are close to the average.', lay: 'If everyone in a group is about the same height, the standard deviation is small.' },
+    { id: '1-3', title: 'three', def: 'A histogram is a bar chart that shows the frequency distribution of a dataset.', ex: 'A histogram of ages might show a peak around 30-40.', lay: 'It is a bar chart that tells you how many people fall into each age group.' },
+    { id: '1-4', title: 'four', def: 'Correlation measures the strength and direction of the relationship between two variables.', ex: 'Height and weight are positively correlated.', lay: 'If one thing goes up when another goes up, they are correlated.' },
+    { id: '1-5', title: 'five', def: 'Sampling is the process of selecting a subset of individuals from a population to estimate characteristics of the whole.', ex: 'Polling 1,000 voters to predict an election result.', lay: 'It is like tasting a spoonful of soup to judge the whole pot.' }
+  ],
+  2: [
+    { id: '2-1', title: 'one', def: 'Hypothesis testing is a method of statistical inference used to determine if a claim about a population is plausible.', ex: 'Testing whether a new drug reduces blood pressure.', lay: 'It is like guessing if a coin is fair by flipping it many times.' },
+    { id: '2-2', title: 'two', def: 'A p-value is the probability of obtaining results at least as extreme as the observed results, assuming the null hypothesis is true.', ex: 'A p-value of 0.02 means there is a 2% chance of seeing the data if the null hypothesis were true.', lay: 'It is the chance that your result happened by luck alone.' },
+    { id: '2-3', title: 'three', def: 'A confidence interval is a range of values that is likely to contain the true population parameter.', ex: 'A 95% confidence interval for the mean is (50, 60).', lay: 'It is a range where you are pretty sure the real answer lies.' },
+    { id: '2-4', title: 'four', def: 'Type I error occurs when you reject a true null hypothesis (false positive).', ex: 'Concluding a drug works when it actually does not.', lay: 'It is like saying someone is guilty when they are innocent.' },
+    { id: '2-5', title: 'five', def: 'Type II error occurs when you fail to reject a false null hypothesis (false negative).', ex: 'Concluding a drug does not work when it actually does.', lay: 'It is like saying someone is innocent when they are guilty.' }
+  ],
+  3: [
+    { id: '3-1', title: 'one', def: 'Regression analysis models the relationship between a dependent variable and one or more independent variables.', ex: 'Predicting house price based on square footage and location.', lay: 'It is drawing a line through data points to make predictions.' },
+    { id: '3-2', title: 'two', def: 'ANOVA (Analysis of Variance) compares means across three or more groups.', ex: 'Testing whether test scores differ across three teaching methods.', lay: 'It is checking if several averages are really different or just by chance.' },
+    { id: '3-3', title: 'three', def: 'Chi-square test measures how well an observed distribution fits an expected distribution.', ex: 'Testing if dice are fair by comparing observed and expected rolls.', lay: 'It is checking if what actually happened matches what we expected.' },
+    { id: '3-4', title: 'four', def: 'Normal distribution is a bell-shaped probability distribution that is symmetric about the mean.', ex: 'Heights of adult men follow a normal distribution.', lay: 'Most things cluster around an average with fewer extremes, like heights in a crowd.' },
+    { id: '3-5', title: 'five', def: 'Central Limit Theorem states that the sampling distribution of the mean approaches a normal distribution as sample size increases.', ex: 'Averaging many small samples of dice rolls produces a bell curve.', lay: 'If you take enough samples, the averages will form a nice bell shape.' }
+  ],
+  4: [
+    { id: '4-1', title: 'one', def: 'Probability is the measure of the likelihood that an event will occur.', ex: 'The probability of rolling a 6 on a fair die is 1/6.', lay: 'It is how likely something is to happen, from impossible to certain.' },
+    { id: '4-2', title: 'two', def: 'Bayes' theorem describes the probability of an event based on prior knowledge of conditions related to the event.', ex: 'Updating the chance of rain after seeing clouds.', lay: 'It is revising your guess when you learn new information.' },
+    { id: '4-3', title: 'three', def: 'Expected value is the long-run average value of a random variable.', ex: 'The expected value of a roulette bet is negative for the player.', lay: 'It is what you would average if you repeated something a million times.' },
+    { id: '4-4', title: 'four', def: 'Permutation is an arrangement of objects in a specific order.', ex: 'The number of ways to arrange 3 books on a shelf is 3! = 6.', lay: 'It is counting how many different orders you can put things in.' },
+    { id: '4-5', title: 'five', def: 'Combination is a selection of objects from a set where order does not matter.', ex: 'The number of ways to choose 2 cards from 5 is C(5,2) = 10.', lay: 'It is counting how many different groups you can make, ignoring order.' }
+  ],
+  5: [
+    { id: '5-1', title: 'one', def: 'Survey design is the process of planning and structuring a questionnaire or data collection method.', ex: 'Using stratified sampling to ensure all age groups are represented.', lay: 'It is deciding how to ask questions so you get good answers.' },
+    { id: '5-2', title: 'two', def: 'Margin of error indicates the range within which the true population value is expected to lie.', ex: 'A poll with a 3% margin of error means the real percentage is within ±3%.', lay: 'It is how much the result could be off by.' },
+    { id: '5-3', title: 'three', def: 'Data cleaning is the process of detecting and correcting errors and inconsistencies in data.', ex: 'Removing duplicate entries and filling in missing values.', lay: 'It is tidying up messy data before you analyze it.' },
+    { id: '5-4', title: 'four', def: 'Bias in statistics refers to systematic errors that lead to incorrect conclusions.', ex: 'Selection bias occurs when the sample is not representative of the population.', lay: 'It is when your data unfairly favors one outcome over another.' },
+    { id: '5-5', title: 'five', def: 'Big data refers to datasets that are too large or complex for traditional data-processing methods.', ex: 'Analyzing millions of social media posts to detect trends.', lay: 'It is dealing with so much information that regular tools cannot handle it.' }
+  ]
+};
+
+/* --------------------------------------------------------------
+   State & DOM references
+   -------------------------------------------------------------- */
+let currentChapter = 1;
+let currentTopic   = null;
+
+const chapterList   = document.getElementById('chapterList');
+const topicList     = document.getElementById('topicList');
+const topicTitle    = document.getElementById('topicTitle');
+const defText       = document.getElementById('defText');
+const exText        = document.getElementById('exText');
+const layText       = document.getElementById('layText');
+
+/* --------------------------------------------------------------
+   Render topics for a given chapter
+   -------------------------------------------------------------- */
+function renderTopics(chapterId) {
+  const topics = chapters[chapterId];
+  topicList.innerHTML = '';
+  topics.forEach(topic => {
+    const li = document.createElement('li');
+    li.textContent = topic.title;
+    li.dataset.topicId = topic.id;
+    li.addEventListener('click', () => selectTopic(chapterId, topic.id));
+    topicList.appendChild(li);
+  });
+}
+
+/* --------------------------------------------------------------
+   Select a topic
+   -------------------------------------------------------------- */
+function selectTopic(chapterId, topicId) {
+  currentChapter = chapterId;
+  currentTopic   = topicId;
+  const topic = chapters[chapterId].find(t => t.id === topicId);
+  if (!topic) return;
+
+  chapterList.querySelectorAll('li').forEach(li => li.classList.remove('active'));
+  chapterList.querySelector(`[data-chapter="${chapterId}"]`).classList.add('active');
+
+  topicList.querySelectorAll('li').forEach(li => li.classList.remove('active'));
+  topicList.querySelector(`[data-topic-id="${topicId}"]`).classList.add('active');
+
+  topicTitle.textContent = topicId;
+  defText.textContent    = topic.def;
+  exText.textContent     = topic.ex;
+  layText.textContent    = topic.lay;
+}
+
+/* --------------------------------------------------------------
+   Chapter click handling
+   -------------------------------------------------------------- */
+chapterList.addEventListener('click', (e) => {
+  if (e.target.dataset.chapter) {
+    const chapterId = parseInt(e.target.dataset.chapter);
+    currentChapter = chapterId;
+
+    chapterList.querySelectorAll('li').forEach(li => li.classList.remove('active'));
+    e.target.classList.add('active');
+
+    renderTopics(chapterId);
+
+    currentTopic = null;
+    topicTitle.textContent = 'Select a topic';
+    defText.textContent    = 'Click a topic to see its definition.';
+    exText.textContent     = 'Click a topic to see an example.';
+    layText.textContent    = 'Click a topic to see a simple explanation.';
+  }
+});
+
+/* --------------------------------------------------------------
+   Initialise
+   -------------------------------------------------------------- */
+renderTopics(currentChapter);
+</script>
+
+</body>
+</html>
+```

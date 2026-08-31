@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Full Loan Profit &amp; Loss Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#EEF2F6; --paper:#FFFFFF; --ink:#172033; --muted:#677386;
+    --grid:#E8EDF3; --grid2:#CDD6E0; --head:#F7F9FC;
+    --green:#147A5A; --green-lt:#72B99A; --green-tint:#EAF6F1; --red:#B83A4A; --red-tint:#FBECEF;
+    --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+    --sans:'Inter',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-variant-numeric:tabular-nums}
+  .wrap{width:min(210mm,100%);margin:0 auto;padding:18px 14px 30px}
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:10px}
+  h1{font-size:22px;line-height:1.12;font-weight:700;color:#21496C}
+  .sub{margin-top:4px;color:var(--muted);font-size:11px;line-height:1.35}
+  .facts{display:grid;grid-template-columns:repeat(4,max-content);gap:18px;text-align:right}
+  .fact-label{display:block;color:var(--muted);font-family:var(--mono);font-size:8.5px;letter-spacing:.08em}
+  .fact-value{display:block;margin-top:2px;color:var(--ink);font-family:var(--mono);font-size:11.5px;font-weight:600}
+  .board{background:var(--paper);border:1px solid var(--grid2);border-radius:8px;padding:8px;box-shadow:0 12px 32px rgba(23,32,51,.08)}
+  svg{display:block;width:100%;height:auto}
+  .hd{font-family:var(--mono);font-size:10px;letter-spacing:.1em;fill:var(--muted);font-weight:600}
+  .sec{font-family:var(--mono);font-size:10.6px;letter-spacing:.08em;fill:var(--ink);font-weight:600}
+  .sec-total{font-family:var(--mono);font-size:10.6px;fill:var(--muted);font-weight:600}
+  .nm{font-family:var(--sans);font-size:12.2px;fill:var(--ink);font-weight:500}
+  .nm-b{font-family:var(--sans);font-size:13px;fill:var(--ink);font-weight:700}
+  .usd{font-family:var(--mono);font-size:11.3px;fill:var(--ink);font-weight:500}
+  .usd-b{font-family:var(--mono);font-size:11.7px;fill:var(--ink);font-weight:600}
+  .bps-g{font-family:var(--mono);font-size:10.8px;fill:var(--green);font-weight:600}
+  .bps-r{font-family:var(--mono);font-size:10.8px;fill:var(--red);font-weight:600}
+  .toggle{width:24px;height:24px;display:grid;place-items:center;border:0;border-radius:4px;background:transparent;color:var(--muted);cursor:pointer}
+  .toggle::before{content:"\25B8";font-size:15px;line-height:1}
+  .toggle[aria-expanded="true"]::before{content:"\25BE"}
+  .toggle:hover{background:var(--grid)}
+  .toggle:focus-visible{outline:2px solid #21496C;outline-offset:-2px}
+  @media(max-width:760px){
+    .wrap{padding:14px 10px 20px}.board{padding:5px}
+    header{display:block}.facts{margin-top:10px;grid-template-columns:repeat(2,1fr);gap:7px 18px;text-align:left}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Full Loan Profit &amp; Loss Ledger</h1>
+      <p class="sub">Illustrative · potential items; not all apply together</p>
+    </div>
+    <div class="facts" aria-label="Loan summary">
+      <div><span class="fact-label">LOAN</span><span class="fact-value">$400,000</span></div>
+      <div><span class="fact-label">SALE PRICE</span><span class="fact-value">101.700</span></div>
+      <div><span class="fact-label">NOTE RATE</span><span class="fact-value">6.625%</span></div>
+      <div><span class="fact-label">NET PRICE</span><span class="fact-value">100.155</span></div>
+    </div>
+  </header>
+  <div class="board"><svg id="ledger" role="img" aria-label="Detailed top-down mortgage lender profit and loss ledger"></svg></div>
+</div>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const fmt=v=>'$'+Math.round(Math.abs(v)).toLocaleString('en-US');
+  const bps=v=>Math.abs(v)<20?'&lt;1':Math.round(Math.abs(v)/40);
+  const gain=(name,v)=>({name,v,side:'in'});
+  const loss=(name,v)=>({name,v,side:'out'});
+
+  const SECTIONS=[
+    {name:'BORROWER & TRANSACTION REVENUE',items:[
+      gain('Origination charge',900),gain('Discount points',800),gain('Application fee',75),
+      gain('Processing fee',450),gain('Underwriting fee',650),gain('Administrative fee',300),
+      gain('Verification fee',100),gain('Rate-lock fee',125),gain('Lock extension fee',90),
+      gain('Float-down fee',65),gain('Document fee',75),gain('Funding fee',125),
+      gain('Interim interest',220),gain('Ancillary closing fee',60)
+    ]},
+    {name:'SECONDARY MARKET & SERVICING VALUE',items:[
+      gain('Base loan-sale premium',6800),gain('Best-execution gain',420),gain('Hedge gain',180),
+      gain('Pair-off credit',60),gain('Investor delivery incentive',110),gain('Servicing-released premium',900),
+      gain('MSR fair value',2600),gain('Excess servicing strip',180),gain('Escrow float value',90),
+      gain('Custodial float value',40),gain('Ancillary servicing value',60),gain('Late-fee value',25),
+      gain('Recapture value',50)
+    ]},
+    {name:'PRICING & BORROWER CONCESSIONS',items:[
+      loss('Lender credit',900),loss('Lender-paid points',300),loss('Pricing exception',150),
+      loss('Rate-match concession',125),loss('Lock extension absorbed',90),loss('Float-down absorbed',80),
+      loss('Rate renegotiation',65),loss('Appraisal promotion',550),loss('Fee waiver',200),
+      loss('Closing-cost cure',75),loss('Tolerance cure',45),loss('Disclosure cure',35)
+    ]},
+    {name:'INVESTOR, GSE & DELIVERY COSTS',items:[
+      loss('Credit-score/LTV LLPA',950),loss('Cash-out adjustment',200),loss('Investment-property adjustment',250),
+      loss('Second-home adjustment',150),loss('Condo adjustment',100),loss('Subordinate-financing adjustment',80),
+      loss('High-balance adjustment',90),loss('Term/coupon adjustment',60),loss('Manual-underwriting adjustment',75),
+      loss('Investor eligibility adjustment',50),loss('Guarantee-fee capitalization',450),loss('Buyup/buydown cost',120),
+      loss('Whole-loan bid haircut',80),loss('Investor delivery fee',35),loss('MBS pooling fee',30),
+      loss('Custodian certification',20),loss('Settlement wire',15),loss('Post-purchase adjustment',25)
+    ]},
+    {name:'SALES & CUSTOMER ACQUISITION',items:[
+      loss('Broker compensation',1600),loss('Loan-officer commission',600),loss('Loan-officer salary allocation',180),
+      loss('Branch-manager override',120),loss('Sales-assistant allocation',80),loss('Purchased lead',110),
+      loss('Digital advertising',70),loss('Call-center allocation',60),loss('CRM campaign',35),
+      loss('Credit-trigger suppression',15),loss('Partner marketing',40),loss('Community outreach',20)
+    ]},
+    {name:'FULFILLMENT LABOR',items:[
+      loss('Loan setup',50),loss('Disclosure desk',45),loss('Processor',250),loss('Processing assistant',70),
+      loss('Underwriter',350),loss('Senior underwriting review',60),loss('Appraisal review',55),loss('Condo review',45),
+      loss('Fraud review',35),loss('Compliance review',55),loss('Closing coordinator',100),loss('Closer',120),
+      loss('Funder',80),loss('Post-closing review',90),loss('Shipping',25),loss('Trailing documents',30),
+      loss('Collateral review',25),loss('Investor suspense clearing',45),loss('Pre-funding QC',60),loss('Post-close QC',70)
+    ]},
+    {name:'THIRD-PARTY, DATA & TECHNOLOGY',items:[
+      loss('Credit report',75),loss('Fraud report',15),loss('Flood certification',10),loss('Tax transcript',25),
+      loss('Employment verification',35),loss('Income verification',30),loss('Asset verification',25),loss('AUS submission',5),
+      loss('Appraisal',550),loss('AMC fee',125),loss('Title search',90),loss('Tax service',70),
+      loss('MERS registration',25),loss('eNote',12),loss('Remote notarization',25),loss('eVault',8),
+      loss('Document preparation',20),loss('E-signature',5),loss('Loan-origination system',35),loss('Borrower portal',15),
+      loss('Pricing engine',10),loss('CRM platform',8),loss('Compliance engine',12),loss('QC sampling',10),
+      loss('Identity verification',15),loss('Recording & courier',60)
+    ]},
+    {name:'FUNDING, WAREHOUSE & HEDGING',items:[
+      loss('Warehouse interest',300),loss('Line usage fee',60),loss('Commitment fee',20),loss('Warehouse wire',15),
+      loss('Collateral-agent fee',10),loss('Wet-funding premium',25),loss('Bailee fee',8),loss('Capital charge',80),
+      loss('Liquidity buffer',30),loss('TBA bid-ask spread',55),loss('Hedge carry',45),loss('Roll cost',35),
+      loss('Execution slippage',40),loss('Pipeline fallout',65),loss('Lock-extension risk',50),loss('Pair-off fee',30),
+      loss('Option premium',25),loss('Mark-to-market funding',20)
+    ]},
+    {name:'SERVICING COST & RESERVES',items:[
+      loss('Loan boarding',35),loss('Subservicing setup',20),loss('Payment processing PV',90),loss('Escrow administration PV',60),
+      loss('Customer service PV',65),loss('Tax & insurance tracking PV',40),loss('Annual statements PV',20),
+      loss('Default servicing reserve',120),loss('Advance financing reserve',80),loss('Foreclosure/legal reserve',50),
+      loss('Loss-mitigation reserve',45),loss('Bankruptcy reserve',25),loss('Servicing compliance',30),
+      loss('Call-center technology',20),loss('MSR hedge cost',60),loss('MSR impairment reserve',90),
+      loss('Prepayment runoff cost',75),loss('Custodial banking',15)
+    ]},
+    {name:'CREDIT, OPERATIONAL & REGULATORY RISK',items:[
+      loss('Early-payoff reserve',175),loss('Repurchase reserve',250),loss('Representations reserve',120),
+      loss('Indemnification reserve',60),loss('Fraud-loss reserve',50),loss('Appraisal-defect reserve',30),
+      loss('Credit-defect reserve',35),loss('Data-defect reserve',20),loss('Salability reserve',45),
+      loss('Investor-audit reserve',25),loss('Counterparty reserve',20),loss('Cyber-loss reserve',15),
+      loss('Complaint remediation',20),loss('Fair-lending reserve',15),loss('Legal/regulatory reserve',30)
+    ]},
+    {name:'CORPORATE OVERHEAD ALLOCATION',items:[
+      loss('Executive management',70),loss('Finance & accounting',55),loss('Human resources',35),
+      loss('Recruiting & training',25),loss('Legal',40),loss('Enterprise compliance',55),
+      loss('Internal audit',25),loss('External audit',20),loss('IT support',45),loss('Cybersecurity',30),
+      loss('Data & analytics',25),loss('Office operations',35),loss('Rent',40),loss('Utilities',10),
+      loss('Corporate insurance',25),loss('Licenses & registrations',20),loss('Surety bond',8),
+      loss('Bank charges',12),loss('Vendor management',15),loss('Procurement',8),loss('Travel',10),
+      loss('Depreciation',12),loss('Tax administration',8)
+    ]},
+    {name:'INCOME TAX',items:[
+      loss('Federal income tax',185),loss('State income tax',46),loss('Local/franchise tax',10)
+    ]}
+  ];
+
+  const W=720,X0=12,XL=286,SP=360,XR=532,XD=632,XB=708;
+  const ROW=31,SEC=28,HDR=30,TOP=10,S=.023;
+  const svg=$('ledger');
+  const sectionTotal=s=>s.items.reduce((n,i)=>n+(i.side==='in'?i.v:-i.v),0);
+  const total=SECTIONS.reduce((n,s)=>n+sectionTotal(s),0);
+  const amountText=(v,side)=>side==='out'?'('+fmt(v)+')':fmt(v);
+  const bpsText=(v,side)=>side==='out'?'−'+bps(v):'+'+bps(v);
+  const collapsed=new Set(SECTIONS.map((_,i)=>i));
+
+  function render(focusIndex){
+    const visibleCount=SECTIONS.reduce((n,s,i)=>n+(collapsed.has(i)?0:s.items.length),0);
+    const H=TOP+HDR+SECTIONS.length*SEC+(visibleCount+1)*ROW+12;
+    svg.setAttribute('viewBox','0 0 '+W+' '+H);
+
+    let bgs='',grid='',bars='',txt='',controls='',y=TOP;
+    const line=py=>{grid+='<line x1="'+X0+'" x2="'+XB+'" y1="'+py+'" y2="'+py+'" stroke="var(--grid)" stroke-width=".8"/>';};
+
+    bgs+='<rect x="'+X0+'" y="'+y+'" width="'+(XB-X0)+'" height="'+HDR+'" fill="var(--head)"/>';
+    const hcy=y+HDR/2+3.5;
+    txt+='<text class="hd" x="'+(X0+10)+'" y="'+hcy+'">ITEM</text>';
+    txt+='<text class="hd" text-anchor="middle" x="'+((XL+XR)/2)+'" y="'+hcy+'">CHANGE</text>';
+    txt+='<text class="hd" text-anchor="end" x="'+(XD-10)+'" y="'+hcy+'">$</text>';
+    txt+='<text class="hd" text-anchor="end" x="'+(XB-10)+'" y="'+hcy+'">BPS</text>';
+    line(y); y+=HDR; line(y);
+
+    SECTIONS.forEach((section,index)=>{
+      const st=sectionTotal(section),side=st>=0?'in':'out',cy=y+SEC/2+3.5;
+      const expanded=!collapsed.has(index);
+      bgs+='<rect x="'+X0+'" y="'+y+'" width="'+(XB-X0)+'" height="'+SEC+'" fill="'+(side==='out'?'var(--red-tint)':'var(--green-tint)')+'"/>';
+      controls+='<foreignObject x="'+(X0+5)+'" y="'+(y+2)+'" width="24" height="24"><button xmlns="http://www.w3.org/1999/xhtml" type="button" class="toggle" data-section="'+index+'" aria-expanded="'+expanded+'" aria-label="'+(expanded?'Collapse ':'Expand ')+(side==='out'?'deduction ':'addition ')+section.name+'"></button></foreignObject>';
+      txt+='<text class="sec" x="'+(X0+38)+'" y="'+cy+'">'+section.name+'</text>';
+      txt+='<text class="sec-total" text-anchor="end" x="'+(XB-10)+'" y="'+cy+'">'+(side==='out'?'−':'+')+fmt(st)+'</text>';
+      y+=SEC; line(y);
+
+      if(expanded) section.items.forEach(item=>{
+        const cy2=y+ROW/2+4,w=Math.max(2,item.v*S);
+        bgs+='<rect x="'+X0+'" y="'+y+'" width="'+(XB-X0)+'" height="'+ROW+'" fill="'+(item.side==='out'?'var(--red-tint)':'var(--green-tint)')+'"/>';
+        if(item.side==='out'){
+          bars+='<rect x="'+(SP-w)+'" y="'+(y+6)+'" width="'+w+'" height="'+(ROW-12)+'" rx="4" fill="var(--red)"/>';
+        }else{
+          bars+='<rect x="'+SP+'" y="'+(y+6)+'" width="'+w+'" height="'+(ROW-12)+'" rx="4" fill="var(--green-lt)"/>';
+        }
+        txt+='<text class="nm" x="'+(X0+10)+'" y="'+cy2+'">'+item.name+'</text>';
+        txt+='<text class="usd" text-anchor="end" x="'+(XD-10)+'" y="'+cy2+'">'+amountText(item.v,item.side)+'</text>';
+        txt+='<text class="'+(item.side==='out'?'bps-r':'bps-g')+'" text-anchor="end" x="'+(XB-10)+'" y="'+cy2+'">'+bpsText(item.v,item.side)+'</text>';
+        y+=ROW; line(y);
+      });
+    });
+
+    const finalSide=total>=0?'in':'out',finalCy=y+ROW/2+4;
+    bgs+='<rect x="'+X0+'" y="'+y+'" width="'+(XB-X0)+'" height="'+ROW+'" fill="'+(finalSide==='out'?'var(--red-tint)':'var(--green-tint)')+'"/>';
+    txt+='<text class="nm-b" text-anchor="end" x="'+(XB-10)+'" y="'+finalCy+'">NET PROFIT · '+amountText(total,finalSide)+' · '+bpsText(total,finalSide)+' BPS</text>';
+    grid+='<line x1="'+X0+'" x2="'+XB+'" y1="'+y+'" y2="'+y+'" stroke="var(--ink)" stroke-width="1.4"/>';
+    y+=ROW;
+    grid+='<line x1="'+X0+'" x2="'+XB+'" y1="'+y+'" y2="'+y+'" stroke="var(--ink)" stroke-width="1.4"/>';
+    grid+='<line x1="'+X0+'" x2="'+XB+'" y1="'+(y+3)+'" y2="'+(y+3)+'" stroke="var(--ink)" stroke-width="1.4"/>';
+
+    [XL,XR,XD].forEach(x=>{grid+='<line x1="'+x+'" x2="'+x+'" y1="'+TOP+'" y2="'+y+'" stroke="var(--grid)" stroke-width=".9"/>';});
+    grid+='<rect x="'+X0+'" y="'+TOP+'" width="'+(XB-X0)+'" height="'+(y-TOP)+'" fill="none" stroke="var(--grid2)" stroke-width="1"/>';
+    grid+='<line x1="'+SP+'" x2="'+SP+'" y1="'+TOP+'" y2="'+y+'" stroke="var(--ink)" stroke-width="1.25"/>';
+    svg.innerHTML=bgs+grid+bars+txt+controls;
+
+    svg.querySelectorAll('.toggle').forEach(button=>{
+      button.addEventListener('click',()=>{
+        const index=Number(button.dataset.section);
+        if(collapsed.has(index)) collapsed.delete(index); else collapsed.add(index);
+        render(index);
+      });
+      button.addEventListener('keydown',event=>{
+        if(event.key==='Enter'||event.key===' '){
+          event.preventDefault();
+          button.click();
+        }
+      });
+    });
+    if(Number.isInteger(focusIndex)) svg.querySelector('[data-section="'+focusIndex+'"]').focus();
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>

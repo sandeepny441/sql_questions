@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mortgage Lifecycle — Full Fraud Cost Stack</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --blue:    #2563eb;
+    --indigo:  #4338ca;
+    --violet:  #6d28d9;
+    --purple:  #7c3aed;
+    --pink:    #be185d;
+    --orange:  #ea580c;
+    --red:     #dc2626;
+    --red-dark:#b91c1c;
+    --surface: #ffffff;
+    --border:  #e2e8f0;
+    --text:    #1a2535;
+    --muted:   #6b7280;
+    --bg:      #f4f6f9;
+  }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 44px 24px 72px;
+  }
+
+  /* ─────────────── HEADER ─────────────── */
+  header { text-align: center; margin-bottom: 48px; max-width: 820px; }
+  header h1 { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.5px; color: #0d1f35; }
+  header p  { margin-top: 8px; font-size: 0.88rem; color: #5a6880; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .phase-badges {
+    display: flex; gap: 12px; justify-content: center; margin-top: 18px; flex-wrap: wrap;
+  }
+  .phase-badge {
+    font-size: 0.76rem; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;
+    padding: 6px 16px; border-radius: 20px;
+  }
+  .phase-badge.pre  { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
+  .phase-badge.post { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+
+  /* ─────────────── PIPELINE ─────────────── */
+  .pipeline-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 820px;
+  }
+
+  .rod {
+    position: absolute;
+    left: 50%; transform: translateX(-50%);
+    top: 0; bottom: 0;
+    width: 5px;
+    background: linear-gradient(180deg, var(--blue) 0%, var(--indigo) 20%, var(--violet) 38%, var(--purple) 50%, var(--pink) 62%, var(--orange) 78%, var(--red) 100%);
+    border-radius: 3px;
+    z-index: 1;
+  }
+  .rod::before {
+    content: ''; position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+    width: 16px; height: 16px; background: var(--blue); border-radius: 50%; box-shadow: 0 0 0 4px #dbeafe;
+  }
+  .rod::after {
+    content: ''; position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%);
+    width: 16px; height: 16px; background: var(--red); border-radius: 50%; box-shadow: 0 0 0 4px #fee2e2;
+  }
+
+  .stages {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 10px 0;
+  }
+
+  /* ── Section row — centered card layout ── */
+  .section-row {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 28px 0;
+    z-index: 2;
+  }
+
+  /* The node on the rod */
+  .section-row .node-wrap {
+    position: relative;
+    z-index: 3;
+    margin-bottom: 16px;
+  }
+  .node {
+    width: 48px; height: 48px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.15rem; font-weight: 800; color: #fff;
+    border: 4px solid #fff;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+    transition: transform 0.2s;
+  }
+  .section-row:hover .node { transform: scale(1.12); }
+
+  /* Connector line from node down to card */
+  .connector-line {
+    width: 3px; height: 18px;
+    background: #cbd5e1;
+    margin: 0 auto;
+  }
+
+  /* ── Main card (full width, centered) ── */
+  .section-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    width: 100%;
+    max-width: 760px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: box-shadow 0.25s, border-color 0.25s, transform 0.2s;
+  }
+  .section-card:hover {
+    box-shadow: 0 8px 32px rgba(37,99,235,0.10);
+    transform: translateY(-3px);
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 28px;
+  }
+  .card-icon {
+    width: 48px; height: 48px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 1.3rem;
+  }
+  .card-header-text { flex: 1; }
+  .card-title {
+    font-size: 0.95rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; color: #374151;
+  }
+  .card-desc {
+    font-size: 0.82rem; color: var(--muted); margin-top: 4px; line-height: 1.5;
+  }
+
+  /* Two-column body: Stage costs on left, Risk on right */
+  .card-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-top: 1px solid var(--border);
+  }
+  @media (max-width: 640px) { .card-body { grid-template-columns: 1fr; } }
+
+  .card-col {
+    padding: 18px 24px;
+  }
+  .card-col + .card-col {
+    border-left: 1px solid var(--border);
+  }
+  @media (max-width: 640px) {
+    .card-col + .card-col { border-left: none; border-top: 1px solid var(--border); }
+  }
+
+  .col-label {
+    font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; margin-bottom: 10px;
+  }
+  .col-label.stage-label { color: #1d4ed8; }
+  .col-label.risk-label  { color: #b91c1c; }
+
+  .chip-row { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+  .chip {
+    font-size: 0.66rem; font-weight: 600; letter-spacing: 0.3px;
+    padding: 3px 9px; border-radius: 12px;
+    background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;
+  }
+
+  .loss-range {
+    font-size: 0.72rem; font-weight: 600; color: #64748b;
+    display: flex; align-items: center; gap: 5px;
+    margin-top: 6px;
+  }
+  .loss-range::before { content: '💰'; font-size: 0.65rem; }
+
+  /* Risk side */
+  .risk-title {
+    font-size: 0.82rem; font-weight: 700; margin-bottom: 4px;
+  }
+  .risk-desc {
+    font-size: 0.76rem; color: var(--muted); line-height: 1.45;
+  }
+  .badge {
+    display: inline-block;
+    font-size: 0.64rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 20px; margin-top: 8px;
+  }
+  .badge.critical { background: #fee2e2; color: var(--red-dark); }
+  .badge.high     { background: #fff7ed; color: #c2410c; }
+  .badge.medium   { background: #fefce8; color: #92400e; }
+
+  /* Expandable detail */
+  .expand-btn {
+    margin-top: 10px;
+    font-size: 0.68rem; font-weight: 600; color: #64748b;
+    display: flex; align-items: center; gap: 4px;
+    cursor: pointer; user-select: none;
+  }
+  .expand-btn .arrow { transition: transform 0.2s; display: inline-block; }
+  .expand-btn.open .arrow { transform: rotate(180deg); }
+
+  .detail-panel {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.35s ease, opacity 0.35s ease;
+    opacity: 0;
+  }
+  .detail-panel.open {
+    max-height: 500px;
+    opacity: 1;
+  }
+  .detail-table {
+    width: 100%;
+    margin-top: 10px;
+    border-collapse: collapse;
+    font-size: 0.73rem;
+  }
+  .detail-table th {
+    text-align: left; padding: 6px 8px;
+    background: #f8fafc; color: #374151; font-weight: 600;
+    border-bottom: 1.5px solid #e2e8f0; font-size: 0.67rem; letter-spacing: 0.4px; text-transform: uppercase;
+  }
+  .detail-table td {
+    padding: 6px 8px; border-bottom: 1px solid #f1f5f9;
+    color: #4b5563; vertical-align: top; line-height: 1.4;
+  }
+  .detail-table tr:last-child td { border-bottom: none; }
+  .detail-note {
+    font-size: 0.69rem; color: #7c3aed; font-weight: 600;
+    margin-top: 8px; padding: 6px 8px;
+    background: #faf5ff; border-left: 3px solid #a78bfa; border-radius: 3px;
+  }
+
+  /* ── Color themes per section ── */
+  .row-1 .card-icon { background: #dbeafe; color: #1d4ed8; }
+  .row-2 .card-icon { background: #e0e7ff; color: #4338ca; }
+  .row-3 .card-icon { background: #ede9fe; color: #6d28d9; }
+  .row-4 .card-icon { background: #f3e8ff; color: #7c3aed; }
+  .row-5 .card-icon { background: #fce7f3; color: #be185d; }
+  .row-6 .card-icon { background: #fff7ed; color: #c2410c; }
+  .row-7 .card-icon { background: #fee2e2; color: #dc2626; }
+
+  .row-1 .section-card:hover { border-color: #93c5fd; }
+  .row-2 .section-card:hover { border-color: #a5b4fc; }
+  .row-3 .section-card:hover { border-color: #c4b5fd; }
+  .row-4 .section-card:hover { border-color: #d8b4fe; }
+  .row-5 .section-card:hover { border-color: #f9a8d4; }
+  .row-6 .section-card:hover { border-color: #fdba74; }
+  .row-7 .section-card:hover { border-color: #fca5a5; }
+
+  .row-1 .risk-title { color: var(--red-dark); }
+  .row-2 .risk-title { color: #c2410c; }
+  .row-3 .risk-title { color: var(--red-dark); }
+  .row-4 .risk-title { color: var(--red-dark); }
+  .row-5 .risk-title { color: var(--red-dark); }
+  .row-6 .risk-title { color: #c2410c; }
+  .row-7 .risk-title { color: #dc2626; }
+
+  /* ── Phase Divider ── */
+  .phase-divider-row {
+    position: relative;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 0;
+  }
+  .phase-divider-inner {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--surface);
+    border: 2px dashed #94a3b8;
+    border-radius: 10px;
+    padding: 10px 28px;
+    position: relative; z-index: 2;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+  .phase-divider-inner span {
+    font-size: 0.74rem; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase;
+  }
+  .phase-divider-inner .divider-arrow { font-size: 0.8rem; color: #94a3b8; }
+
+  /* ─────────────── BOTTOM SECTIONS ─────────────── */
+  .sections-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    width: 100%;
+    max-width: 820px;
+    margin-top: 50px;
+  }
+  @media (max-width: 680px) { .sections-grid { grid-template-columns: 1fr; } }
+
+  .cost-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .cost-panel-header {
+    padding: 16px 20px;
+    display: flex; align-items: center; gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .cost-panel-header .ph-icon { font-size: 1.2rem; }
+  .cost-panel-header h2 { font-size: 0.88rem; font-weight: 700; letter-spacing: 0.3px; }
+  .cost-panel-header .ph-sub { font-size: 0.74rem; color: var(--muted); margin-top: 2px; }
+
+  .pre-panel .cost-panel-header  { background: #eff6ff; }
+  .post-panel .cost-panel-header { background: #fff1f2; }
+  .pre-panel  h2 { color: #1e40af; }
+  .post-panel h2 { color: #9f1239; }
+
+  .cost-group { padding: 14px 20px; border-bottom: 1px solid #f8fafc; }
+  .cost-group:last-child { border-bottom: none; }
+  .cost-group-title {
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+    color: #64748b; margin-bottom: 8px;
+  }
+  .cost-item {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 0.75rem; padding: 4px 0; border-bottom: 1px dotted #f1f5f9;
+    gap: 8px;
+  }
+  .cost-item:last-child { border-bottom: none; }
+  .cost-item-label { color: #374151; }
+  .cost-item-detail { color: var(--muted); font-size: 0.69rem; text-align: right; white-space: nowrap; }
+
+  .panel-insight {
+    margin: 12px 20px 16px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.74rem; font-weight: 500; line-height: 1.55;
+  }
+  .pre-panel  .panel-insight { background: #eff6ff; color: #1e40af; border-left: 3px solid #3b82f6; }
+  .post-panel .panel-insight { background: #fff1f2; color: #9f1239; border-left: 3px solid #f43f5e; }
+
+  /* ─────────────── MULTIPLIER CALLOUT ─────────────── */
+  .multiplier-callout {
+    width: 100%; max-width: 820px;
+    margin-top: 24px;
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%);
+    border-radius: 14px;
+    padding: 32px 36px;
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr 1px 1fr;
+    gap: 0;
+    align-items: center;
+    color: #fff;
+  }
+  .multiplier-callout .divider-v {
+    width: 1px; background: rgba(255,255,255,0.15); height: 60px; align-self: center;
+  }
+  .mult-stat { text-align: center; padding: 0 24px; }
+  .mult-stat .stat-num { font-size: 2.1rem; font-weight: 800; letter-spacing: -1px; }
+  .mult-stat .stat-label {
+    font-size: 0.74rem; color: rgba(255,255,255,0.7); text-transform: uppercase;
+    letter-spacing: 0.7px; margin-top: 5px; line-height: 1.4;
+  }
+  .mult-stat .stat-sub { font-size: 0.7rem; color: rgba(255,255,255,0.55); margin-top: 4px; }
+
+  @media (max-width: 600px) {
+    .multiplier-callout { grid-template-columns: 1fr; gap: 20px; }
+    .multiplier-callout .divider-v { display: none; }
+  }
+
+  /* ─────────────── FRAUD CASCADE ─────────────── */
+  .cascade-section {
+    width: 100%; max-width: 820px;
+    margin-top: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 26px 28px;
+  }
+  .cascade-title {
+    font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+    color: #374151; margin-bottom: 20px; text-align: center;
+  }
+  .cascade-chain {
+    display: flex; align-items: center; justify-content: center;
+    flex-wrap: wrap; gap: 0;
+  }
+  .cascade-node {
+    background: #f8fafc; border: 1.5px solid var(--border);
+    border-radius: 10px; padding: 12px 16px;
+    text-align: center; cursor: default;
+    transition: background 0.2s, border-color 0.2s, transform 0.15s;
+    min-width: 105px;
+  }
+  .cascade-node:hover { background: #fee2e2; border-color: #fca5a5; transform: translateY(-3px); }
+  .cascade-node .cn-icon { font-size: 1.15rem; }
+  .cascade-node .cn-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #374151; margin-top: 5px; }
+  .cascade-node .cn-cost  { font-size: 0.65rem; color: var(--muted); margin-top: 3px; }
+  .cascade-arrow {
+    font-size: 1.1rem; color: #94a3b8; padding: 0 5px; flex-shrink: 0;
+    font-weight: 700;
+  }
+  .cascade-note {
+    margin-top: 16px; padding: 12px 16px;
+    background: #fff7ed; border-left: 3px solid #f97316; border-radius: 6px;
+    font-size: 0.74rem; color: #7c2d12; line-height: 1.55;
+    text-align: center;
+  }
+
+  /* ─────────────── LEGEND ─────────────── */
+  .legend {
+    display: flex; gap: 20px; flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 28px;
+    padding: 16px 24px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    width: 100%; max-width: 820px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 7px; font-size: 0.76rem; color: #374151; font-weight: 500; }
+  .legend-dot  { width: 11px; height: 11px; border-radius: 50%; }
+
+  footer { margin-top: 32px; font-size: 0.72rem; color: #94a3b8; text-align: center; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Mortgage Lifecycle — Full Fraud Cost Stack</h1>
+  <p>Origination through Post-Closing &nbsp;·&nbsp; Lender Risk &amp; Loss Exposure (UWM Model)</p>
+  <div class="phase-badges">
+    <span class="phase-badge pre">Pre-Closing: $10K–$30K sunk per file</span>
+    <span class="phase-badge post">Post-Closing: $100K–$1M+ total exposure</span>
+  </div>
+</header>
+
+<!-- ══════════════ PIPELINE ══════════════ -->
+<div class="pipeline-wrapper">
+  <div class="rod"></div>
+
+  <div class="stages">
+
+    <!-- ═══════ 1. APPLICATION (Pre-Closing) ═══════ -->
+    <div class="section-row row-1">
+      <div class="node-wrap"><div class="node" style="background:#2563eb;">1</div></div>
+      <div class="section-card" onclick="toggleDetail(this)">
+        <div class="card-header">
+          <div class="card-icon">📋</div>
+          <div class="card-header-text">
+            <div class="card-title">Application</div>
+            <div class="card-desc">Borrower submits loan request; identity, income, and asset docs collected. LO commission, lead costs, and fraud tools activated.</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-col">
+            <div class="col-label stage-label">Stage Costs</div>
+            <div class="chip-row">
+              <span class="chip">LO Commission</span><span class="chip">Lead Acquisition</span>
+              <span class="chip">Credit Pull</span><span class="chip">Fraud Tools</span>
+            </div>
+            <div class="loss-range">Sunk if fraud caught: $1,500–$5,000 per file</div>
+            <div class="expand-btn">Cost breakdown <span class="arrow">▾</span></div>
+            <div class="detail-panel">
+              <table class="detail-table">
+                <tr><th>Category</th><th>Detail</th></tr>
+                <tr><td>LO Commission</td><td>Paid per application or funded loan</td></tr>
+                <tr><td>Broker Compensation</td><td>Wholesale model — paid to originating broker</td></tr>
+                <tr><td>Lead / Marketing</td><td>Cost to acquire borrower into pipeline</td></tr>
+                <tr><td>LOS Technology</td><td>Per-loan system cost (Encompass, ARIVE, etc.)</td></tr>
+                <tr><td>Credit Report Pull</td><td>Tri-merge: $30–$80 per pull; multiple pulls possible</td></tr>
+                <tr><td>Fraud Detection Tools</td><td>Vendor score per file (LexisNexis, Fraudguard)</td></tr>
+              </table>
+              <div class="detail-note">⚡ All costs are sunk even if fraud is detected pre-close — the lender cannot recover them.</div>
+            </div>
+          </div>
+          <div class="card-col">
+            <div class="col-label risk-label">Fraud Risk</div>
+            <div class="risk-title">Identity &amp; Income Fraud</div>
+            <div class="risk-desc">Synthetic IDs, stolen SSNs, fabricated employment or pay documentation.</div>
+            <span class="badge critical">Critical</span>
+            <div class="expand-btn">Loss detail <span class="arrow">▾</span></div>
+            <div class="detail-panel">
+              <table class="detail-table">
+                <tr><th>Fraud Type</th><th>Exposure</th></tr>
+                <tr><td>Synthetic Identity</td><td>Loan funded, borrower vanishes — full UPB at risk</td></tr>
+                <tr><td>Stolen SSN / ID</td><td>Enforcement + legal costs on top of principal</td></tr>
+                <tr><td>Fabricated Income</td><td>Borrower qualifies for loan they cannot repay → EPD</td></tr>
+                <tr><td>Straw Borrower</td><td>Third party uses someone else's identity for the loan</td></tr>
+              </table>
+              <div class="detail-note">🔍 Mitigation: 4506-C IRS transcript match + biometric ID check at intake.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ 2. PROCESSING (Pre-Closing) ═══════ -->
+    <div class="section-row row-2">
+      <div class="node-wrap"><div class="node" style="background:#4338ca;">2</div></div>
+      <div class="section-card" onclick="toggleDetail(this)">
+        <div class="card-header">
+          <div class="card-icon">🗂️</div>
+          <div class="card-header-text">
+            <div class="card-title">Processing</div>
+            <div class="card-desc">Loan processor assembles file, orders appraisal, title, and third-party verifications. Document integrity is paramount.</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-col">
+            <div class="col-label stage-label">Stage Costs</div>
+            <div class="chip-row">
+              <span class="chip">Processor Hours</span><span class="chip">VOI / VOE</span>
+              <span class="chip">Asset Verification</span><span class="chip">Doc Review</span>
+            </div>
+            <div class="loss-range">Sunk if fraud caught: $2,000–$7,000 per file</div>
+            <div class="expand-btn">Cost breakdown <span class="arrow">▾</span></div>
+            <div class="detail-panel">
+              <table class="detail-table">
+                <tr><th>Category</th><th>Detail</th></tr>
+                <tr><td>Income Verification (VOI)</td><td>Payroll data pull — Equifax TWN, Experian Verify</td></tr>
+                <tr><td>Employment Verification (VOE)</td><td>Direct employer contact or third-party (The Work Number)</td></tr>
+                <tr><td>Asset Verification (VOA)</td><td>Bank statement review; Plaid / Finicity feeds</td></tr>
+                <tr><td>Processor Bandwidth</td><td>8–12 hours of labor per average file</td></tr>
+                <tr><td>Appraisal Ordered</td><td>$500–$1,000+ fee; non-refundable if file canceled</td></tr>
+              </table>
+              <div class="detail-note">⚡ Digitally altered PDFs are rising. Metadata + font analysis should be standard.</div>
+            </div>
+          </div>
+          <div class="card-col">
+            <div class="col-label risk-label">Fraud Risk</div>
+            <div class="risk-title">Document Fraud</div>
+            <div class="risk-desc">Altered bank statements, counterfeit pay stubs, manipulated tax transcripts.</div>
+            <span class="badge high">High</span>
+            <div class="expand-btn">Loss detail <span class="arrow">▾</span></div>
+            <div class="detail-panel">
+              <table class="detail-table">
+                <tr><th>Fraud Type</th><th>Exposure</th></tr>
+                <tr><td>Altered Bank Statements</td><td>Overstated assets/reserves; loan funds on false basis</td></tr>
+                <tr><td>Counterfeit Pay Stubs</td><td>Inflated income → borrower defaults quickly</td></tr>
+                <tr><td>Manipulated Tax Returns</td><td>IRS 4506-C mismatch reveals fraud post-close</td></tr>
+                <tr><td>Fake Employment Letters</td><td>Employer doesn't exist; no verifiable income</td></tr>
+              </table>
+              <div class="detail-note">🔍 Direct IRS/employer verification is more reliable than borrower-supplied docs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ 3. UNDERWRITING (Pre-Closing) ═══════ -->
+    <div class="section-row row-3">
+      <div class="node-wrap"><div class="node" style="background:#6d28d9;">3</div></div>
+      <div class="section-card" onclick="toggleDetail(this)">
+        <div class="card-header">
+          <div class="card-icon">🔍</div>
+          <div class="card-header-text">
+            <div class="card-title">Underwriting</div>
+            <div class="card-desc">Risk assessment: credit, collateral, capacity, and capital vs. agency guidelines. The last gate before commitment.</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-col">
+            <div class="col-label stage-label">Stage Costs</div>
+            <div class="chip-row">
+              <span class="chip">UW Bandwidth</span><span class="chip">Appraisal Review</span>
+              <span class="chip">Title Search</span><span class="chip">Compliance Checks</span>
+            </div>
+            <div class="loss-range">Sunk if fraud caught: $3,000–$12,000 per file</div>
+            <div class="expand-btn">Cost breakdown <span class="arrow">▾</span></div>
+            <div class="detail-panel">
+              <table class="detail-table">
+                <tr><th>Category</th><th>Detail</th></tr>
+                <tr><td>Underwriter Labor</td><td>12–20 hours for complex files; senior UW salary cost</td></tr>
+                <tr><td>Appraisal Desk Review</td><td>Additional $150–$300 for AVM cross-check</td></tr>
+                <tr><td>Compliance Review</td><td>RESPA, Dodd-Frank, state-specific checks</td></tr>
+                <tr><td>Title Search</td><td>Title company preliminary report; lien search</td></tr>
+                <tr><td>Condition Clearing</td><td>Back-and-forth per stip adds cost and time</td></tr>
+              </table>
+              <div class="detail-note">⚡ Appraisal fraud is the #1 source of collateral LTV overstatement — always cross-check comps.</div>
+            </div>
+          </div>
+          <div class="card-col">
+            <div class="col-label risk-label">Fraud Risk</div>
+            <div class="risk-title">Appraisal &amp; Collateral Fraud</div>
+            <div class="risk-desc">Inflated appraisals, comp manipulation, property flipping schemes.</div>
+            <span class="badge critical">Critical</span>
+            <div class="expand-btn">Loss detail <span class="arrow">▾</span></div>
+            <div class="detail-panel">
+              <table class="detail-table">
+                <tr><th>Fraud Type</th><th>Exposure</th></tr>
+                <tr><td>Inflated Appraisal</td><td>LTV understated by 20–40%+; collateral covers less on default</td></tr>
+                <tr><td>Comp Manipulation</td><td>Appraiser uses non-comparable sales to justify value</td></tr>
+                <tr><td>Property Flipping</td><td>Rapid re-sales at artificial prices; lender holds overvalued collateral</td></tr>
+                <tr><td>Non-Arm's Length Sale</td><td>Seller and buyer related; price inflated with kickbacks</td></tr>
+              </table>
+              <div class="detail-note">🔍 Require field or desk review on all LTV &gt; 80%; use AVM for comp verification.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ 4. CLOSING (Pre-Closing) ═══════ -->
+    <div class="section-row row-4">
+      <div class="node-wrap"><div class="node" style="background:#7c3aed;">4</div></div>
+      <div class="section-card" onclick="toggleDetail(this)">
+        <div class="card-header">
+          <div class="card-icon">✍️</div>
+          <div class="card-header-text">
+            <div class="card-title">Closing</div>
+            <div class="card-desc">Final CD issued, docs signed, escrow funded, title transferred. The point of no return for sunk costs.</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-col">
+            <div class="col-label stage-label">Stage Costs</div>
+            <div class="chip-row">
+              <span class="chip">Title Insurance</span><span class="chip">Settlement Fees</span>
+              <span class="chip">Legal Review</span><span class="chip">Escrow Setup</span>
+            </div>
+            <div class="loss-range">Sunk if fraud caught: $5,000–$15,000 per file</div>
+            <div class="expand-btn">Cost breakdown <span class="arrow">▾</span></div>
+            <div class="detail-panel">
+              <table class="detail-table">
+                <tr><th>Category</th><th>Detail</th></tr>
+                <tr><td>Title Insurance Premium</td><td>Lender policy: ~$1,000–$2,500 on avg loan</td></tr>
+                <tr><td>Settlement Agent Fee</td><td>$500–$900; coordinated by title/escrow company</td></tr>
+                <tr><td>Recording Fees</td><td>County recorder: $50–$250 depending on state</td></tr>
+                <tr><td>Legal Document Prep</td><td>Note, deed of trust, ALTA settlement statement</td></tr>
+                <tr><td>Wire Verification</td><td>Callback procedures add ops cost but prevent fraud</td></tr>
+              </table>
+              <div class="detail-note">⚡ Closing is the peak wire fraud risk window — BEC attacks target this exact stage.</div>
+            </div>
+          </div>
+          <div class="card-col">
+            <div class="col-label risk-label">Fraud Risk</div>
+            <div class="risk-title">Wire &amp; Title Fraud</div>
+            <div class="risk-desc">BEC wire diversion, forged deeds, undisclosed liens.</div>
+            <span class="badge critical">Critical</span>
+            <div class="expand-btn">Loss detail <span class="arrow">▾</span></div>
+            <div class="detail-panel">
+              <table class="detail-table">
+                <tr><th>Fraud Type</th><th>Exposure</th></tr>
+                <tr><td>Business Email Compromise</td><td>Fraudster diverts payoff wire; lender loses full wire amount</td></tr>
+                <tr><td>Forged Deeds</td><td>Title chain broken; lender lien may not be enforceable</td></tr>
+                <tr><td>Undisclosed Liens</td><td>Senior liens reduce lender's recovery position</td></tr>
+                <tr><td>Title Plant Fraud</td><td>Search misses encumbrances; title insurance claim follows</td></tr>
+              </table>
+              <div class="detail-note">🔍 Verify all payoff wire instructions via callback to a phone number from original file — never email alone.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ PHASE DIVIDER ══════════════ -->
+    <div class="phase-divider-row">
+      <div class="phase-divider-inner">
+        <span style="color:#1e40af;">◀ Pre-Closing: Sunk Costs (~$10K–30K)</span>
+        <span class="divider-arrow">|</span>
+        <span style="color:#9f1239;">Post-Closing: Loss Explodes ($100K–$1M+) ▶</span>
+      </div>
+    </div>
+
+    <!-- ═══════ 5. FUNDING (Post-Closing) ═══════ -->
+    <div class="section-row row-5">
+      <div class="node-wrap"><div class="node" style="background:#be185d;">5</div></div>
+      <div class="section-card" onclick="toggleDetail(this)">
+        <div class="card-header">
+          <div class="card-icon">💸</div>
+          <div class="card-header-text">
+            <div class="card-title">Funding</div>
+            <div class="card-desc">Lender disburses proceeds; loan boarded and prepared for sale to secondary market. Capital is now fully committed.</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-col">
+            <div class="col-label stage-label">Stage Costs</div>
+            <div class="chip-row">
+              <span class="chip">Warehouse Line</span><span class="chip">Rate Lock Cost</span>
+              <span class="chip">Boarding Cost</span><span class="chip">Capital Tied Up</span>
+            </div>
+            <div class="loss-range">Post-funding exposure: Full principal + penalties</div>
+            <div class="expand-btn">Cost breakdown <span class="arrow">▾</span></div>
+            <div class="detail-panel">
+              <table class="detail-table">
+                <tr><th>Category</th><th>Detail</th></tr>
+                <tr><td>Warehouse Line Interest</td><td>Short-term borrowing cost while loan awaits sale</td></tr>
+                <tr><td>Rate Lock Exposure</td><td>Locked pricing is wasted if loan defaults or is repurchased</td></tr>
+                <tr><td>Loan Boarding</td><td>Technology + operational cost to transfer to servicer</td></tr>
+                <tr><td>Capital Reserve Impact</td><td>Fraud loans require additional capital provisioning</td></tr>
+              </table>
+              <div class="detail-note">⚡ EPD within 90 days triggers mandatory GSE repurchase — full UPB plus penalties.</div>
+            </div>
+          </div>
+          <div class="card-col">
+            <div class="col-label risk-label">Fraud Risk</div>
+            <div class="risk-title">Early Payment Default (EPD)</div>
+            <div class="risk-desc">Borrower misrepresentation surfaces; first payment missed; investor repurchase triggered.</div>
+            <span class="badge critical">Critical</span>
+            <div class="expand-btn">Loss detail <span class="arrow">▾</span></div>
+            <div class="detail-panel">
+              <table class="detail-table">
+                <tr><th>Scenario</th><th>Impact</th></tr>
+                <tr><td>GSE Repurchase Demand</td><td>Full UPB buyback + accrued interest + penalties</td></tr>
+                <tr><td>Private Investor Demand</td><td>Indemnification agreement triggers if breach of reps</td></tr>
+                <tr><td>Warranty Breach</td><td>Lender liable for representations made at origination</td></tr>
+                <tr><td>Balance Sheet Hit</td><td>Repurchased loan sits on books; capital required</td></tr>
+              </table>
+              <div class="detail-note">🔍 EPD rate &gt;2% at any investor triggers heightened audit and potential suspension from program.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ 6. SERVICING (Post-Closing) ═══════ -->
+    <div class="section-row row-6">
+      <div class="node-wrap"><div class="node" style="background:#ea580c;">6</div></div>
+      <div class="section-card" onclick="toggleDetail(this)">
+        <div class="card-header">
+          <div class="card-icon">🏦</div>
+          <div class="card-header-text">
+            <div class="card-title">Servicing</div>
+            <div class="card-desc">Payment collection, escrow management, loss mitigation, CFPB compliance. Operational costs compound with delinquency.</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-col">
+            <div class="col-label stage-label">Stage Costs</div>
+            <div class="chip-row">
+              <span class="chip">Collections Ops</span><span class="chip">Loss Mitigation</span>
+              <span class="chip">Charge-offs</span><span class="chip">CFPB Compliance</span>
+            </div>
+            <div class="loss-range">Operational loss: $10K–$50K+ per delinquent loan</div>
+            <div class="expand-btn">Cost breakdown <span class="arrow">▾</span></div>
+            <div class="detail-panel">
+              <table class="detail-table">
+                <tr><th>Category</th><th>Detail</th></tr>
+                <tr><td>Collections Calls</td><td>FTE servicing cost escalates with delinquency depth</td></tr>
+                <tr><td>Loss Mitigation</td><td>Modifications, forbearances, short sale negotiations</td></tr>
+                <tr><td>Escrow Deficiency</td><td>Lender must advance taxes and insurance on delinquent loans</td></tr>
+                <tr><td>Accounting Charge-offs</td><td>Non-cash write-down of uncollectible balance</td></tr>
+                <tr><td>SAR Filing</td><td>Compliance burden when fraud is identified post-boarding</td></tr>
+              </table>
+              <div class="detail-note">⚡ Occupancy misrepresentation shifts risk profile — non-owner properties default 2–3× more frequently.</div>
+            </div>
+          </div>
+          <div class="card-col">
+            <div class="col-label risk-label">Fraud Risk</div>
+            <div class="risk-title">Payment &amp; Occupancy Fraud</div>
+            <div class="risk-desc">Owner-occupied misrepresentation, unauthorized mods, servicer error claims.</div>
+            <span class="badge high">High</span>
+            <div class="expand-btn">Loss detail <span class="arrow">▾</span></div>
+            <div class="detail-panel">
+              <table class="detail-table">
+                <tr><th>Fraud Type</th><th>Exposure</th></tr>
+                <tr><td>Occupancy Misrepresentation</td><td>Owner-occ pricing on investment property; warranty breach</td></tr>
+                <tr><td>Undisclosed Rental</td><td>Violates loan covenants; triggers due-on-sale consideration</td></tr>
+                <tr><td>Servicer Negligence Claims</td><td>Borrower sues over unauthorized modifications or fees</td></tr>
+                <tr><td>Loss Mitigation Fraud</td><td>Borrowers misstate hardship to obtain unwarranted relief</td></tr>
+              </table>
+              <div class="detail-note">🔍 Periodic occupancy certification + USPS address + utility cross-check surfaces violations.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ 7. DEFAULT & POST-CLOSING (Post-Closing) ═══════ -->
+    <div class="section-row row-7">
+      <div class="node-wrap"><div class="node" style="background:#dc2626;">7</div></div>
+      <div class="section-card" onclick="toggleDetail(this)">
+        <div class="card-header">
+          <div class="card-icon">⚖️</div>
+          <div class="card-header-text">
+            <div class="card-title">Default &amp; Final Disposition</div>
+            <div class="card-desc">Foreclosure, REO management, final loss disposition. Maximum loss severity realized here.</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-col">
+            <div class="col-label stage-label">Stage Costs</div>
+            <div class="chip-row">
+              <span class="chip">Foreclosure Legal</span><span class="chip">REO Management</span>
+              <span class="chip">Capital Reserves</span><span class="chip">Regulatory Fines</span>
+            </div>
+            <div class="loss-range">Loss severity: 25–55% of unpaid principal balance</div>
+            <div class="expand-btn">Cost breakdown <span class="arrow">▾</span></div>
+            <div class="detail-panel">
+              <table class="detail-table">
+                <tr><th>Category</th><th>Detail</th></tr>
+                <tr><td>Foreclosure Legal Fees</td><td>$5K–$15K in attorney + court costs per state</td></tr>
+                <tr><td>Property Carrying Costs</td><td>Taxes, insurance, maintenance during REO hold period</td></tr>
+                <tr><td>REO Disposition Discount</td><td>Typically 10–25% below market on distressed sale</td></tr>
+                <tr><td>Capital Provisioning</td><td>FDIC / GAAP requires reserves against non-performing loans</td></tr>
+                <tr><td>Regulatory Penalties</td><td>CFPB enforcement: $25K–millions depending on pattern</td></tr>
+                <tr><td>Reputational Damage</td><td>Investor pricing penalty; broker attrition; audit increases</td></tr>
+              </table>
+              <div class="detail-note">⚡ Fraud-sourced defaults had ~$112B total industry losses in the 2005–2007 cycle.</div>
+            </div>
+          </div>
+          <div class="card-col">
+            <div class="col-label risk-label">Fraud Risk</div>
+            <div class="risk-title">Foreclosure &amp; Repurchase Loss</div>
+            <div class="risk-desc">Principal loss on REO, indemnification demands, CFPB enforcement, franchise damage.</div>
+            <span class="badge critical">Critical</span>
+            <div class="expand-btn">Loss detail <span class="arrow">▾</span></div>
+            <div class="detail-panel">
+              <table class="detail-table">
+                <tr><th>Loss Component</th><th>Estimated Impact</th></tr>
+                <tr><td>Principal Loss (REO)</td><td>25–55% of UPB including carrying + legal costs</td></tr>
+                <tr><td>Repurchase Demand</td><td>Full UPB + accrued interest + penalties from GSE/investor</td></tr>
+                <tr><td>Indemnification</td><td>Lender may owe full loss to investor even after property sold</td></tr>
+                <tr><td>Secondary Market Discount</td><td>MBS pricing penalized; execution loss on bulk sales</td></tr>
+                <tr><td>Regulatory Enforcement</td><td>CFPB / state AG action; millions in penalties possible</td></tr>
+                <tr><td>Forensic Audit Cost</td><td>External audit: $50K–$500K per fraud scheme investigation</td></tr>
+              </table>
+              <div class="detail-note">🔍 Total loss severity on fraud-originated defaults is 2–3× that of non-fraud defaults.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /stages -->
+</div><!-- /pipeline-wrapper -->
+
+<!-- ══════════════ COST STACK PANELS ══════════════ -->
+<div class="sections-grid">
+
+  <!-- BEFORE CLOSING -->
+  <div class="cost-panel pre-panel">
+    <div class="cost-panel-header">
+      <div class="ph-icon">🏗️</div>
+      <div>
+        <h2>Before Closing — Origination Cost Stack</h2>
+        <div class="ph-sub">Costs incurred even if fraud is caught pre-funding</div>
+      </div>
+    </div>
+
+    <div class="cost-group">
+      <div class="cost-group-title">A. Acquisition &amp; Origination</div>
+      <div class="cost-item"><span class="cost-item-label">LO / Broker Commission</span><span class="cost-item-detail">Paid on application or at close</span></div>
+      <div class="cost-item"><span class="cost-item-label">Marketing &amp; Lead Generation</span><span class="cost-item-detail">Cost to acquire borrower</span></div>
+      <div class="cost-item"><span class="cost-item-label">LOS Technology</span><span class="cost-item-detail">Per-loan platform cost</span></div>
+    </div>
+
+    <div class="cost-group">
+      <div class="cost-group-title">B. Verification &amp; Due Diligence</div>
+      <div class="cost-item"><span class="cost-item-label">Credit Report (Tri-merge)</span><span class="cost-item-detail">$30–$80 per pull</span></div>
+      <div class="cost-item"><span class="cost-item-label">Income / Employment (VOI/VOE)</span><span class="cost-item-detail">$15–$40 per verification</span></div>
+      <div class="cost-item"><span class="cost-item-label">Asset Verification (VOA)</span><span class="cost-item-detail">Bank-feed or statement review</span></div>
+      <div class="cost-item"><span class="cost-item-label">Fraud Detection Tools</span><span class="cost-item-detail">Vendor score per file</span></div>
+    </div>
+
+    <div class="cost-group">
+      <div class="cost-group-title">C. Collateral &amp; Property</div>
+      <div class="cost-item"><span class="cost-item-label">Appraisal Fee</span><span class="cost-item-detail">$500–$1,000+ non-refundable</span></div>
+      <div class="cost-item"><span class="cost-item-label">Title Search &amp; Prep</span><span class="cost-item-detail">Preliminary title report</span></div>
+      <div class="cost-item"><span class="cost-item-label">Property Inspection</span><span class="cost-item-detail">Risk-based property checks</span></div>
+    </div>
+
+    <div class="cost-group">
+      <div class="cost-group-title">D. Compliance &amp; Opportunity</div>
+      <div class="cost-item"><span class="cost-item-label">Disclosures &amp; Documentation</span><span class="cost-item-detail">RESPA / Dodd-Frank required</span></div>
+      <div class="cost-item"><span class="cost-item-label">Pipeline Capacity Loss</span><span class="cost-item-detail">Fraud loan blocks real borrower</span></div>
+      <div class="cost-item"><span class="cost-item-label">Rate Lock Wasted</span><span class="cost-item-detail">Locked pricing lost if canceled</span></div>
+    </div>
+
+    <div class="panel-insight">
+      Even when fraud is detected pre-close, the lender still absorbs $10,000–$30,000 in sunk origination costs per file — with zero revenue.
+    </div>
+  </div>
+
+  <!-- AFTER CLOSING -->
+  <div class="cost-panel post-panel">
+    <div class="cost-panel-header">
+      <div class="ph-icon">💥</div>
+      <div>
+        <h2>After Closing — Where Losses Explode</h2>
+        <div class="ph-sub">Post-funding fraud creates cascading, compounding losses</div>
+      </div>
+    </div>
+
+    <div class="cost-group">
+      <div class="cost-group-title">A. Principal &amp; Collateral Loss</div>
+      <div class="cost-item"><span class="cost-item-label">Unpaid Principal Balance</span><span class="cost-item-detail">Full loan amount at risk</span></div>
+      <div class="cost-item"><span class="cost-item-label">Collateral Shortfall (Inflated Value)</span><span class="cost-item-detail">20–40% LTV overstatement common</span></div>
+      <div class="cost-item"><span class="cost-item-label">REO Disposition Discount</span><span class="cost-item-detail">10–25% below market on sale</span></div>
+    </div>
+
+    <div class="cost-group">
+      <div class="cost-group-title">B. Legal, Repurchase &amp; Regulatory</div>
+      <div class="cost-item"><span class="cost-item-label">Foreclosure Legal Costs</span><span class="cost-item-detail">$5K–$15K per state action</span></div>
+      <div class="cost-item"><span class="cost-item-label">GSE / Investor Repurchase</span><span class="cost-item-detail">Full UPB + accrued interest</span></div>
+      <div class="cost-item"><span class="cost-item-label">Indemnification Payments</span><span class="cost-item-detail">Warranty breach liability</span></div>
+      <div class="cost-item"><span class="cost-item-label">CFPB / Regulatory Penalties</span><span class="cost-item-detail">$25K to millions depending on pattern</span></div>
+    </div>
+
+    <div class="cost-group">
+      <div class="cost-group-title">C. Capital, Market &amp; Operational</div>
+      <div class="cost-item"><span class="cost-item-label">Warehouse Line Pressure</span><span class="cost-item-detail">Unsold loans tie up credit facility</span></div>
+      <div class="cost-item"><span class="cost-item-label">Capital Reserve Increase</span><span class="cost-item-detail">Provisioning for non-performing loans</span></div>
+      <div class="cost-item"><span class="cost-item-label">Secondary Market Execution Loss</span><span class="cost-item-detail">MBS pricing penalty; loan sale discount</span></div>
+      <div class="cost-item"><span class="cost-item-label">Forensic Audit / Investigation</span><span class="cost-item-detail">$50K–$500K per fraud scheme</span></div>
+    </div>
+
+    <div class="cost-group">
+      <div class="cost-group-title">D. Reputation &amp; Franchise</div>
+      <div class="cost-item"><span class="cost-item-label">Broker Trust Erosion</span><span class="cost-item-detail">Fewer origination relationships</span></div>
+      <div class="cost-item"><span class="cost-item-label">Investor Pricing Penalty</span><span class="cost-item-detail">Higher required yields on MBS</span></div>
+      <div class="cost-item"><span class="cost-item-label">Regulatory Scrutiny Increase</span><span class="cost-item-detail">More frequent audits and exams</span></div>
+    </div>
+
+    <div class="panel-insight">
+      Post-closing losses are non-linear. A $300K fraud loan can generate $800K–$1.2M in total cost impact when principal, repurchase, legal, capital, and reputational costs are combined.
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════ MULTIPLIER CALLOUT ══════════════ -->
+<div class="multiplier-callout">
+  <div class="mult-stat">
+    <div class="stat-num">$4.20<span style="font-size:1.1rem;font-weight:500;">+</span></div>
+    <div class="stat-label">Total cost for every<br>$1.00 lost to fraud</div>
+    <div class="stat-sub">Industry-established multiplier</div>
+  </div>
+  <div class="divider-v"></div>
+  <div class="mult-stat">
+    <div class="stat-num">~$420K</div>
+    <div class="stat-label">Total cost impact of a<br>$100K fraud loan</div>
+    <div class="stat-sub">Including all downstream costs</div>
+  </div>
+  <div class="divider-v"></div>
+  <div class="mult-stat">
+    <div class="stat-num">$112B</div>
+    <div class="stat-label">Estimated mortgage fraud<br>losses, 2005–2007</div>
+    <div class="stat-sub">Industry-wide crisis-era figure</div>
+  </div>
+</div>
+
+<!-- ══════════════ FRAUD CASCADE ══════════════ -->
+<div class="cascade-section">
+  <div class="cascade-title">Fraud Cost Cascade — Why Losses Are Non-Linear</div>
+  <div class="cascade-chain">
+
+    <div class="cascade-node">
+      <div class="cn-icon">🎯</div>
+      <div class="cn-label">Fraud<br>Originates</div>
+      <div class="cn-cost">Sunk costs begin</div>
+    </div>
+    <div class="cascade-arrow">→</div>
+
+    <div class="cascade-node">
+      <div class="cn-icon">⚠️</div>
+      <div class="cn-label">Loan<br>Defaults</div>
+      <div class="cn-cost">EPD or 90+ day</div>
+    </div>
+    <div class="cascade-arrow">→</div>
+
+    <div class="cascade-node">
+      <div class="cn-icon">🏠</div>
+      <div class="cn-label">Collateral<br>Fails</div>
+      <div class="cn-cost">Inflated value exposed</div>
+    </div>
+    <div class="cascade-arrow">→</div>
+
+    <div class="cascade-node">
+      <div class="cn-icon">⚖️</div>
+      <div class="cn-label">Legal<br>Action</div>
+      <div class="cn-cost">Foreclosure + suits</div>
+    </div>
+    <div class="cascade-arrow">→</div>
+
+    <div class="cascade-node">
+      <div class="cn-icon">🔁</div>
+      <div class="cn-label">Repurchase<br>Demand</div>
+      <div class="cn-cost">GSE / investor buyback</div>
+    </div>
+    <div class="cascade-arrow">→</div>
+
+    <div class="cascade-node">
+      <div class="cn-icon">📉</div>
+      <div class="cn-label">Capital<br>Stress</div>
+      <div class="cn-cost">Reserves + balance sheet</div>
+    </div>
+
+  </div>
+  <div class="cascade-note">
+    <strong>Key Insight:</strong> Fraud cost is not linear — each stage multiplies the loss at the next.
+    This is why <strong>early detection (pre-closing) is always more valuable than post-closing recovery.</strong>
+    Prevention stops the cascade before it starts.
+  </div>
+</div>
+
+<!-- ══════════════ LEGEND ══════════════ -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#b91c1c;"></div>Critical Risk</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#c2410c;"></div>High Risk</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#b45309;"></div>Medium Risk</div>
+  <div class="legend-item" style="margin-left:10px;color:#6b7280;">Click any card to expand cost/loss detail</div>
+</div>
+
+<footer>For internal risk management use only &nbsp;·&nbsp; Mortgage Fraud Full Cost Stack &nbsp;·&nbsp; 2025</footer>
+
+<script>
+  function toggleDetail(card) {
+    const panels = card.querySelectorAll('.detail-panel');
+    const btns   = card.querySelectorAll('.expand-btn');
+    // Find which expand-btn was actually clicked
+    // Toggle all panels within the card
+    panels.forEach(panel => {
+      const isOpen = panel.classList.contains('open');
+      panel.classList.toggle('open', !isOpen);
+    });
+    btns.forEach(btn => {
+      const isOpen = btn.classList.contains('open');
+      btn.classList.toggle('open', !isOpen);
+    });
+  }
+
+  // Individual expand-btn click handling (stops propagation to card)
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.expand-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const panel = btn.nextElementSibling;
+        if (!panel || !panel.classList.contains('detail-panel')) return;
+        const isOpen = panel.classList.contains('open');
+        panel.classList.toggle('open', !isOpen);
+        btn.classList.toggle('open', !isOpen);
+      });
+    });
+
+    // Prevent card-level toggle from firing on expand-btn clicks
+    document.querySelectorAll('.section-card').forEach(card => {
+      card.removeAttribute('onclick');
+    });
+
+    // Staggered entrance animation
+    const items = document.querySelectorAll('.section-card, .node, .cascade-node, .cost-panel, .multiplier-callout');
+    items.forEach((el, i) => {
+      el.style.opacity = '0';
+      el.style.transition = 'opacity 0.45s ease, transform 0.45s ease';
+      el.style.transform = 'translateY(18px)';
+      setTimeout(() => {
+        el.style.opacity = '1';
+        el.style.transform = 'none';
+      }, 80 + i * 50);
+    });
+  });
+</script>
+
+</body>
+</html>

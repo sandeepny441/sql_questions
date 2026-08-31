@@ -1,0 +1,17 @@
+{
+  "promptDelete": false,
+  "showInlineTitle": true,
+  "pdfExportSettings": {
+    "includeName": true,
+    "pageSize": "A4",
+    "landscape": false,
+    "margin": "0",
+    "downscalePercent": 100
+  },
+  "livePreview": true,
+  "strictLineBreaks": true,
+  "propertiesInDocument": "visible",
+  "defaultViewMode": "source",
+  "autoConvertHtml": false,
+  "showLineNumber": false
+}

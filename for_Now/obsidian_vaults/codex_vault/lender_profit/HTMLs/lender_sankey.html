@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>One Loan, Fully Traced — the Lender's P&amp;L</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F5F7; --ink:#1A2433; --muted:#75818F; --line:#DFE4E9;
+    --green:#1E8A63; --red:#C23B4E; --gray:#8B929C;
+    --f-green:#A6D4BC; --f-red:#E8ACAC; --f-gray:#C9CED5;
+    --mono:'IBM Plex Mono', ui-monospace, Menlo, monospace;
+    --sans:'IBM Plex Sans', system-ui, sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--ink); font-family:var(--sans); font-variant-numeric:tabular-nums;}
+  .wrap{max-width:1280px; margin:0 auto; padding:40px 20px 64px;}
+  header{text-align:center;}
+  h1{font-weight:700; font-size:clamp(24px,4vw,38px); letter-spacing:-.015em; color:#1F4E79;}
+  .sub{color:var(--muted); font-size:14px; margin-top:8px;}
+  .legend{display:flex; justify-content:center; gap:24px; margin-top:14px; font-size:12.5px; color:var(--muted);}
+  .legend b{font-family:var(--mono);}
+  .sw{display:inline-block; width:11px; height:11px; border-radius:3px; margin-right:6px; vertical-align:-1px;}
+  .board{background:#fff; border:1px solid var(--line); border-radius:14px; padding:8px 4px; margin-top:18px;
+         box-shadow:0 1px 2px rgba(26,36,51,.05);}
+  svg{display:block; width:100%; height:auto;}
+  .nlab{font-family:var(--sans); font-weight:600; font-size:15.5px; fill:var(--ink);}
+  .nval{font-family:var(--mono); font-weight:600; font-size:14.5px; fill:var(--ink);}
+  .nbps{font-family:var(--mono); font-weight:600; font-size:13px;}
+  .nsub{font-family:var(--sans); font-size:11.5px; fill:var(--muted);}
+  .foot{margin-top:16px; text-align:center; font-family:var(--mono); font-size:11px; color:var(--muted); line-height:1.8;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>One Loan, Fully Traced — the Lender's P&amp;L</h1>
+    <p class="sub">Illustrative economics of a single $400,000 conventional 30-yr fixed at 6.625%</p>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--f-gray)"></i>revenue in</span>
+      <span><i class="sw" style="background:var(--f-green)"></i>money kept</span>
+      <span><i class="sw" style="background:var(--f-red)"></i>money out / lost</span>
+      <span>dollars in <b style="color:var(--ink)">black</b> · bps of loan in <b style="color:var(--green)">green</b> (profit) or <b style="color:var(--red)">red</b> (loss)</span>
+    </div>
+  </header>
+
+  <div class="board"><svg id="sankey" viewBox="0 0 1360 1000" role="img" aria-label="Sankey diagram: lender profit and loss on one loan"></svg></div>
+
+  <p class="foot">LLPA enters gray on the left (collected from the borrower) and exits red on the right (remitted to the GSE) — a pass-through that nets to zero.<br>
+  Gross margin ≈ 188 bps · net ≈ 69 bps of the loan. All figures illustrative; real levels move daily.</p>
+</div>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const fmt=v=>'$'+Math.round(v).toLocaleString('en-US');
+  const bps=v=>Math.round(v/40);
+  const NODE_W=26, H=1000, S=0.02;
+  const COLX=[150, 410, 670, 920, 1140];
+  const COLGAP={0:48, 1:0, 2:90, 3:70, 4:70};
+
+  const C={green:'var(--green)', red:'var(--red)', gray:'var(--gray)', ink:'var(--ink)'};
+  const F={green:'var(--f-green)', red:'var(--f-red)', gray:'var(--f-gray)'};
+
+  /* kind: 'rev' gray node, green bps · 'pos' green node, green bps · 'neg' red node, red bps · 'hub' ink node, green bps */
+  const N={
+    tba:{c:0,label:'Loan sale premium',sub:'TBA / UMBS execution over par',v:6400,kind:'rev',side:'left'},
+    msr:{c:0,label:'Servicing value',sub:'MSR capitalized, ~4.6\u00d7 the fee',v:4600,kind:'rev',side:'left'},
+    fees:{c:0,label:'Borrower-paid fees',sub:'underwriting, processing',v:1600,kind:'rev',side:'left'},
+    llpaIn:{c:0,label:'LLPA collected',sub:'funded through the borrower\u2019s price',v:1500,kind:'rev',side:'left'},
+    rev:{c:1,label:'Total revenue',sub:'3.53 pts of the loan',v:14100,kind:'hub',side:'top'},
+    gross:{c:2,label:'Gross profit',sub:'53% of revenue',v:7500,kind:'pos',side:'top'},
+    direct:{c:2,label:'Direct costs',sub:'paid to others at / after sale',v:6600,kind:'neg',side:'bottom'},
+    op:{c:3,label:'Operating profit',sub:'',v:3600,kind:'pos',side:'top'},
+    opex:{c:3,label:'Operating expenses',sub:'cost to manufacture the loan',v:3900,kind:'neg',side:'leftfloat'},
+    gse:{c:3,label:'LLPA to GSE',sub:'pass-through \u2192 nets to zero',v:1500,kind:'neg',side:'right'},
+    lpc:{c:3,label:'Broker comp (LPC)',sub:'1.00% plan, paid after funding',v:4000,kind:'neg',side:'right'},
+    hedge:{c:3,label:'Hedge & lock costs',sub:'convexity, extensions, fallout',v:800,kind:'neg',side:'right'},
+    resv:{c:3,label:'Buyback & EPO reserve',sub:'repurchase / early-payoff risk',v:300,kind:'neg',side:'right'},
+    net:{c:4,label:'Net profit',sub:'what survives the gauntlet',v:2750,kind:'pos',side:'right'},
+    tax:{c:4,label:'Tax',sub:'',v:850,kind:'neg',side:'right'},
+    uw:{c:4,label:'Underwriting & ops',sub:'the human pipeline',v:1800,kind:'neg',side:'right'},
+    tech:{c:4,label:'Technology',sub:'AUS, portal, pricing engine',v:700,kind:'neg',side:'right'},
+    sales:{c:4,label:'AE & support',sub:'account execs, client service',v:800,kind:'neg',side:'right'},
+    ga:{c:4,label:'Corporate G&A',sub:'',v:600,kind:'neg',side:'right'},
+  };
+  const ORDER={0:['tba','msr','fees','llpaIn'],1:['rev'],2:['gross','direct'],
+               3:['op','opex','gse','lpc','hedge','resv'],
+               4:['net','tax','uw','tech','sales','ga']};
+  const LINKS=[
+    ['tba','rev',6400,F.gray],['msr','rev',4600,F.gray],['fees','rev',1600,F.gray],['llpaIn','rev',1500,F.gray],
+    ['rev','gross',7500,F.green],['rev','direct',6600,F.red],
+    ['gross','op',3600,F.green],['gross','opex',3900,F.red],
+    ['direct','gse',1500,F.red],['direct','lpc',4000,F.red],['direct','hedge',800,F.red],['direct','resv',300,F.red],
+    ['op','net',2750,F.green],['op','tax',850,F.red],
+    ['opex','uw',1800,F.red],['opex','tech',700,F.red],['opex','sales',800,F.red],['opex','ga',600,F.red],
+  ];
+
+  const nodeColor=k=>k==='rev'?C.gray:k==='pos'?C.green:k==='neg'?C.red:C.ink;
+  const bpsColor=k=>(k==='neg')?'var(--red)':'var(--green)';
+  const bpsText=(n)=>(n.kind==='neg'?'\u2212':'+')+bps(n.v)+' bps';
+
+  // layout
+  Object.values(N).forEach(n=>{ n.h=n.v*S; n.in=0; n.out=0; });
+  Object.entries(ORDER).forEach(([c,ids])=>{
+    const gap=COLGAP[c];
+    const tot=ids.reduce((a,id)=>a+N[id].h,0)+gap*(ids.length-1);
+    let y=(H-60-tot)/2+20;
+    ids.forEach(id=>{ N[id].x=COLX[N[id].c]; N[id].y=y; y+=N[id].h+gap; });
+  });
+
+  let ribbons='', rects='', labels='';
+  LINKS.forEach(([a,b,v,color])=>{
+    const A=N[a], B=N[b], h=v*S;
+    const x1=A.x+NODE_W, x2=B.x, y1=A.y+A.out, y2=B.y+B.in, xm=(x1+x2)/2;
+    ribbons+='<path d="M'+x1+' '+y1+' C'+xm+' '+y1+','+xm+' '+y2+','+x2+' '+y2+
+             ' L'+x2+' '+(y2+h)+' C'+xm+' '+(y2+h)+','+xm+' '+(y1+h)+','+x1+' '+(y1+h)+' Z" fill="'+color+'" opacity="0.8"/>';
+    A.out+=h; B.in+=h;
+  });
+
+  function moneyLine(n, x, y, anchor){
+    return '<text text-anchor="'+anchor+'" x="'+x+'" y="'+y+'">'+
+      '<tspan class="nval">'+(n.kind==='neg'?'('+fmt(n.v)+')':fmt(n.v))+'</tspan>'+
+      '<tspan class="nbps" fill="'+bpsColor(n.kind)+'" dx="8">'+bpsText(n)+'</tspan></text>';
+  }
+
+  Object.entries(N).forEach(([id,n])=>{
+    rects+='<rect x="'+n.x+'" y="'+n.y+'" width="'+NODE_W+'" height="'+Math.max(n.h,3)+'" fill="'+nodeColor(n.kind)+'" rx="2"/>';
+    const cy=n.y+n.h/2;
+    if(n.side==='left'){
+      labels+='<text class="nlab" text-anchor="end" x="'+(n.x-14)+'" y="'+(cy-12)+'">'+n.label+'</text>';
+      labels+=moneyLine(n, n.x-14, cy+7, 'end');
+      if(n.sub) labels+='<text class="nsub" text-anchor="end" x="'+(n.x-14)+'" y="'+(cy+25)+'">'+n.sub+'</text>';
+    } else if(n.side==='right'){
+      labels+='<text class="nlab" x="'+(n.x+NODE_W+14)+'" y="'+(cy-12)+'">'+n.label+'</text>';
+      labels+=moneyLine(n, n.x+NODE_W+14, cy+7, 'start');
+      if(n.sub) labels+='<text class="nsub" x="'+(n.x+NODE_W+14)+'" y="'+(cy+25)+'">'+n.sub+'</text>';
+    } else if(n.side==='top'){
+      const cx=n.x+NODE_W/2;
+      labels+='<text class="nlab" text-anchor="middle" x="'+cx+'" y="'+(n.y-48)+'" fill="'+(n.kind==='pos'?'var(--green)':'var(--ink)')+'">'+n.label+'</text>';
+      labels+=moneyLine(n, cx, n.y-28, 'middle');
+      if(n.sub) labels+='<text class="nsub" text-anchor="middle" x="'+cx+'" y="'+(n.y-11)+'">'+n.sub+'</text>';
+    } else if(n.side==='bottom'){
+      const cx=n.x+NODE_W/2;
+      labels+='<text class="nlab" text-anchor="middle" x="'+cx+'" y="'+(n.y+n.h+26)+'" fill="var(--red)">'+n.label+'</text>';
+      labels+=moneyLine(n, cx, n.y+n.h+46, 'middle');
+      if(n.sub) labels+='<text class="nsub" text-anchor="middle" x="'+cx+'" y="'+(n.y+n.h+63)+'">'+n.sub+'</text>';
+    } else { // leftfloat: label to the left of node, drawn over incoming ribbon
+      labels+='<text class="nlab" text-anchor="end" x="'+(n.x-14)+'" y="'+(cy-12)+'" fill="var(--red)">'+n.label+'</text>';
+      labels+=moneyLine(n, n.x-14, cy+7, 'end');
+      if(n.sub) labels+='<text class="nsub" text-anchor="end" x="'+(n.x-14)+'" y="'+(cy+25)+'">'+n.sub+'</text>';
+    }
+  });
+
+  $('sankey').innerHTML=ribbons+rects+labels;
+})();
+</script>
+</body>
+</html>

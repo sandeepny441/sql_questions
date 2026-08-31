@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>One Loan — Green In, Red Out, Green Left</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F5F7; --ink:#1A2433; --muted:#75818F; --line:#DFE4E9;
+    --green:#1E8A63; --red:#C23B4E;
+    --mono:'IBM Plex Mono', ui-monospace, Menlo, monospace;
+    --sans:'IBM Plex Sans', system-ui, sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--ink); font-family:var(--sans); font-variant-numeric:tabular-nums;}
+  .wrap{max-width:1220px; margin:0 auto; padding:36px 20px 56px;}
+  header{text-align:center;}
+  h1{font-weight:700; font-size:clamp(22px,3.6vw,34px); letter-spacing:-.015em; color:#1F4E79;}
+  .sub{color:var(--muted); font-size:13.5px; margin-top:7px;}
+  .legend{display:flex; justify-content:center; gap:22px; margin-top:10px; font-size:12.5px; color:var(--muted); flex-wrap:wrap;}
+  .sw{display:inline-block; width:11px; height:11px; border-radius:3px; margin-right:6px; vertical-align:-1px;}
+  .board{background:#fff; border:1px solid var(--line); border-radius:14px; padding:8px 4px; margin-top:16px;
+         box-shadow:0 1px 2px rgba(26,36,51,.05);}
+  svg{display:block; width:100%; height:auto;}
+  .t-big{font-family:var(--sans); font-weight:700; font-size:15px; fill:var(--ink);}
+  .t-big-g{font-family:var(--sans); font-weight:700; font-size:15px; fill:var(--green);}
+  .t-usd{font-family:var(--mono); font-weight:600; font-size:12px; fill:var(--ink);}
+  .t-bps-g{font-family:var(--mono); font-weight:600; font-size:11px; fill:var(--green);}
+  .t-bps-r{font-family:var(--mono); font-weight:600; font-size:11px; fill:var(--red);}
+  .t-mile{font-family:var(--mono); font-weight:600; font-size:11.5px; fill:var(--green);}
+  .t-rot{font-family:var(--sans); font-weight:600; font-size:12.5px; fill:var(--ink);}
+  .t-sub{font-family:var(--sans); font-size:11.5px; fill:var(--muted);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>One Loan — Green In, Red Out, Green Left</h1>
+    <p class="sub">Lender view · $400,000 conventional 30-yr at 6.625% · the first green rectangle is all the revenue; each red rectangle is one loss taken out, one at a time; the last green rectangle is what remains</p>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--green)"></i>revenue / what remains</span>
+      <span><i class="sw" style="background:var(--red)"></i>one loss at a time (height = amount)</span>
+      <span>dollars in <b style="font-family:var(--mono); color:var(--ink)">black</b> · bps in <b style="font-family:var(--mono); color:var(--green)">green</b> / <b style="font-family:var(--mono); color:var(--red)">red</b></span>
+    </div>
+  </header>
+  <div class="board"><svg id="w" viewBox="0 0 1200 780" role="img" aria-label="Bridge waterfall from total revenue through nine losses to net profit"></svg></div>
+</div>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const fmt=v=>'$'+Math.round(v).toLocaleString('en-US');
+  const bps=v=>Math.round(v/40);
+  const K=560/14100, B=640, X0=150, CW=64, GP=28;
+
+  const STEPS=[
+    {name:'Total revenue', v:14100, t:'start'},
+    {name:'LLPA remitted to GSE', v:1500, t:'loss'},
+    {name:'Broker comp (LPC)', v:4000, t:'loss'},
+    {name:'Hedge & lock costs', v:800, t:'loss'},
+    {name:'Buyback & EPO reserve', v:300, t:'loss', mile:{name:'Gross profit', v:7500}},
+    {name:'Underwriting & ops', v:1800, t:'loss'},
+    {name:'AE & support', v:800, t:'loss'},
+    {name:'Technology', v:700, t:'loss'},
+    {name:'Corporate G&A', v:600, t:'loss', mile:{name:'Operating profit', v:3600}},
+    {name:'Tax', v:850, t:'loss'},
+    {name:'Net profit', v:2750, t:'end'},
+  ];
+
+  let g='', level=14100;
+  const yOf=v=>B-v*K;
+
+  STEPS.forEach((s,i)=>{
+    const x=X0+i*(CW+GP), cx=x+CW/2;
+    if(s.t==='start'||s.t==='end'){
+      const h=s.v*K, top=yOf(s.v);
+      g+='<rect x="'+x+'" y="'+top+'" width="'+CW+'" height="'+h+'" rx="3" fill="var(--green)"/>';
+      g+='<text class="t-big-g" text-anchor="start" x="'+x+'" y="'+(top-30)+'">'+s.name+'</text>';
+      g+='<text text-anchor="start" x="'+x+'" y="'+(top-12)+'">'+
+         '<tspan class="t-usd">'+fmt(s.v)+'</tspan><tspan class="t-bps-g" dx="7">+'+bps(s.v)+' bps</tspan></text>';
+    } else {
+      const newLevel=level-s.v, top=yOf(level), bot=yOf(newLevel), h=bot-top;
+      g+='<rect x="'+x+'" y="'+top+'" width="'+CW+'" height="'+Math.max(h,4)+'" rx="3" fill="var(--red)"/>';
+      g+='<text text-anchor="middle" x="'+cx+'" y="'+(top-24)+'"><tspan class="t-usd">('+fmt(s.v)+')</tspan></text>';
+      g+='<text class="t-bps-r" text-anchor="middle" x="'+cx+'" y="'+(top-9)+'">\u2212'+bps(s.v)+' bps</text>';
+      // connector from previous column at the incoming level
+      g+='<line x1="'+(x-GP)+'" x2="'+x+'" y1="'+top+'" y2="'+top+'" stroke="var(--ink)" stroke-width="1.3" stroke-dasharray="4 3"/>';
+      // connector out at the new level
+      g+='<line x1="'+(x+CW)+'" x2="'+(x+CW+GP)+'" y1="'+bot+'" y2="'+bot+'" stroke="var(--ink)" stroke-width="1.3" stroke-dasharray="4 3"/>';
+      if(s.mile){
+        g+='<text class="t-mile" text-anchor="end" x="'+(x+CW+GP-8)+'" y="'+(bot+20)+'">'+s.mile.name+' '+fmt(s.mile.v)+' \u00b7 +'+bps(s.mile.v)+' bps</text>';
+      }
+      level=newLevel;
+    }
+    // rotated name under the axis
+    const cls = s.t==='loss' ? 't-rot' : 't-rot';
+    const fill = s.t==='loss' ? 'var(--ink)' : 'var(--green)';
+    g+='<text class="t-rot" text-anchor="end" x="'+(cx+8)+'" y="'+(B+22)+'" fill="'+fill+'" '+
+       'transform="rotate(-34 '+(cx+8)+' '+(B+22)+')" font-weight="'+(s.t==='loss'?'600':'700')+'">'+s.name+'</text>';
+  });
+
+  // baseline
+  g+='<line x1="'+(X0-24)+'" x2="'+(X0+11*(CW+GP))+'" y1="'+B+'" y2="'+B+'" stroke="var(--ink)" stroke-width="1.6"/>';
+  // summary
+  g+='<text class="t-sub" x="'+X0+'" y="765">The nine red rectangles stack to exactly the height difference between the two green ones: ($11,350) \u2212284 bps carved away, $2,750 +69 bps kept. All figures illustrative.</text>';
+
+  $('w').innerHTML=g;
+})();
+</script>
+</body>
+</html>

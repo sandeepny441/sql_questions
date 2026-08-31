@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Five tubes — where the loan's premium goes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAFBFC; --ink:#1A2433; --muted:#75818F; --line:#DFE4E9;
+    --margin:#3B77B8; --gse:#7A6BD1; --hedge:#D9A03C; --broker:#C2653B; --borrower:#2C9B72; --deficit:#C23B4E;
+    --mono:'IBM Plex Mono', ui-monospace, Menlo, monospace;
+    --sans:'IBM Plex Sans', system-ui, sans-serif;
+    --scale:94px; /* px per point */
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--ink); font-family:var(--sans); font-size:15px;}
+  .wrap{max-width:860px; margin:0 auto; padding:40px 20px 64px;}
+  header{text-align:center; margin-bottom:8px;}
+  h1{font-weight:600; font-size:clamp(20px,3.4vw,27px); letter-spacing:-.01em;}
+  .sub{color:var(--muted); font-size:13.5px; margin-top:6px; max-width:52ch; margin-left:auto; margin-right:auto;}
+
+  /* equation strip */
+  .eq{font-family:var(--mono); font-size:12.5px; text-align:center; margin:22px 0 34px; color:var(--muted);}
+  .eq b{color:var(--ink); font-weight:600;}
+  .eq .c-m{color:var(--margin);} .eq .c-g{color:var(--gse);} .eq .c-h{color:var(--hedge);}
+  .eq .c-b{color:var(--broker);} .eq .c-w{color:var(--borrower);} .eq .c-d{color:var(--deficit);}
+
+  .bench{display:flex; justify-content:center; gap:clamp(14px,3.5vw,34px); flex-wrap:wrap; align-items:flex-end;}
+  .station{width:118px; display:flex; flex-direction:column; align-items:center;}
+  .station .name{font-size:12px; font-weight:600; text-align:center; line-height:1.25; min-height:32px; display:flex; align-items:flex-end; justify-content:center;}
+  .station .who{font-family:var(--mono); font-size:9.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); margin:3px 0 12px;}
+
+  .tube{position:relative; width:58px; height:calc(var(--scale)*2.75 + 14px); }
+  .glass{position:absolute; inset:0; border:2px solid var(--ink); border-top:none; border-radius:0 0 29px 29px; overflow:hidden;
+         background:linear-gradient(105deg, rgba(255,255,255,.9), rgba(226,233,239,.45) 45%, rgba(255,255,255,.85));}
+  .glass::before{content:""; position:absolute; top:0; bottom:0; left:9px; width:7px; border-radius:6px;
+                 background:linear-gradient(180deg, rgba(255,255,255,.85), rgba(255,255,255,0)); z-index:3; pointer-events:none;}
+  .rim{position:absolute; top:-2px; left:-7px; right:-7px; height:8px; border:2px solid var(--ink); border-radius:5px; background:var(--bg); z-index:4;}
+  .liq{position:absolute; left:0; right:0; bottom:0; transition:height .35s cubic-bezier(.3,.9,.35,1); z-index:1;}
+  .liq::after{content:""; position:absolute; top:-4px; left:0; right:0; height:8px; border-radius:50%;
+              background:rgba(255,255,255,.35);}
+  .liq.deficit{background:repeating-linear-gradient(-45deg, rgba(194,59,78,.28) 0 6px, rgba(194,59,78,.12) 6px 12px) !important;
+               border-top:2px dashed var(--deficit);}
+  .liq.deficit::after{display:none;}
+  .ticks{position:absolute; top:0; bottom:0; right:-14px; width:12px; z-index:2;}
+  .tick{position:absolute; right:0; width:8px; border-top:1.5px solid var(--line);}
+  .tick span{position:absolute; left:12px; top:-7px; font-family:var(--mono); font-size:8.5px; color:var(--muted);}
+
+  .readout{font-family:var(--mono); font-weight:600; font-size:15px; margin-top:14px;}
+  .readout small{display:block; font-weight:400; font-size:10px; color:var(--muted); text-align:center; letter-spacing:.02em;}
+
+  input[type=range]{width:104px; appearance:none; -webkit-appearance:none; height:22px; background:transparent; cursor:pointer; margin-top:10px;}
+  input[type=range]:focus-visible{outline:2px solid var(--ink); outline-offset:3px; border-radius:4px;}
+  input[type=range]::-webkit-slider-runnable-track{height:3px; border-radius:2px; background:var(--line);}
+  input[type=range]::-webkit-slider-thumb{appearance:none; -webkit-appearance:none; width:16px; height:16px; border-radius:50%;
+      background:var(--ink); margin-top:-6.5px; border:2.5px solid var(--bg); box-shadow:0 0 0 1.5px var(--ink);}
+  input[type=range]::-moz-range-track{height:3px; border-radius:2px; background:var(--line);}
+  input[type=range]::-moz-range-thumb{width:12px; height:12px; border-radius:50%; background:var(--ink); border:2.5px solid var(--bg); box-shadow:0 0 0 1.5px var(--ink);}
+  .fixed-tag{font-family:var(--mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted);
+             border:1px dashed var(--line); border-radius:3px; padding:4px 8px; margin-top:14px;}
+
+  .result{margin:36px auto 0; max-width:560px; text-align:center; font-family:var(--mono); font-size:13px;
+          border-top:1px solid var(--line); padding-top:18px; line-height:1.9;}
+  .result b{font-size:15px;}
+  .result .good{color:var(--borrower);} .result .bad{color:var(--deficit);}
+  .note{margin-top:20px; text-align:center; color:var(--muted); font-size:12px; max-width:56ch; margin-left:auto; margin-right:auto;}
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>The loan is worth 2.75 points over par. Five tubes share it.</h1>
+    <p class="sub">Nothing is created or destroyed — drain any tube and the liquid reappears in the borrower's. Fill one, and it drains the borrower's. $400,000 loan at 6.625%.</p>
+  </header>
+
+  <p class="eq" aria-live="polite">
+    <b>2.750</b> &nbsp;=&nbsp; <span class="c-m" id="e-m">1.150</span> + <span class="c-g" id="e-g">0.375</span> + <span class="c-h" id="e-h">0.200</span> + <span class="c-b" id="e-b">1.000</span> + <span class="c-w" id="e-w">0.025</span>
+  </p>
+
+  <div class="bench">
+
+    <div class="station">
+      <div class="name">Lender margin</div>
+      <div class="who">the desk's choice</div>
+      <div class="tube"><div class="rim"></div><div class="glass"><div class="liq" id="t-m" style="background:var(--margin)"></div></div><div class="ticks" data-ticks></div></div>
+      <div class="readout" id="r-m" style="color:var(--margin)">1.15<small>pts · $4,600</small></div>
+      <input type="range" id="s-m" min="40" max="200" step="5" value="115" aria-label="Lender margin, basis points">
+    </div>
+
+    <div class="station">
+      <div class="name">GSE cost (LLPA)</div>
+      <div class="who">borrower's risk profile</div>
+      <div class="tube"><div class="rim"></div><div class="glass"><div class="liq" id="t-g" style="background:var(--gse)"></div></div><div class="ticks" data-ticks></div></div>
+      <div class="readout" id="r-g" style="color:var(--gse)">0.375<small>pts · $1,500</small></div>
+      <input type="range" id="s-g" min="0" max="150" step="12.5" value="37.5" aria-label="GSE loan level price adjustment, basis points">
+    </div>
+
+    <div class="station">
+      <div class="name">Hedge cost</div>
+      <div class="who">market volatility</div>
+      <div class="tube"><div class="rim"></div><div class="glass"><div class="liq" id="t-h" style="background:var(--hedge)"></div></div><div class="ticks" data-ticks></div></div>
+      <div class="readout" id="r-h" style="color:var(--hedge)">0.20<small>pts · $800</small></div>
+      <input type="range" id="s-h" min="10" max="50" step="5" value="20" aria-label="Hedge and lock cost, basis points">
+    </div>
+
+    <div class="station">
+      <div class="name">Broker comp</div>
+      <div class="who">broker's plan, fixed by law</div>
+      <div class="tube"><div class="rim"></div><div class="glass"><div class="liq" id="t-b" style="background:var(--broker)"></div></div><div class="ticks" data-ticks></div></div>
+      <div class="readout" id="r-b" style="color:var(--broker)">1.00<small>pts · $4,000</small></div>
+      <input type="range" id="s-b" min="50" max="275" step="25" value="100" aria-label="Broker compensation, basis points">
+    </div>
+
+    <div class="station">
+      <div class="name">Borrower's share</div>
+      <div class="who">whatever is left</div>
+      <div class="tube"><div class="rim"></div><div class="glass"><div class="liq" id="t-w" style="background:var(--borrower)"></div></div><div class="ticks" data-ticks></div></div>
+      <div class="readout" id="r-w" style="color:var(--borrower)">0.025<small>pts · $100 credit</small></div>
+      <div class="fixed-tag">not a slider — a residue</div>
+    </div>
+
+  </div>
+
+  <div class="result" aria-live="polite" id="result"></div>
+  <p class="note">The lender only truly controls the first tube. The GSE tube is set by the borrower's file, the hedge tube by the market, the broker tube by the broker's plan — and the last tube is the rate the borrower feels.</p>
+</div>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const SCALE=94, TOTAL=2.75;
+  const fmt$=n=>'$'+Math.abs(Math.round(n)).toLocaleString('en-US');
+
+  // tick marks at 0.5/1.0/1.5/2.0/2.5 on every tube
+  document.querySelectorAll('[data-ticks]').forEach(el=>{
+    for(let v=0.5; v<=2.5; v+=0.5){
+      const t=document.createElement('div'); t.className='tick';
+      t.style.bottom=(v*SCALE)+'px';
+      if(Math.abs(v-1)<0.01||Math.abs(v-2)<0.01) t.innerHTML='<span>'+v.toFixed(0)+'</span>';
+      el.appendChild(t);
+    }
+  });
+
+  function parRate(b){
+    let best=6.625,bd=1e9;
+    for(let r=5.75;r<=7.8751;r+=0.125){
+      const steps=(r-6.625)/0.25;
+      const p=100+b+(steps>0? steps*0.95-steps*steps*0.06 : steps*0.98);
+      const d=Math.abs(p-100); if(d<bd){bd=d;best=r;}
+    }
+    return best;
+  }
+  function pmt(r){const i=r/100/12;return 400000*i/(1-Math.pow(1+i,-360));}
+
+  function set(tube, read, eq, pts, color){
+    $(tube).style.height=(Math.max(0,pts)*SCALE)+'px';
+    $(read).innerHTML=pts.toFixed(pts<1?3:2).replace(/0+$/,'').replace(/\.$/,'')+
+      '<small>pts · '+fmt$(pts*4000)+'</small>';
+    $(eq).textContent=pts.toFixed(3);
+  }
+
+  function render(){
+    const m=+$('s-m').value/100, g=+$('s-g').value/100, h=+$('s-h').value/100, b=+$('s-b').value/100;
+    const w=TOTAL-m-g-h-b;
+    set('t-m','r-m','e-m',m); set('t-g','r-g','e-g',g); set('t-h','r-h','e-h',h); set('t-b','r-b','e-b',b);
+
+    const tw=$('t-w'), rw=$('r-w'), ew=$('e-w');
+    if(w>=0){
+      tw.classList.remove('deficit');
+      tw.style.background='var(--borrower)';
+      tw.style.height=(w*SCALE)+'px';
+      rw.style.color='var(--borrower)';
+      rw.innerHTML=w.toFixed(3)+'<small>pts · '+fmt$(w*4000)+' credit</small>';
+      ew.textContent=w.toFixed(3); ew.className='c-w';
+    } else {
+      tw.classList.add('deficit');
+      tw.style.height=(Math.min(-w,TOTAL)*SCALE)+'px';
+      rw.style.color='var(--deficit)';
+      rw.innerHTML='−'+(-w).toFixed(3)+'<small>pts · '+fmt$(-w*4000)+' in points due</small>';
+      ew.textContent='('+w.toFixed(3)+')'; ew.className='c-d';
+    }
+
+    const pr=parRate(w);
+    const res=$('result');
+    if(w>=0){
+      res.innerHTML='At 6.625% the borrower gets <b class="good">'+fmt$(w*4000)+' of lender credit</b>.'+
+        '<br>The "free" par rate is <b>'+pr.toFixed(3)+'%</b> &nbsp;·&nbsp; '+fmt$(pmt(pr))+'/mo P&amp;I.';
+    } else {
+      res.innerHTML='The tubes overflowed the premium: at 6.625% the borrower owes <b class="bad">'+fmt$(-w*4000)+' in discount points</b>'+
+        '<br>— or climbs to the new par rate of <b>'+pr.toFixed(3)+'%</b> &nbsp;·&nbsp; '+fmt$(pmt(pr))+'/mo P&amp;I.';
+    }
+  }
+
+  ['s-m','s-g','s-h','s-b'].forEach(id=>$(id).addEventListener('input',render));
+  render();
+})();
+</script>
+</body>
+</html>

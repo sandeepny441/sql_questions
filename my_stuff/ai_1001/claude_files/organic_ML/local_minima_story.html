@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Local Minima Storyboard</title>
+  <style>
+    :root {
+      --bg-top: #f6e9da;
+      --bg-bottom: #e9f0ea;
+      --panel: rgba(255, 251, 245, 0.8);
+      --panel-strong: rgba(255, 251, 245, 0.92);
+      --ink: #19252c;
+      --muted: #57656d;
+      --line: rgba(25, 37, 44, 0.12);
+      --teal: #255f66;
+      --teal-soft: #d7e9e8;
+      --orange: #d5633d;
+      --orange-soft: #f5d4c7;
+      --gold: #d7a24c;
+      --green: #2d8a5c;
+      --rose: #96465d;
+      --shadow: 0 24px 80px rgba(20, 32, 42, 0.12);
+      --radius: 28px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 10% 10%, rgba(213, 99, 61, 0.18), transparent 28%),
+        radial-gradient(circle at 88% 6%, rgba(37, 95, 102, 0.14), transparent 24%),
+        linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.35;
+      background-image:
+        linear-gradient(rgba(25, 37, 44, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(25, 37, 44, 0.04) 1px, transparent 1px);
+      background-size: 36px 36px;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.24), rgba(0, 0, 0, 0));
+    }
+
+    .page {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 42px 0 72px;
+    }
+
+    .hero,
+    .global-panel,
+    .takeaway {
+      background: var(--panel);
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr);
+      gap: 24px;
+      padding: 32px;
+      border-radius: calc(var(--radius) + 4px);
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--teal);
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin: 0;
+      font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+      line-height: 1.04;
+      letter-spacing: -0.03em;
+    }
+
+    h1 {
+      font-size: clamp(2.4rem, 5vw, 4.6rem);
+      max-width: 10ch;
+    }
+
+    .lede {
+      margin: 16px 0 0;
+      max-width: 58ch;
+      font-size: clamp(1rem, 1.8vw, 1.18rem);
+      line-height: 1.7;
+      color: var(--muted);
+    }
+
+    .hero-notes {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .hero-note,
+    .legend-card,
+    .problem {
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.56);
+    }
+
+    .hero-note {
+      padding: 16px 18px;
+    }
+
+    .hero-note strong,
+    .legend-card strong,
+    .problem strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.96rem;
+    }
+
+    .hero-note span,
+    .legend-card span,
+    .problem span,
+    .takeaway p,
+    .stage-card p,
+    .global-copy p {
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .hero-side {
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    .legend-card {
+      padding: 18px;
+    }
+
+    .legend-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-right: 12px;
+      margin-bottom: 10px;
+      font-size: 0.95rem;
+      color: var(--ink);
+    }
+
+    .dot,
+    .line-chip {
+      display: inline-block;
+      flex: 0 0 auto;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .line-chip {
+      width: 26px;
+      height: 0;
+      border-top: 3px solid currentColor;
+    }
+
+    .stages {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin-top: 22px;
+    }
+
+    .stage-card {
+      padding: 22px;
+      border-radius: var(--radius);
+      background: var(--panel-strong);
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      box-shadow: var(--shadow);
+    }
+
+    .stage-top {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+
+    .stage-index {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: var(--orange);
+      color: #fff;
+      font-weight: 800;
+      box-shadow: 0 10px 28px rgba(213, 99, 61, 0.24);
+    }
+
+    .stage-card h2 {
+      font-size: clamp(1.4rem, 2vw, 1.9rem);
+    }
+
+    .stage-card p {
+      margin: 0 0 16px;
+      font-size: 1rem;
+    }
+
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .mini-plot,
+    .big-plot {
+      border-radius: 22px;
+      overflow: hidden;
+      border: 1px solid rgba(37, 95, 102, 0.16);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42);
+    }
+
+    .takeaway {
+      margin-top: 22px;
+      padding: 26px 28px;
+      border-radius: var(--radius);
+    }
+
+    .takeaway h2 {
+      font-size: clamp(1.7rem, 2.6vw, 2.5rem);
+      margin-bottom: 10px;
+    }
+
+    .global-panel {
+      display: grid;
+      grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+      gap: 22px;
+      margin-top: 22px;
+      padding: 28px;
+      border-radius: calc(var(--radius) + 4px);
+    }
+
+    .global-copy h2 {
+      font-size: clamp(2rem, 3vw, 3rem);
+      max-width: 12ch;
+      margin-bottom: 14px;
+    }
+
+    .problem-grid {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .problem {
+      padding: 16px 18px;
+    }
+
+    .problem strong {
+      color: var(--ink);
+    }
+
+    .plot-label {
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      fill: #30434b;
+    }
+
+    .plot-faint {
+      fill: rgba(48, 67, 75, 0.66);
+    }
+
+    .plot-note {
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      fill: #fff;
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      text-align: center;
+      font-size: 0.95rem;
+      color: rgba(25, 37, 44, 0.66);
+    }
+
+    @media (max-width: 980px) {
+      .hero,
+      .global-panel,
+      .stages {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-notes {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page {
+        width: min(100vw - 20px, 1180px);
+        padding-top: 20px;
+      }
+
+      .hero,
+      .stage-card,
+      .takeaway,
+      .global-panel {
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Gradient Descent Storyboard</p>
+        <h1>How a model falls into a local minimum</h1>
+        <p class="lede">
+          Gradient descent does not scan the whole loss landscape. It only feels the slope under its feet, steps downhill,
+          recomputes the slope, and repeats. That local, step-by-step view is exactly why it can settle into a nearby valley
+          without ever discovering the deepest valley elsewhere.
+        </p>
+        <div class="hero-notes">
+          <div class="hero-note">
+            <strong>6 stage sequence</strong>
+            <span>From random starting point to a stable local minimum.</span>
+          </div>
+          <div class="hero-note">
+            <strong>1 caution panel</strong>
+            <span>Why a global minimum is hard to prove, expensive to chase, and not always the best target.</span>
+          </div>
+        </div>
+      </div>
+
+      <aside class="hero-side">
+        <div class="legend-card">
+          <strong>Legend</strong>
+          <span class="legend-chip"><span class="dot" style="background:#d5633d;"></span>current position</span>
+          <span class="legend-chip"><span class="dot" style="background:#2d8a5c;"></span>minimum reached</span>
+          <span class="legend-chip"><span class="line-chip" style="color:#255f66;"></span>loss surface</span>
+          <span class="legend-chip"><span class="line-chip" style="color:#d7a24c;"></span>update direction</span>
+        </div>
+        <div class="legend-card">
+          <strong>Reading the picture</strong>
+          <span>Left to right is parameter space. Higher on the page means higher loss. Valleys are better solutions, but gradient descent can only react to the nearby slope.</span>
+        </div>
+      </aside>
+    </section>
+
+    <section class="stages">
+      <article class="stage-card">
+        <div class="stage-top">
+          <h2>Start Somewhere Random</h2>
+          <span class="stage-index">1</span>
+        </div>
+        <p>
+          Training begins with an arbitrary set of weights. The model lands on one side of the landscape, with no clue yet
+          whether a deeper valley exists farther away.
+        </p>
+        <svg class="mini-plot" viewBox="0 0 360 220" role="img" aria-label="Stage 1: random start on a loss landscape with a nearby local minimum and a deeper basin farther away.">
+          <defs>
+            <linearGradient id="bg-1" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#fff6e9" />
+              <stop offset="100%" stop-color="#e2f0ee" />
+            </linearGradient>
+          </defs>
+          <rect width="360" height="220" fill="url(#bg-1)" />
+          <path d="M24 56 C62 96 86 152 128 168 C162 182 188 112 218 102 C250 92 274 166 308 192 C328 206 342 126 346 64 L346 220 L24 220 Z" fill="rgba(213, 99, 61, 0.12)" />
+          <path d="M24 56 C62 96 86 152 128 168 C162 182 188 112 218 102 C250 92 274 166 308 192 C328 206 342 126 346 64" fill="none" stroke="#255f66" stroke-width="8" stroke-linecap="round" />
+          <circle cx="60" cy="94" r="9" fill="#d5633d" />
+          <circle cx="128" cy="168" r="24" fill="rgba(45, 138, 92, 0.08)" stroke="#2d8a5c" stroke-width="2" stroke-dasharray="6 6" />
+          <circle cx="308" cy="192" r="18" fill="rgba(150, 70, 93, 0.08)" stroke="#96465d" stroke-width="2" stroke-dasharray="6 8" />
+          <text x="32" y="72" class="plot-label">random start</text>
+          <text x="95" y="202" class="plot-label plot-faint">nearby local basin</text>
+          <text x="246" y="210" class="plot-label plot-faint">deeper basin</text>
+        </svg>
+      </article>
+
+      <article class="stage-card">
+        <div class="stage-top">
+          <h2>Read the Local Slope</h2>
+          <span class="stage-index">2</span>
+        </div>
+        <p>
+          The gradient points uphill. To lower loss, gradient descent moves in the opposite direction, using only local slope
+          information around the current point.
+        </p>
+        <svg class="mini-plot" viewBox="0 0 360 220" role="img" aria-label="Stage 2: the gradient points uphill, so the update points downhill toward the local basin.">
+          <defs>
+            <linearGradient id="bg-2" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#fff6e9" />
+              <stop offset="100%" stop-color="#e2f0ee" />
+            </linearGradient>
+            <marker id="arrow-up-2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+              <path d="M0 0 L8 4 L0 8 Z" fill="#96465d" />
+            </marker>
+            <marker id="arrow-down-2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+              <path d="M0 0 L8 4 L0 8 Z" fill="#d7a24c" />
+            </marker>
+          </defs>
+          <rect width="360" height="220" fill="url(#bg-2)" />
+          <path d="M24 56 C62 96 86 152 128 168 C162 182 188 112 218 102 C250 92 274 166 308 192 C328 206 342 126 346 64 L346 220 L24 220 Z" fill="rgba(37, 95, 102, 0.10)" />
+          <path d="M24 56 C62 96 86 152 128 168 C162 182 188 112 218 102 C250 92 274 166 308 192 C328 206 342 126 346 64" fill="none" stroke="#255f66" stroke-width="8" stroke-linecap="round" />
+          <circle cx="60" cy="94" r="9" fill="#d5633d" />
+          <path d="M60 94 C44 76 34 62 26 48" fill="none" stroke="#96465d" stroke-width="4" marker-end="url(#arrow-up-2)" />
+          <path d="M60 94 C78 116 94 132 114 148" fill="none" stroke="#d7a24c" stroke-width="4" marker-end="url(#arrow-down-2)" />
+          <text x="18" y="38" class="plot-label">gradient</text>
+          <text x="90" y="144" class="plot-label">-gradient</text>
+        </svg>
+      </article>
+
+      <article class="stage-card">
+        <div class="stage-top">
+          <h2>Take the First Downhill Step</h2>
+          <span class="stage-index">3</span>
+        </div>
+        <p>
+          One update moves the parameters toward a lower-loss spot. The point is better than before, but the algorithm still
+          has not explored the entire landscape.
+        </p>
+        <svg class="mini-plot" viewBox="0 0 360 220" role="img" aria-label="Stage 3: the point moves downhill after the first update.">
+          <defs>
+            <linearGradient id="bg-3" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#fff6e9" />
+              <stop offset="100%" stop-color="#e2f0ee" />
+            </linearGradient>
+            <marker id="arrow-step-3" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+              <path d="M0 0 L8 4 L0 8 Z" fill="#d7a24c" />
+            </marker>
+          </defs>
+          <rect width="360" height="220" fill="url(#bg-3)" />
+          <path d="M24 56 C62 96 86 152 128 168 C162 182 188 112 218 102 C250 92 274 166 308 192 C328 206 342 126 346 64 L346 220 L24 220 Z" fill="rgba(213, 99, 61, 0.12)" />
+          <path d="M24 56 C62 96 86 152 128 168 C162 182 188 112 218 102 C250 92 274 166 308 192 C328 206 342 126 346 64" fill="none" stroke="#255f66" stroke-width="8" stroke-linecap="round" />
+          <circle cx="60" cy="94" r="7" fill="rgba(213, 99, 61, 0.32)" />
+          <circle cx="96" cy="147" r="9" fill="#d5633d" />
+          <path d="M67 101 C74 114 82 126 89 138" fill="none" stroke="#d7a24c" stroke-width="4" stroke-dasharray="8 8" marker-end="url(#arrow-step-3)" />
+          <text x="108" y="126" class="plot-label">lower loss</text>
+        </svg>
+      </article>
+
+      <article class="stage-card">
+        <div class="stage-top">
+          <h2>Recompute and Repeat</h2>
+          <span class="stage-index">4</span>
+        </div>
+        <p>
+          After every move, the slope changes. Gradient descent checks again and again, taking a chain of locally sensible
+          steps that bend toward the nearest valley floor.
+        </p>
+        <svg class="mini-plot" viewBox="0 0 360 220" role="img" aria-label="Stage 4: repeated updates take the point into the nearby basin.">
+          <defs>
+            <linearGradient id="bg-4" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#fff6e9" />
+              <stop offset="100%" stop-color="#e2f0ee" />
+            </linearGradient>
+            <marker id="arrow-step-4" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+              <path d="M0 0 L8 4 L0 8 Z" fill="#d7a24c" />
+            </marker>
+          </defs>
+          <rect width="360" height="220" fill="url(#bg-4)" />
+          <path d="M24 56 C62 96 86 152 128 168 C162 182 188 112 218 102 C250 92 274 166 308 192 C328 206 342 126 346 64 L346 220 L24 220 Z" fill="rgba(37, 95, 102, 0.10)" />
+          <path d="M24 56 C62 96 86 152 128 168 C162 182 188 112 218 102 C250 92 274 166 308 192 C328 206 342 126 346 64" fill="none" stroke="#255f66" stroke-width="8" stroke-linecap="round" />
+          <circle cx="60" cy="94" r="6" fill="rgba(213, 99, 61, 0.28)" />
+          <circle cx="96" cy="147" r="7" fill="rgba(213, 99, 61, 0.48)" />
+          <circle cx="121" cy="166" r="9" fill="#d5633d" />
+          <path d="M67 101 C74 114 82 126 89 138" fill="none" stroke="#d7a24c" stroke-width="4" stroke-dasharray="7 7" marker-end="url(#arrow-step-4)" />
+          <path d="M103 151 C109 158 114 162 118 164" fill="none" stroke="#d7a24c" stroke-width="4" stroke-dasharray="7 7" marker-end="url(#arrow-step-4)" />
+          <text x="148" y="160" class="plot-label">recompute slope</text>
+        </svg>
+      </article>
+
+      <article class="stage-card">
+        <div class="stage-top">
+          <h2>Slow Down Near the Bottom</h2>
+          <span class="stage-index">5</span>
+        </div>
+        <p>
+          Near the valley floor, the slope gets smaller. Updates shrink and the path may wobble a little from side to side
+          before settling.
+        </p>
+        <svg class="mini-plot" viewBox="0 0 360 220" role="img" aria-label="Stage 5: smaller steps and slight oscillation near the bottom of the local basin.">
+          <defs>
+            <linearGradient id="bg-5" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#fff6e9" />
+              <stop offset="100%" stop-color="#e2f0ee" />
+            </linearGradient>
+            <marker id="arrow-small-5" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+              <path d="M0 0 L8 4 L0 8 Z" fill="#d7a24c" />
+            </marker>
+          </defs>
+          <rect width="360" height="220" fill="url(#bg-5)" />
+          <path d="M24 56 C62 96 86 152 128 168 C162 182 188 112 218 102 C250 92 274 166 308 192 C328 206 342 126 346 64 L346 220 L24 220 Z" fill="rgba(213, 99, 61, 0.12)" />
+          <path d="M24 56 C62 96 86 152 128 168 C162 182 188 112 218 102 C250 92 274 166 308 192 C328 206 342 126 346 64" fill="none" stroke="#255f66" stroke-width="8" stroke-linecap="round" />
+          <circle cx="116" cy="168" r="6" fill="rgba(213, 99, 61, 0.34)" />
+          <circle cx="135" cy="169" r="6" fill="rgba(213, 99, 61, 0.34)" />
+          <circle cx="126" cy="168" r="9" fill="#d5633d" />
+          <path d="M118 166 C121 161 124 160 126 161" fill="none" stroke="#d7a24c" stroke-width="3" marker-end="url(#arrow-small-5)" />
+          <path d="M133 166 C130 161 128 160 127 161" fill="none" stroke="#d7a24c" stroke-width="3" marker-end="url(#arrow-small-5)" />
+          <text x="146" y="154" class="plot-label">tiny updates</text>
+        </svg>
+      </article>
+
+      <article class="stage-card">
+        <div class="stage-top">
+          <h2>Stop at a Local Minimum</h2>
+          <span class="stage-index">6</span>
+        </div>
+        <p>
+          Once the nearby slope is close to zero, the algorithm has no local reason to leave. It has reached a local minimum,
+          even though a deeper valley may exist somewhere else on the surface.
+        </p>
+        <svg class="mini-plot" viewBox="0 0 360 220" role="img" aria-label="Stage 6: gradient descent settles into a local minimum while a deeper basin still exists elsewhere.">
+          <defs>
+            <linearGradient id="bg-6" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#fff6e9" />
+              <stop offset="100%" stop-color="#e2f0ee" />
+            </linearGradient>
+          </defs>
+          <rect width="360" height="220" fill="url(#bg-6)" />
+          <path d="M24 56 C62 96 86 152 128 168 C162 182 188 112 218 102 C250 92 274 166 308 192 C328 206 342 126 346 64 L346 220 L24 220 Z" fill="rgba(37, 95, 102, 0.10)" />
+          <path d="M24 56 C62 96 86 152 128 168 C162 182 188 112 218 102 C250 92 274 166 308 192 C328 206 342 126 346 64" fill="none" stroke="#255f66" stroke-width="8" stroke-linecap="round" />
+          <circle cx="128" cy="168" r="24" fill="rgba(45, 138, 92, 0.18)" />
+          <circle cx="128" cy="168" r="10" fill="#2d8a5c" />
+          <circle cx="308" cy="192" r="18" fill="rgba(150, 70, 93, 0.08)" stroke="#96465d" stroke-width="2" stroke-dasharray="6 8" />
+          <line x1="112" y1="168" x2="146" y2="168" stroke="#1b2a31" stroke-width="3" stroke-linecap="round" />
+          <text x="78" y="144" class="plot-label">slope ~ 0</text>
+          <text x="102" y="206" class="plot-label">local minimum</text>
+          <text x="246" y="188" class="plot-label plot-faint">deeper basin</text>
+        </svg>
+      </article>
+    </section>
+
+    <section class="takeaway">
+      <p class="eyebrow">Core Intuition</p>
+      <h2>Gradient descent is locally smart, not globally all-seeing.</h2>
+      <p>
+        That is the central idea. The algorithm is excellent at following a nearby downhill direction, but it does not know
+        whether another valley behind a hill is lower unless some strategy such as restarts, momentum, noise, or a different
+        initialization helps it discover a new region.
+      </p>
+    </section>
+
+    <section class="global-panel">
+      <div class="global-copy">
+        <p class="eyebrow">Why Global Minima Are Tricky</p>
+        <h2>The deepest valley may not be the one you should chase blindly.</h2>
+        <p>
+          In principle, a global minimum is the lowest point on the whole loss surface. In practice, gradient-based training
+          usually has no map of the full terrain, may need to move uphill to escape a basin, and can spend huge effort proving
+          global optimality. In deep learning, the deepest training valley is also not guaranteed to be the best at generalizing
+          to new data.
+        </p>
+        <div class="problem-grid">
+          <div class="problem">
+            <strong>No full landscape view</strong>
+            <span>The optimizer only sees local slope where it currently stands, not every valley at once.</span>
+          </div>
+          <div class="problem">
+            <strong>Escape may require an uphill move</strong>
+            <span>To reach a deeper basin, the path may first need to climb out of the current one, which pure gradient descent resists.</span>
+          </div>
+          <div class="problem">
+            <strong>Deepest training point is not always best</strong>
+            <span>A sharper global minimum can fit the training set extremely well yet generalize worse than a broader, flatter basin.</span>
+          </div>
+        </div>
+      </div>
+
+      <svg class="big-plot" viewBox="0 0 520 320" role="img" aria-label="A comparison visual showing a local minimum and a global minimum on a rugged loss landscape, with a dashed path that would have to go uphill before reaching the deeper global basin.">
+        <defs>
+          <linearGradient id="bg-7" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#fff6e9" />
+            <stop offset="100%" stop-color="#ddefeb" />
+          </linearGradient>
+          <marker id="arrow-global-7" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+            <path d="M0 0 L8 4 L0 8 Z" fill="#d7a24c" />
+          </marker>
+        </defs>
+        <rect width="520" height="320" fill="url(#bg-7)" />
+        <path d="M26 72 C80 114 112 222 170 236 C226 250 254 126 302 116 C356 104 386 226 438 266 C468 288 490 158 496 78 L496 320 L26 320 Z" fill="rgba(213, 99, 61, 0.14)" />
+        <path d="M26 72 C80 114 112 222 170 236 C226 250 254 126 302 116 C356 104 386 226 438 266 C468 288 490 158 496 78" fill="none" stroke="#255f66" stroke-width="10" stroke-linecap="round" />
+
+        <circle cx="170" cy="236" r="34" fill="rgba(45, 138, 92, 0.18)" />
+        <circle cx="170" cy="236" r="11" fill="#2d8a5c" />
+        <circle cx="438" cy="266" r="36" fill="rgba(150, 70, 93, 0.2)" />
+        <circle cx="438" cy="266" r="11" fill="#96465d" />
+
+        <path d="M170 236 C208 220 246 160 302 116 C344 84 384 188 430 256" fill="none" stroke="#d7a24c" stroke-width="5" stroke-dasharray="10 10" marker-end="url(#arrow-global-7)" />
+
+        <rect x="38" y="30" width="134" height="38" rx="19" fill="#1f2f38" />
+        <text x="55" y="55" class="plot-note">you only feel the slope here</text>
+
+        <rect x="108" y="270" width="122" height="34" rx="17" fill="#2d8a5c" />
+        <text x="132" y="292" class="plot-note">local minimum</text>
+
+        <rect x="366" y="280" width="128" height="34" rx="17" fill="#96465d" />
+        <text x="389" y="302" class="plot-note">global minimum</text>
+
+        <rect x="280" y="28" width="182" height="38" rx="19" fill="#d5633d" />
+        <text x="302" y="53" class="plot-note">reaching this may require climbing first</text>
+
+        <line x1="145" y1="212" x2="92" y2="66" stroke="#1f2f38" stroke-width="3" />
+        <line x1="298" y1="112" x2="340" y2="66" stroke="#d5633d" stroke-width="3" />
+      </svg>
+    </section>
+
+    <p class="footer-note">
+      A useful mental model: local minima are what gradient descent finds by following nearby slope; global minima are a whole-landscape question.
+    </p>
+  </main>
+</body>
+</html>

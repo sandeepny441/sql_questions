@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pilot Metrics Deck</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #f4f5f7;
+        --card: #ffffff;
+        --ink: #0d1526;
+        --muted: #6f7788;
+        --line: #e8ebf0;
+        --control: #244cff;
+        --control-soft: #8cb5ff;
+        --treatment: #d94a57;
+        --treatment-soft: #f3a1aa;
+        --unassigned: #4e607d;
+        --unassigned-soft: #c7d1df;
+        --positive: #22a55b;
+        --negative: #d94a57;
+        --nav: #18a44c;
+        --shadow: 0 24px 90px rgba(18, 28, 45, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+      }
+
+      body {
+        min-height: 100vh;
+        font-family: "Manrope", sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, rgba(36, 76, 255, 0.08), transparent 24%),
+          radial-gradient(circle at bottom right, rgba(24, 164, 76, 0.08), transparent 22%),
+          linear-gradient(180deg, #f5f6f8 0%, #eef1f4 100%);
+        overflow: hidden;
+      }
+
+      .deck-shell {
+        position: relative;
+        height: 100vh;
+        padding: 18px 18px 72px;
+      }
+
+      .slide-card {
+        width: min(1540px, 100%);
+        height: 100%;
+        margin: 0 auto;
+        padding: 28px 28px 24px;
+        border: 1px solid rgba(13, 21, 38, 0.05);
+        border-radius: 28px;
+        background: var(--card);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .slide-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 56fr) minmax(0, 44fr);
+        gap: 14px;
+        height: 100%;
+      }
+
+      .slide-main {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+
+      .chart-stage {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        justify-content: flex-start;
+        padding: 8px 0 12px 16px;
+      }
+
+      .chart-top {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .chart-view {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+        width: 100%;
+      }
+
+      .chart-view-grouped-bars,
+      .chart-view-dumbbell,
+      .chart-view-slope {
+        align-items: flex-start;
+      }
+
+      .chart-svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      .slide-title {
+        margin: 0 0 14px;
+        font-size: clamp(2rem, 3.2vw, 3rem);
+        line-height: 1;
+        letter-spacing: -0.07em;
+        font-weight: 800;
+      }
+
+      .period-pair {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        width: min(470px, 100%);
+      }
+
+      .period-header {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        text-align: center;
+        padding: 7px 10px 8px;
+        border-radius: 16px;
+        background: #f7f8fb;
+      }
+
+      .period-title {
+        font-size: 0.95rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+
+      .period-title.before {
+        color: #20314d;
+      }
+
+      .period-title.during {
+        color: var(--control);
+      }
+
+      .period-dates {
+        font-size: 0.76rem;
+        color: var(--muted);
+      }
+
+      .period-days {
+        font-size: 0.72rem;
+        color: #8b93a4;
+      }
+
+      .rows {
+        display: grid;
+        gap: 18px;
+        margin-top: 4px;
+        grid-template-rows: repeat(3, minmax(0, 1fr));
+        align-content: stretch;
+        flex: 1;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 46px minmax(0, 1fr) 52px 52px;
+        align-items: center;
+        column-gap: 10px;
+      }
+
+      .row-label {
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+
+      .row-label.control {
+        color: var(--control);
+      }
+
+      .row-label.treatment {
+        color: #b4313f;
+      }
+
+      .row-label.unassigned {
+        color: var(--unassigned);
+      }
+
+      .metric-value,
+      .metric-during {
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+
+      .metric-value {
+        text-align: right;
+      }
+
+      .metric-during {
+        text-align: left;
+      }
+
+      .delta {
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+
+      .delta.positive {
+        color: var(--positive);
+      }
+
+      .delta.negative {
+        color: var(--negative);
+      }
+
+      .bars {
+        position: relative;
+        height: 88px;
+        padding-top: 20px;
+      }
+
+      .bars-track {
+        position: relative;
+        height: 100%;
+      }
+
+      .bars-track::before {
+        position: absolute;
+        top: -8px;
+        bottom: -8px;
+        left: 50%;
+        width: 2px;
+        background: #2b3140;
+        opacity: 0.2;
+        transform: translateX(-50%);
+        content: "";
+      }
+
+      .bars-label {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        white-space: nowrap;
+      }
+
+      .bars-label.control {
+        color: var(--control);
+      }
+
+      .bars-label.treatment {
+        color: #b4313f;
+      }
+
+      .bars-label.unassigned {
+        color: var(--unassigned);
+      }
+
+      .half {
+        position: absolute;
+        top: 0;
+        width: calc(50% - 10px);
+        height: 100%;
+      }
+
+      .half.before {
+        left: 0;
+      }
+
+      .half.during {
+        right: 0;
+      }
+
+      .bar {
+        position: absolute;
+        top: 0;
+        height: 100%;
+        border-radius: 8px;
+      }
+
+      .half.before .bar {
+        right: 0;
+      }
+
+      .half.during .bar {
+        left: 0;
+      }
+
+      .slide-aside {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        min-width: 0;
+        height: 100%;
+        padding-left: 28px;
+        border-left: 1px solid var(--line);
+      }
+
+      .aside-label {
+        margin: 0 0 12px;
+        font-size: 0.8rem;
+        font-weight: 800;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: #7b8290;
+      }
+
+      .insights {
+        display: grid;
+        grid-template-rows: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        flex: 1;
+      }
+
+      .insight {
+        display: grid;
+        grid-template-columns: 4px minmax(0, 1fr);
+        gap: 14px;
+        align-items: start;
+        min-height: 0;
+      }
+
+      .insight-line {
+        width: 4px;
+        height: 100%;
+        min-height: 48px;
+        border-radius: 999px;
+      }
+
+      .insight-line.control {
+        background: var(--control);
+      }
+
+      .insight-line.treatment {
+        background: var(--treatment);
+      }
+
+      .insight-line.unassigned {
+        background: var(--unassigned);
+      }
+
+      .insight-line.neutral {
+        background: #bbc3cf;
+      }
+
+      .insight-copy {
+        margin: 0;
+        color: #1b2436;
+        font-size: 1.14rem;
+        line-height: 1.42;
+      }
+
+      .insight-copy strong {
+        font-weight: 800;
+      }
+
+      .nav-button {
+        position: fixed;
+        bottom: 14px;
+        z-index: 20;
+        width: 54px;
+        height: 54px;
+        border: 0;
+        border-radius: 999px;
+        background: var(--nav);
+        color: #fff;
+        box-shadow: 0 14px 28px rgba(24, 164, 76, 0.28);
+        font-size: 1.4rem;
+        cursor: pointer;
+      }
+
+      .nav-button span {
+        display: inline-block;
+        transform: translateY(-1px);
+      }
+
+      .nav-left {
+        left: 18px;
+      }
+
+      .nav-right {
+        right: 18px;
+      }
+
+      .nav-button:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+
+      .deck-progress {
+        position: fixed;
+        left: 50%;
+        bottom: 26px;
+        z-index: 20;
+        display: flex;
+        gap: 8px;
+        transform: translateX(-50%);
+      }
+
+      .progress-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: #d7dde7;
+      }
+
+      .progress-dot.active {
+        background: var(--control);
+        box-shadow: 0 0 0 6px rgba(36, 76, 255, 0.1);
+      }
+
+      @media (max-width: 1180px) {
+        body {
+          overflow: auto;
+        }
+
+        .slide-card {
+          height: auto;
+          min-height: calc(100vh - 36px);
+          padding: 28px 24px 30px;
+          overflow: visible;
+        }
+
+        .slide-layout {
+          grid-template-columns: 1fr;
+          gap: 30px;
+          height: auto;
+        }
+
+        .chart-stage {
+          padding-left: 0;
+          padding-bottom: 0;
+        }
+
+        .slide-aside {
+          padding-left: 0;
+          border-left: 0;
+          border-top: 1px solid var(--line);
+          padding-top: 28px;
+          height: auto;
+        }
+
+        .insights {
+          grid-template-rows: none;
+        }
+      }
+
+      @media (max-width: 860px) {
+        .slide-title {
+          font-size: clamp(2.1rem, 10vw, 3rem);
+        }
+
+        .row {
+          grid-template-columns: 44px minmax(0, 1fr) 48px 52px;
+          column-gap: 8px;
+        }
+
+        .metric-value,
+        .metric-during,
+        .delta {
+          font-size: 0.9rem;
+        }
+
+        .bars {
+          height: 62px;
+          padding-top: 16px;
+        }
+
+        .bars-label {
+          font-size: 0.74rem;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .deck-shell {
+          padding: 12px 12px 90px;
+        }
+
+        .slide-card {
+          min-height: auto;
+          height: auto;
+          padding: 24px 18px 28px;
+          border-radius: 22px;
+        }
+
+        .period-pair {
+          grid-template-columns: 1fr;
+          gap: 12px;
+        }
+
+        .rows {
+          gap: 20px;
+        }
+
+        .row {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+
+        .chart-stage {
+          padding-top: 0;
+        }
+
+        .metric-value,
+        .metric-during,
+        .delta {
+          text-align: left;
+        }
+
+        .bars {
+          order: 4;
+          height: 58px;
+          padding-top: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="deck-shell">
+      <main class="slide-card" id="slide-root"></main>
+
+      <button class="nav-button nav-left" id="prev-slide" type="button" aria-label="Previous slide">
+        <span>&larr;</span>
+      </button>
+      <button class="nav-button nav-right" id="next-slide" type="button" aria-label="Next slide">
+        <span>&rarr;</span>
+      </button>
+
+      <div class="deck-progress" id="deck-progress" aria-label="Slide progress"></div>
+    </div>
+
+    <script>
+      const palette = {
+        series: {
+          control: {
+            before: "#8cb5ff",
+            during: "#244cff",
+            label: "#244cff",
+          },
+          treatment: {
+            before: "#f3a1aa",
+            during: "#d94a57",
+            label: "#b4313f",
+          },
+          unassigned: {
+            before: "#c7d1df",
+            during: "#4e607d",
+            label: "#4e607d",
+          },
+        },
+        ink: "#0d1526",
+        muted: "#6f7788",
+        line: "#e8ebf0",
+        grid: "#edf0f4",
+        neutral: "#bbc3cf",
+        positive: "#22a55b",
+        negative: "#d94a57",
+      };
+
+      const slides = [
+        {
+          metric: "Imports",
+          chartType: "mirror-bars",
+          beforeLabel: "Before Pilot",
+          beforeDates: "Mar 27 - Apr 19",
+          duringLabel: "During Pilot",
+          duringDates: "Apr 20 - May 13",
+          days: "24 days",
+          rows: [
+            { label: "Control", className: "control", before: 409, during: 423, deltaPct: 3 },
+            { label: "Treatment", className: "treatment", before: 179, during: 161, deltaPct: -10 },
+            { label: "Unassigned", className: "unassigned", before: 288, during: 321, deltaPct: 11 },
+          ],
+          insights: [
+            {
+              tone: "neutral",
+              html:
+                "<strong>Treatment is the only group down at the top of funnel.</strong> Control rose from 409 to 423 and Unassigned rose from 288 to 321, while Treatment fell from 179 to 161.",
+            },
+            {
+              tone: "control",
+              html:
+                "<strong>Control: +3%</strong> from 409 to 423 imports. The baseline market was stable to slightly up entering the pilot period.",
+            },
+            {
+              tone: "treatment",
+              html:
+                "<strong>Treatment: -10%</strong> from 179 to 161 imports. That early drop suggests loan officers were importing fewer loans they expected to price competitively.",
+            },
+            {
+              tone: "unassigned",
+              html:
+                "<strong>Unassigned: +11%</strong> from 288 to 321 imports. Since the residual population also grew, the Treatment weakness looks behavioral rather than seasonal.",
+            },
+          ],
+        },
+        {
+          metric: "Submissions",
+          chartType: "mirror-bars",
+          beforeLabel: "Before Pilot",
+          beforeDates: "Mar 27 - Apr 19",
+          duringLabel: "During Pilot",
+          duringDates: "Apr 20 - May 13",
+          days: "24 days",
+          rows: [
+            { label: "Control", className: "control", before: 185, during: 199, deltaPct: 8 },
+            { label: "Treatment", className: "treatment", before: 96, during: 72, deltaPct: -25 },
+            { label: "Unassigned", className: "unassigned", before: 124, during: 138, deltaPct: 11 },
+          ],
+          insights: [
+            {
+              tone: "neutral",
+              html:
+                "<strong>Treatment is the only group moving backward.</strong> Control grew from 185 to 199 and Unassigned grew from 124 to 138, while Treatment fell from 96 to 72 in the same matched 24-day window.",
+            },
+            {
+              tone: "control",
+              html:
+                "<strong>Control: +8%</strong> from 185 to 199 submissions. That reads like normal market momentum rather than any drag from the pilot period.",
+            },
+            {
+              tone: "treatment",
+              html:
+                "<strong>Treatment: -25%</strong> from 96 to 72 submissions. This is the sharpest deterioration across the four core production metrics.",
+            },
+            {
+              tone: "unassigned",
+              html:
+                "<strong>Unassigned: +11%</strong> from 124 to 138 submissions. Broader growth makes the Treatment drop harder to dismiss as noise.",
+            },
+          ],
+        },
+        {
+          metric: "Locks",
+          chartType: "dumbbell",
+          beforeLabel: "Before Pilot",
+          beforeDates: "Mar 27 - Apr 19",
+          duringLabel: "During Pilot",
+          duringDates: "Apr 20 - May 13",
+          days: "24 days",
+          rows: [
+            { label: "Control", className: "control", before: 209, during: 256, deltaPct: 22 },
+            { label: "Treatment", className: "treatment", before: 89, during: 100, deltaPct: 12 },
+            { label: "Unassigned", className: "unassigned", before: 174, during: 211, deltaPct: 21 },
+          ],
+          insights: [
+            {
+              tone: "neutral",
+              html:
+                "<strong>Lock volume grew everywhere, but Treatment lagged the market.</strong> Control and Unassigned both expanded above 21%, while Treatment rose only from 89 to 100.",
+            },
+            {
+              tone: "control",
+              html:
+                "<strong>Control: +22%</strong> from 209 to 256 locks. The baseline market kept building downstream inventory during the pilot window.",
+            },
+            {
+              tone: "treatment",
+              html:
+                "<strong>Treatment: +12%</strong> from 89 to 100 locks. Positive on the surface, but roughly half the Control growth rate, which points to weaker pull-through than the market benchmark.",
+            },
+            {
+              tone: "unassigned",
+              html:
+                "<strong>Unassigned: +21%</strong> from 174 to 211 locks. This second benchmark reinforces that downstream demand was still healthy outside the pilot cohort.",
+            },
+          ],
+        },
+        {
+          metric: "Wires",
+          chartType: "slope",
+          beforeLabel: "Before Pilot",
+          beforeDates: "Mar 27 - Apr 19",
+          duringLabel: "During Pilot",
+          duringDates: "Apr 20 - May 13",
+          days: "24 days",
+          rows: [
+            { label: "Control", className: "control", before: 171, during: 174, deltaPct: 2 },
+            { label: "Treatment", className: "treatment", before: 77, during: 69, deltaPct: -10 },
+            { label: "Unassigned", className: "unassigned", before: 108, during: 120, deltaPct: 11 },
+          ],
+          insights: [
+            {
+              tone: "neutral",
+              html:
+                "<strong>By the closing stage, Treatment is again the only group down.</strong> Control stayed essentially flat and Unassigned moved higher, while Treatment fell from 77 to 69 wires.",
+            },
+            {
+              tone: "control",
+              html:
+                "<strong>Control: +2%</strong> from 171 to 174 wires. Closings held steady, which is what you would expect from loans already in process before the pilot.",
+            },
+            {
+              tone: "treatment",
+              html:
+                "<strong>Treatment: -10%</strong> from 77 to 69 wires. The decline is smaller than Submissions because wires lag earlier funnel changes, but the direction still confirms weaker production flow.",
+            },
+            {
+              tone: "unassigned",
+              html:
+                "<strong>Unassigned: +11%</strong> from 108 to 120 wires. Market-wide closing growth makes the Treatment decline more notable, not less.",
+            },
+          ],
+        },
+      ];
+
+      let currentSlideIndex = 0;
+
+      function tonesFor(className) {
+        return palette.series[className];
+      }
+
+      function number(value) {
+        return new Intl.NumberFormat("en-US").format(value);
+      }
+
+      function deltaText(value) {
+        return `${value >= 0 ? "+" : ""}${value}%`;
+      }
+
+      function renderPeriodHeader(slide) {
+        return `
+          <div class="chart-top">
+            <div class="period-pair">
+              <div class="period-header">
+                <span class="period-title before">${slide.beforeLabel}</span>
+                <span class="period-dates">${slide.beforeDates}</span>
+                <span class="period-days">${slide.days}</span>
+              </div>
+              <div class="period-header">
+                <span class="period-title during">${slide.duringLabel}</span>
+                <span class="period-dates">${slide.duringDates}</span>
+                <span class="period-days">${slide.days}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderMirrorRows(slide) {
+        const maxValue = Math.max(...slide.rows.flatMap((row) => [row.before, row.during]));
+
+        return `
+          <div class="rows">
+            ${slide.rows
+              .map((row) => {
+                const tones = tonesFor(row.className);
+                const beforeWidth = (row.before / maxValue) * 100;
+                const duringWidth = (row.during / maxValue) * 100;
+                const deltaClass = row.deltaPct >= 0 ? "positive" : "negative";
+
+                return `
+                  <div class="row">
+                    <div class="metric-value">${number(row.before)}</div>
+                    <div class="bars" aria-label="${row.label} ${slide.metric.toLowerCase()} comparison">
+                      <div class="bars-label ${row.className}">${row.label}</div>
+                      <div class="bars-track">
+                        <div class="half before">
+                          <div class="bar" style="width: ${beforeWidth}%; background: ${tones.before};"></div>
+                        </div>
+                        <div class="half during">
+                          <div class="bar" style="width: ${duringWidth}%; background: ${tones.during};"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="metric-during">${number(row.during)}</div>
+                    <div class="delta ${deltaClass}">${deltaText(row.deltaPct)}</div>
+                  </div>
+                `;
+              })
+              .join("")}
+          </div>
+        `;
+      }
+
+      function renderGroupedBarsChart(slide) {
+        const width = 920;
+        const height = 520;
+        const baseline = 404;
+        const barMaxHeight = 238;
+        const maxValue = Math.max(...slide.rows.flatMap((row) => [row.before, row.during]));
+        const centers = [182, 460, 738];
+        const barWidth = 82;
+        const gap = 22;
+
+        const gridLines = [0.25, 0.5, 0.75, 1]
+          .map((fraction) => {
+            const y = baseline - barMaxHeight * fraction;
+            return `<line x1="56" y1="${y}" x2="864" y2="${y}" stroke="${palette.grid}" stroke-width="2" />`;
+          })
+          .join("");
+
+        const groups = slide.rows
+          .map((row, index) => {
+            const tones = tonesFor(row.className);
+            const center = centers[index];
+            const beforeHeight = (row.before / maxValue) * barMaxHeight;
+            const duringHeight = (row.during / maxValue) * barMaxHeight;
+            const beforeX = center - gap / 2 - barWidth;
+            const duringX = center + gap / 2;
+            const beforeY = baseline - beforeHeight;
+            const duringY = baseline - duringHeight;
+
+            return `
+              <text x="${beforeX + barWidth / 2}" y="${beforeY - 16}" text-anchor="middle" fill="${palette.ink}" font-size="22" font-weight="800">${number(row.before)}</text>
+              <rect x="${beforeX}" y="${beforeY}" width="${barWidth}" height="${beforeHeight}" rx="12" fill="${tones.before}" />
+              <text x="${duringX + barWidth / 2}" y="${duringY - 16}" text-anchor="middle" fill="${palette.ink}" font-size="22" font-weight="800">${number(row.during)}</text>
+              <rect x="${duringX}" y="${duringY}" width="${barWidth}" height="${duringHeight}" rx="12" fill="${tones.during}" />
+              <text x="${center}" y="${baseline + 48}" text-anchor="middle" fill="${tones.label}" font-size="24" font-weight="800">${row.label}</text>
+              <text x="${center}" y="${baseline + 82}" text-anchor="middle" fill="${row.deltaPct >= 0 ? palette.positive : palette.negative}" font-size="22" font-weight="800">${deltaText(row.deltaPct)}</text>
+            `;
+          })
+          .join("");
+
+        return `
+          <svg class="chart-svg" viewBox="0 0 ${width} ${height}" aria-label="${slide.metric} grouped bar chart">
+            ${gridLines}
+            <line x1="56" y1="${baseline}" x2="864" y2="${baseline}" stroke="${palette.line}" stroke-width="2" />
+            ${groups}
+          </svg>
+        `;
+      }
+
+      function renderDumbbellChart(slide) {
+        const width = 920;
+        const height = 520;
+        const yPositions = [126, 264, 402];
+        const plotStart = 116;
+        const plotEnd = 804;
+        const allValues = slide.rows.flatMap((row) => [row.before, row.during]);
+        const minValue = Math.min(...allValues);
+        const maxValue = Math.max(...allValues);
+        const domainMin = Math.max(0, minValue - (maxValue - minValue) * 0.2);
+        const domainMax = maxValue + (maxValue - minValue) * 0.1;
+        const scale = (value) =>
+          plotStart + ((value - domainMin) / (domainMax - domainMin)) * (plotEnd - plotStart);
+
+        const guides = [0, 0.25, 0.5, 0.75, 1]
+          .map((fraction) => {
+            const x = plotStart + (plotEnd - plotStart) * fraction;
+            return `<line x1="${x}" y1="70" x2="${x}" y2="450" stroke="${palette.grid}" stroke-width="2" />`;
+          })
+          .join("");
+
+        const rows = slide.rows
+          .map((row, index) => {
+            const tones = tonesFor(row.className);
+            const y = yPositions[index];
+            const beforeX = scale(row.before);
+            const duringX = scale(row.during);
+            const labelsTight = Math.abs(duringX - beforeX) < 60;
+            const beforeLabel = labelsTight
+              ? `<text x="${beforeX - 12}" y="${y - 26}" text-anchor="end" fill="${palette.ink}" font-size="19" font-weight="800">${number(row.before)}</text>`
+              : `<text x="${beforeX}" y="${y - 26}" text-anchor="middle" fill="${palette.ink}" font-size="19" font-weight="800">${number(row.before)}</text>`;
+            const duringLabel = labelsTight
+              ? `<text x="${duringX + 12}" y="${y - 26}" text-anchor="start" fill="${palette.ink}" font-size="19" font-weight="800">${number(row.during)}</text>`
+              : `<text x="${duringX}" y="${y - 26}" text-anchor="middle" fill="${palette.ink}" font-size="19" font-weight="800">${number(row.during)}</text>`;
+            const labelX = (beforeX + duringX) / 2;
+            return `
+              <text x="${labelX}" y="${y - 52}" text-anchor="middle" fill="${tones.label}" font-size="21" font-weight="800">${row.label}</text>
+              <line x1="${plotStart}" y1="${y}" x2="${plotEnd}" y2="${y}" stroke="${palette.line}" stroke-width="6" stroke-linecap="round" />
+              <line x1="${beforeX}" y1="${y}" x2="${duringX}" y2="${y}" stroke="${tones.during}" stroke-width="8" stroke-linecap="round" />
+              <circle cx="${beforeX}" cy="${y}" r="14" fill="${tones.before}" stroke="#ffffff" stroke-width="4" />
+              <circle cx="${duringX}" cy="${y}" r="14" fill="${tones.during}" stroke="#ffffff" stroke-width="4" />
+              ${beforeLabel}
+              ${duringLabel}
+              <text x="884" y="${y + 8}" text-anchor="end" fill="${row.deltaPct >= 0 ? palette.positive : palette.negative}" font-size="22" font-weight="800">${deltaText(row.deltaPct)}</text>
+            `;
+          })
+          .join("");
+
+        return `
+          <svg class="chart-svg" viewBox="0 0 ${width} ${height}" aria-label="${slide.metric} dumbbell comparison chart">
+            ${guides}
+            ${rows}
+          </svg>
+        `;
+      }
+
+      function renderSlopeChart(slide) {
+        const width = 920;
+        const height = 520;
+        const xBefore = 176;
+        const xDuring = 774;
+        const top = 88;
+        const bottom = 430;
+        const allValues = slide.rows.flatMap((row) => [row.before, row.during]);
+        const minValue = Math.min(...allValues);
+        const maxValue = Math.max(...allValues);
+        const domainMin = Math.max(0, minValue - 14);
+        const domainMax = maxValue + 14;
+        const scaleY = (value) => bottom - ((value - domainMin) / (domainMax - domainMin)) * (bottom - top);
+
+        const guides = [0, 0.25, 0.5, 0.75, 1]
+          .map((fraction) => {
+            const y = top + (bottom - top) * fraction;
+            return `<line x1="112" y1="${y}" x2="806" y2="${y}" stroke="${palette.grid}" stroke-width="2" />`;
+          })
+          .join("");
+
+        const columns = `
+          <text x="${xBefore}" y="${top - 40}" text-anchor="middle" fill="${palette.muted}" font-size="18" font-weight="800">Before Pilot</text>
+          <text x="${xDuring}" y="${top - 40}" text-anchor="middle" fill="${palette.muted}" font-size="18" font-weight="800">During Pilot</text>
+          <line x1="${xBefore}" y1="${top - 22}" x2="${xBefore}" y2="${bottom + 26}" stroke="${palette.line}" stroke-width="3" />
+          <line x1="${xDuring}" y1="${top - 22}" x2="${xDuring}" y2="${bottom + 26}" stroke="${palette.line}" stroke-width="3" />
+        `;
+
+        const series = slide.rows
+          .map((row) => {
+            const tones = tonesFor(row.className);
+            const beforeY = scaleY(row.before);
+            const duringY = scaleY(row.during);
+            const labelX = (xBefore + xDuring) / 2;
+            const labelY = Math.min(beforeY, duringY) - 28;
+            return `
+              <line x1="${xBefore}" y1="${beforeY}" x2="${xDuring}" y2="${duringY}" stroke="${tones.during}" stroke-width="8" stroke-linecap="round" />
+              <circle cx="${xBefore}" cy="${beforeY}" r="12" fill="${tones.before}" stroke="#ffffff" stroke-width="4" />
+              <circle cx="${xDuring}" cy="${duringY}" r="12" fill="${tones.during}" stroke="#ffffff" stroke-width="4" />
+              <text x="${labelX}" y="${labelY}" text-anchor="middle" fill="${tones.label}" font-size="19" font-weight="800">${row.label}</text>
+              <text x="${xBefore - 24}" y="${beforeY + 18}" text-anchor="end" fill="${palette.ink}" font-size="18" font-weight="800">${number(row.before)}</text>
+              <text x="${xDuring + 20}" y="${duringY + 4}" text-anchor="start" fill="${palette.ink}" font-size="19" font-weight="800">${number(row.during)}</text>
+              <text x="882" y="${duringY + 4}" text-anchor="end" fill="${row.deltaPct >= 0 ? palette.positive : palette.negative}" font-size="19" font-weight="800">${deltaText(row.deltaPct)}</text>
+            `;
+          })
+          .join("");
+
+        return `
+          <svg class="chart-svg" viewBox="0 0 ${width} ${height}" aria-label="${slide.metric} slope comparison chart">
+            ${guides}
+            ${columns}
+            ${series}
+          </svg>
+        `;
+      }
+
+      function renderChart(slide) {
+        switch (slide.chartType) {
+          case "grouped-bars":
+            return renderGroupedBarsChart(slide);
+          case "mirror-bars":
+            return renderMirrorRows(slide);
+          case "dumbbell":
+            return renderDumbbellChart(slide);
+          case "slope":
+            return renderSlopeChart(slide);
+          default:
+            return renderMirrorRows(slide);
+        }
+      }
+
+      function renderInsights(insights) {
+        return insights
+          .map(
+            (insight) => `
+              <div class="insight">
+                <div class="insight-line ${insight.tone}"></div>
+                <p class="insight-copy">${insight.html}</p>
+              </div>
+            `,
+          )
+          .join("");
+      }
+
+      function renderProgress() {
+        const root = document.getElementById("deck-progress");
+        root.innerHTML = slides
+          .map(
+            (_, index) =>
+              `<span class="progress-dot${index === currentSlideIndex ? " active" : ""}"></span>`,
+          )
+          .join("");
+      }
+
+      function updateNav() {
+        const prev = document.getElementById("prev-slide");
+        const next = document.getElementById("next-slide");
+        prev.disabled = currentSlideIndex === 0;
+        next.disabled = currentSlideIndex === slides.length - 1;
+      }
+
+      function renderSlide() {
+        const slide = slides[currentSlideIndex];
+        const root = document.getElementById("slide-root");
+
+        root.innerHTML = `
+          <section class="slide-layout">
+            <div class="slide-main">
+              <h1 class="slide-title">${slide.metric}</h1>
+              <div class="chart-stage">
+                ${renderPeriodHeader(slide)}
+                <div class="chart-view chart-view-${slide.chartType}">
+                  ${renderChart(slide)}
+                </div>
+              </div>
+            </div>
+
+            <aside class="slide-aside">
+              <p class="aside-label">Key Insights</p>
+              <div class="insights">
+                ${renderInsights(slide.insights)}
+              </div>
+            </aside>
+          </section>
+        `;
+
+        renderProgress();
+        updateNav();
+      }
+
+      function changeSlide(direction) {
+        const nextIndex = currentSlideIndex + direction;
+        if (nextIndex < 0 || nextIndex >= slides.length) return;
+        currentSlideIndex = nextIndex;
+        renderSlide();
+      }
+
+      function boot() {
+        document.getElementById("prev-slide").addEventListener("click", () => changeSlide(-1));
+        document.getElementById("next-slide").addEventListener("click", () => changeSlide(1));
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "ArrowLeft") changeSlide(-1);
+          if (event.key === "ArrowRight") changeSlide(1);
+        });
+        renderSlide();
+      }
+
+      window.addEventListener("DOMContentLoaded", boot);
+    </script>
+  </body>
+</html>

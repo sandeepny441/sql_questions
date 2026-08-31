@@ -1,0 +1,79 @@
+<svg width="980" height="620" viewBox="0 0 980 620" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Gradient Descent Intuition</title>
+  <desc id="desc">A bowl-shaped loss curve with step-by-step gradient descent updates toward the minimum.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f8efe2"/>
+      <stop offset="100%" stop-color="#e7f0ef"/>
+    </linearGradient>
+    <linearGradient id="bowl" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#d96c4a" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#335c67" stop-opacity="0.18"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#243b53"/>
+    </marker>
+    <style>
+      text { font-family: Georgia, "Times New Roman", serif; fill: #1f2933; }
+      .small { font-size: 20px; }
+      .body { font-size: 24px; }
+      .label { font-size: 26px; font-weight: 700; }
+      .title { font-size: 34px; font-weight: 700; }
+      .formula { font-size: 28px; font-style: italic; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="980" height="620" fill="url(#bg)"/>
+
+  <text x="60" y="70" class="title">Gradient Descent, Intuitively</text>
+  <text x="60" y="110" class="body">Think: “I’m on a hill. The slope tells me which way goes uphill.”</text>
+  <text x="60" y="145" class="body">Gradient descent moves in the opposite direction, taking repeated downhill steps.</text>
+
+  <line x1="110" y1="470" x2="850" y2="470" stroke="#243b53" stroke-width="4"/>
+  <line x1="110" y1="470" x2="110" y2="190" stroke="#243b53" stroke-width="4"/>
+  <text x="770" y="515" class="label">parameter w</text>
+  <text x="35" y="215" class="label" transform="rotate(-90 35 215)">loss</text>
+
+  <path d="M 180 250
+           C 270 350, 330 430, 470 450
+           C 620 470, 710 410, 790 255"
+        fill="none" stroke="#c8553d" stroke-width="7" stroke-linecap="round"/>
+  <path d="M 180 250
+           C 270 350, 330 430, 470 450
+           C 620 470, 710 410, 790 255
+           L 790 470 L 180 470 Z"
+        fill="url(#bowl)"/>
+
+  <circle cx="240" cy="305" r="11" fill="#16324f"/>
+  <circle cx="330" cy="385" r="11" fill="#16324f"/>
+  <circle cx="430" cy="435" r="11" fill="#16324f"/>
+  <circle cx="515" cy="451" r="11" fill="#16324f"/>
+  <circle cx="570" cy="447" r="11" fill="#2f855a"/>
+
+  <text x="214" y="290" class="small">x0</text>
+  <text x="303" y="372" class="small">x1</text>
+  <text x="405" y="423" class="small">x2</text>
+  <text x="492" y="438" class="small">x3</text>
+  <text x="585" y="440" class="small">near minimum</text>
+
+  <line x1="252" y1="313" x2="317" y2="377" stroke="#243b53" stroke-width="4" marker-end="url(#arrow)"/>
+  <line x1="342" y1="392" x2="418" y2="431" stroke="#243b53" stroke-width="4" marker-end="url(#arrow)"/>
+  <line x1="442" y1="440" x2="503" y2="449" stroke="#243b53" stroke-width="4" marker-end="url(#arrow)"/>
+  <line x1="526" y1="451" x2="559" y2="448" stroke="#243b53" stroke-width="4" marker-end="url(#arrow)"/>
+
+  <text x="685" y="235" class="body">High loss</text>
+  <text x="602" y="488" class="body">Low loss</text>
+
+  <path d="M 260 210 C 300 160, 360 150, 410 175" fill="none" stroke="#7b8794" stroke-width="3" stroke-dasharray="8 7" marker-end="url(#arrow)"/>
+  <text x="420" y="178" class="small">gradient points uphill</text>
+
+  <path d="M 335 330 C 390 350, 435 390, 468 425" fill="none" stroke="#2f855a" stroke-width="3" stroke-dasharray="8 7" marker-end="url(#arrow)"/>
+  <text x="470" y="420" class="small">we move this way</text>
+
+  <rect x="585" y="60" width="320" height="112" rx="18" fill="#fffdf7" stroke="#d9c7a2" stroke-width="2"/>
+  <text x="607" y="103" class="body">Update rule:</text>
+  <text x="607" y="143" class="formula">w(new) = w(old) - learning rate * gradient</text>
+
+  <rect x="585" y="545" width="310" height="42" rx="12" fill="#fffdf7" stroke="#d9c7a2" stroke-width="2"/>
+  <text x="607" y="573" class="small">Repeat until the slope is close to zero.</text>
+</svg>

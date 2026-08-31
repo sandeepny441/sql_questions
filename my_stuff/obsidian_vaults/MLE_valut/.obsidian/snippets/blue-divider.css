@@ -1,0 +1,15 @@
+/* Blue vertical divider for two columns */
+div[style*="display: flex"] > div:not(:first-child) {
+    position: relative;
+}
+
+div[style*="display: flex"] > div:not(:first-child)::before {
+    content: "";
+    position: absolute;
+    left: -20px;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(#0066ff, #3399ff);
+    border-radius: 2px;
+}
